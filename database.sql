@@ -1,324 +1,446 @@
-CREATE DATABASE IF NOT EXISTS verifactu
+CREATE DATABASE IF NOT EXISTS `verifactu`
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
-USE verifactu;
+USE `verifactu`;
+
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- Limpieza previa (orden inverso a dependencias)
-DROP TABLE IF EXISTS registros_verifactu;
-DROP TABLE IF EXISTS albaran_factura;
-DROP TABLE IF EXISTS lineas_factura;
-DROP TABLE IF EXISTS lineas_albaran;
-DROP TABLE IF EXISTS facturas;
-DROP TABLE IF EXISTS albaranes;
-DROP TABLE IF EXISTS productos;
-DROP TABLE IF EXISTS series;
-DROP TABLE IF EXISTS clientes;
-DROP TABLE IF EXISTS impuestos;
+DROP TABLE IF EXISTS `Verifactu_Registros`;
+DROP TABLE IF EXISTS `Facturas_Sustituidas`;
+DROP TABLE IF EXISTS `Lineas_Facturas_Clientes`;
+DROP TABLE IF EXISTS `Albaran_Factura`;
+DROP TABLE IF EXISTS `Lineas_Albaranes_Clientes`;
+DROP TABLE IF EXISTS `Facturas_Clientes`;
+DROP TABLE IF EXISTS `Albaranes_Clientes`;
+DROP TABLE IF EXISTS `Articulos`;
+DROP TABLE IF EXISTS `Familias`;
+DROP TABLE IF EXISTS `Telefonos_Clientes`;
+DROP TABLE IF EXISTS `Direcciones_Clientes`;
+DROP TABLE IF EXISTS `Clientes`;
+DROP TABLE IF EXISTS `Canales`;
+DROP TABLE IF EXISTS `Formas_Pago`;
+DROP TABLE IF EXISTS `Tipos_IVA`;
+DROP TABLE IF EXISTS `Paises`;
+DROP TABLE IF EXISTS `Tipos_Clientes`;
+
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- =============================================================
--- 1. IMPUESTOS
+-- 1. TIPOS DE IVA
 -- =============================================================
-CREATE TABLE impuestos (
-    id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    nombre      VARCHAR(60)     NOT NULL COMMENT 'Ej: IVA General, IVA Reducido, Exento',
-    porcentaje  DECIMAL(5,2)    NOT NULL DEFAULT 0.00 COMMENT 'Valor numérico, ej: 21.00',
-    activo      TINYINT(1)      NOT NULL DEFAULT 1,
-    created_at  TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id)
+CREATE TABLE `Tipos_IVA` (
+    `Codigo`                  VARCHAR(10)   NOT NULL,
+    `Descripcion`             VARCHAR(100)  NOT NULL,
+    `IVA`                     DECIMAL(5,2)  NOT NULL DEFAULT 0.00,
+    `RE`                      DECIMAL(5,2)  NOT NULL DEFAULT 0.00  COMMENT 'Recargo de Equivalencia',
+    `Cuenta_IVA_Soportado`    VARCHAR(10)   NULL,
+    `Cuenta_IVA_Repercutido`  VARCHAR(10)   NULL,
+    `Cuenta_RE_Soportado`     VARCHAR(10)   NULL,
+    `Cuenta_RE_Repercutido`   VARCHAR(10)   NULL,
+    `Tipo_Territorio`         VARCHAR(20)   NULL  COMMENT 'PENINSULA, CANARIAS, CEUTA_MELILLA',
+    `Activo`                  CHAR(1)       NOT NULL DEFAULT 'S',
+    `Orden`                   SMALLINT      NOT NULL DEFAULT 0,
+    `Codigo_Verifactu`        VARCHAR(10)   NULL,
+    `Actualizado`             TINYINT(1)    NOT NULL DEFAULT 1,
+    PRIMARY KEY (`Codigo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Tipos impositivos de IVA';
 
-INSERT INTO impuestos (nombre, porcentaje) VALUES
-    ('IVA General',       21.00),
-    ('IVA Reducido',      10.00),
-    ('IVA Superreducido',  4.00),
-    ('Exento',             0.00);
+INSERT INTO `Tipos_IVA` (`Codigo`, `Descripcion`, `IVA`, `RE`, `Tipo_Territorio`, `Activo`, `Orden`, `Codigo_Verifactu`, `Actualizado`) VALUES
+    ('01', 'IVA General 21%',      21.00, 5.20, 'PENINSULA', 'S', 1, 'S1', 1),
+    ('02', 'IVA Reducido 10%',     10.00, 1.40, 'PENINSULA', 'S', 2, 'S1', 1),
+    ('03', 'IVA Superreducido 4%',  4.00, 0.50, 'PENINSULA', 'S', 3, 'S1', 1),
+    ('04', 'Exento',                0.00, 0.00, 'PENINSULA', 'S', 4, 'E1', 1);
 
 -- =============================================================
--- 2. CLIENTES
--- [FIX-5] CHECK en pais para asegurar exactamente 2 caracteres
+-- 2. PAÍSES
 -- =============================================================
-CREATE TABLE clientes (
-    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    tipo          ENUM('empresa','persona') NOT NULL DEFAULT 'empresa',
-    nombre        VARCHAR(150)    NOT NULL,
-    nif_cif       VARCHAR(20)     NOT NULL,
-    email         VARCHAR(120)    NULL,
-    telefono      VARCHAR(20)     NULL,
-    direccion     VARCHAR(200)    NULL,
-    ciudad        VARCHAR(80)     NULL,
-    codigo_postal VARCHAR(10)     NULL,
-    pais          CHAR(2)         NOT NULL DEFAULT 'ES' COMMENT 'ISO 3166-1 alpha-2',
-    activo        TINYINT(1)      NOT NULL DEFAULT 1,
-    created_at    TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE  KEY uq_clientes_nif   (nif_cif),
-    INDEX         idx_clientes_nombre (nombre),
-    -- [FIX-5] Valida longitud ISO 3166-1
-    CONSTRAINT chk_pais_length CHECK (CHAR_LENGTH(pais) = 2)
+CREATE TABLE `Paises` (
+    `Codigo`  CHAR(2)      NOT NULL,
+    `Nombre`  VARCHAR(100) NOT NULL,
+    PRIMARY KEY (`Codigo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `Paises` VALUES
+    ('ES', 'España'), ('DE', 'Alemania'), ('FR', 'Francia'),
+    ('IT', 'Italia'), ('PT', 'Portugal'), ('GB', 'Reino Unido');
+
+-- =============================================================
+-- 3. TIPOS DE CLIENTES
+-- =============================================================
+CREATE TABLE `Tipos_Clientes` (
+    `Codigo`  VARCHAR(20) NOT NULL,
+    PRIMARY KEY (`Codigo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `Tipos_Clientes` VALUES ('empresa'), ('persona'), ('autonomo');
+
+-- =============================================================
+-- 4. FORMAS DE PAGO
+-- =============================================================
+CREATE TABLE `Formas_Pago` (
+    `Codigo`       VARCHAR(10)  NOT NULL,
+    `Descripcion`  VARCHAR(100) NOT NULL,
+    `Activo`       CHAR(1)      NOT NULL DEFAULT 'S',
+    PRIMARY KEY (`Codigo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Formas de cobro/pago';
+
+INSERT INTO `Formas_Pago` VALUES
+    ('EFE', 'Efectivo',       'S'),
+    ('TRF', 'Transferencia',  'S'),
+    ('TAR', 'Tarjeta',        'S'),
+    ('CHQ', 'Cheque',         'S'),
+    ('DOM', 'Domiciliación',  'S');
+
+-- =============================================================
+-- 5. CANALES / SERIES DE FACTURACIÓN
+-- =============================================================
+CREATE TABLE `Canales` (
+    `Codigo`                  VARCHAR(10)  NOT NULL,
+    `Descripcion`             VARCHAR(100) NOT NULL,
+    `Id_Cliente_Facturacion`  VARCHAR(30)  NULL  COMMENT 'Cliente genérico para simplificadas',
+    `Facturacion_Defecto`     CHAR(1)      NOT NULL DEFAULT 'N',
+    `Ticket`                  CHAR(1)      NOT NULL DEFAULT 'N'  COMMENT 'S = emite tickets/simplificadas',
+    `Activo`                  CHAR(1)      NOT NULL DEFAULT 'S',
+    PRIMARY KEY (`Codigo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Series de numeración / canales de venta';
+
+INSERT INTO `Canales` VALUES
+    ('A',    'Serie General',       NULL, 'S', 'N', 'S'),
+    ('RECT', 'Rectificativas',      NULL, 'N', 'N', 'S'),
+    ('REC',  'Recapitulativas',     NULL, 'N', 'N', 'S'),
+    ('S',    'Simplificadas',       NULL, 'N', 'S', 'S');
+
+-- =============================================================
+-- 6. CLIENTES
+-- =============================================================
+CREATE TABLE `Clientes` (
+    `Codigo`                      VARCHAR(30)  NOT NULL,
+    `NIF`                         VARCHAR(20)  NOT NULL,
+    `Archivar_Como`               VARCHAR(150) NOT NULL  COMMENT 'Nombre o razón social',
+    `Apellidos`                   VARCHAR(100) NULL,
+    `Id_Tipo_IVA`                 VARCHAR(10)  NULL,
+    `RE_Porcentaje`               DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `Aplica_RE`                   CHAR(1)      NOT NULL DEFAULT 'N',
+    `Id_Forma_Pago`               VARCHAR(10)  NULL,
+    `Id_Zona`                     VARCHAR(10)  NULL,
+    `Tarifa`                      TINYINT      NOT NULL DEFAULT 1,
+    `Email_Facturacion`           VARCHAR(120) NULL,
+    `Descuento_Especial`          DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `Descuento_PP`                DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `Descuento_Comercial`         DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `Activo`                      CHAR(1)      NOT NULL DEFAULT 'S',
+    `Fecha_Alta`                  DATETIME     NULL,
+    `Usuario_Alta`                VARCHAR(50)  NULL,
+    `Ultima_Modificacion`         DATETIME     NULL,
+    `Usuario_Ultima_Modificacion` VARCHAR(50)  NULL,
+    PRIMARY KEY (`Codigo`),
+    UNIQUE KEY `uq_clientes_nif`    (`NIF`),
+    INDEX      `idx_clientes_nombre` (`Archivar_Como`),
+    CONSTRAINT `fk_cli_tipo_iva`   FOREIGN KEY (`Id_Tipo_IVA`)  REFERENCES `Tipos_IVA`  (`Codigo`) ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT `fk_cli_forma_pago` FOREIGN KEY (`Id_Forma_Pago`) REFERENCES `Formas_Pago` (`Codigo`) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Clientes / destinatarios de facturas';
 
 -- =============================================================
--- 3. PRODUCTOS / SERVICIOS
--- [FIX-4] Añadido índice en nombre para búsquedas por texto
+-- 7. DIRECCIONES DE CLIENTES
 -- =============================================================
-CREATE TABLE productos (
-    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    codigo          VARCHAR(30)     NULL UNIQUE COMMENT 'Referencia interna opcional',
-    nombre          VARCHAR(150)    NOT NULL,
-    descripcion     TEXT            NULL,
-    precio_unitario DECIMAL(12,4)   NOT NULL DEFAULT 0.0000,
-    impuesto_id     BIGINT UNSIGNED NOT NULL,
-    activo          TINYINT(1)      NOT NULL DEFAULT 1,
-    created_at      TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    -- [FIX-4]
-    INDEX idx_productos_nombre (nombre),
-    CONSTRAINT fk_productos_impuesto FOREIGN KEY (impuesto_id)
-        REFERENCES impuestos (id) ON UPDATE CASCADE ON DELETE RESTRICT
+CREATE TABLE `Direcciones_Clientes` (
+    `Id`                   BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `Id_Cliente`           VARCHAR(30)     NOT NULL,
+    `Direccion`            VARCHAR(200)    NULL,
+    `Ciudad`               VARCHAR(80)     NULL,
+    `Codigo_Postal`        VARCHAR(10)     NULL,
+    `Pais`                 CHAR(2)         NOT NULL DEFAULT 'ES',
+    `Correo_Electronico`   VARCHAR(120)    NULL,
+    `Telefono`             VARCHAR(20)     NULL,
+    `Predeterminada`       CHAR(1)         NOT NULL DEFAULT 'N',
+    PRIMARY KEY (`Id`),
+    INDEX `idx_dir_cliente` (`Id_Cliente`),
+    CONSTRAINT `fk_dir_cliente` FOREIGN KEY (`Id_Cliente`)
+        REFERENCES `Clientes` (`Codigo`) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Catálogo de productos y servicios';
+  COMMENT='Direcciones postales de clientes';
 
 -- =============================================================
--- 4. SERIES DE FACTURACIÓN
---    NOTA [FIX-7]: Para evitar race condition al asignar número,
---    la aplicación debe hacer SELECT ... FOR UPDATE sobre esta fila
---    antes de hacer el UPDATE de ultimo_numero.
+-- 8. TELÉFONOS DE CLIENTES
 -- =============================================================
-CREATE TABLE series (
-    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    codigo        VARCHAR(10)     NOT NULL UNIQUE COMMENT 'Ej: A, B, RECT, REC',
-    descripcion   VARCHAR(100)    NULL,
-    ultimo_numero INT UNSIGNED    NOT NULL DEFAULT 0
-        COMMENT 'Incrementar siempre con SELECT FOR UPDATE para evitar race condition',
-    activo        TINYINT(1)      NOT NULL DEFAULT 1,
-    created_at    TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id)
+CREATE TABLE `Telefonos_Clientes` (
+    `Id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `Id_Cliente`  VARCHAR(30)     NOT NULL,
+    `Telefono`    VARCHAR(20)     NOT NULL,
+    `Tipo`        VARCHAR(20)     NULL  COMMENT 'movil, fijo, fax',
+    PRIMARY KEY (`Id`),
+    INDEX `idx_tel_cliente` (`Id_Cliente`),
+    CONSTRAINT `fk_tel_cliente` FOREIGN KEY (`Id_Cliente`)
+        REFERENCES `Clientes` (`Codigo`) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Series de numeración de facturas';
-
-INSERT INTO series (codigo, descripcion, ultimo_numero) VALUES
-    ('A',    'Serie general',             0),
-    ('RECT', 'Facturas rectificativas',   0),
-    ('REC',  'Facturas recapitulativas',  0),
-    ('S',    'Facturas simplificadas',    0);
+  COMMENT='Teléfonos de contacto de clientes';
 
 -- =============================================================
--- 5. ALBARANES
+-- 9. FAMILIAS DE ARTÍCULOS
 -- =============================================================
-CREATE TABLE albaranes (
-    id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    cliente_id    BIGINT UNSIGNED NOT NULL,
-    numero        VARCHAR(20)     NOT NULL UNIQUE COMMENT 'Número de albarán (AL-0001)',
-    fecha         DATE            NOT NULL,
-    estado        ENUM('borrador','emitido','facturado') NOT NULL DEFAULT 'borrador',
-    observaciones TEXT            NULL,
-    created_at    TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    INDEX idx_albaranes_cliente (cliente_id),
-    INDEX idx_albaranes_estado  (estado),
-    CONSTRAINT fk_albaranes_cliente FOREIGN KEY (cliente_id)
-        REFERENCES clientes (id) ON UPDATE CASCADE ON DELETE RESTRICT
+CREATE TABLE `Familias` (
+    `Codigo`               VARCHAR(10)  NOT NULL,
+    `Descripcion`          VARCHAR(100) NOT NULL,
+    `Tarifa_1_Porcentaje`  DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `Tarifa_2_Porcentaje`  DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `Tarifa_3_Porcentaje`  DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `Tarifa_4_Porcentaje`  DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `Tarifa_5_Porcentaje`  DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `Tarifa_6_Porcentaje`  DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `Tarifa_7_Porcentaje`  DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    `Tarifa_8_Porcentaje`  DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    PRIMARY KEY (`Codigo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Albaranes de entrega';
+  COMMENT='Familias / grupos de artículos con descuentos por tarifa';
+
+INSERT INTO `Familias` VALUES ('GEN', 'General', 0, 0, 0, 0, 0, 0, 0, 0);
 
 -- =============================================================
--- 6. LÍNEAS DE ALBARÁN
--- [FIX-3] Índices explícitos en producto_id e impuesto_id
+-- 10. ARTÍCULOS / PRODUCTOS
 -- =============================================================
-CREATE TABLE lineas_albaran (
-    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    albaran_id      BIGINT UNSIGNED NOT NULL,
-    producto_id     BIGINT UNSIGNED NULL COMMENT 'NULL si línea libre',
-    descripcion     VARCHAR(255)    NOT NULL,
-    cantidad        DECIMAL(12,4)   NOT NULL DEFAULT 1.0000,
-    precio_unitario DECIMAL(12,4)   NOT NULL DEFAULT 0.0000,
-    descuento       DECIMAL(5,2)    NOT NULL DEFAULT 0.00 COMMENT 'Porcentaje de descuento',
-    impuesto_id     BIGINT UNSIGNED NOT NULL,
-    subtotal        DECIMAL(14,4)   NOT NULL DEFAULT 0.0000 COMMENT 'Sin IVA, con descuento',
-    orden           SMALLINT        NOT NULL DEFAULT 0,
-    PRIMARY KEY (id),
-    INDEX idx_la_albaran   (albaran_id),
-    -- [FIX-3]
-    INDEX idx_la_producto  (producto_id),
-    INDEX idx_la_impuesto  (impuesto_id),
-    CONSTRAINT fk_la_albaran  FOREIGN KEY (albaran_id)
-        REFERENCES albaranes (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_la_producto FOREIGN KEY (producto_id)
-        REFERENCES productos (id) ON UPDATE CASCADE ON DELETE SET NULL,
-    CONSTRAINT fk_la_impuesto FOREIGN KEY (impuesto_id)
-        REFERENCES impuestos (id) ON UPDATE CASCADE ON DELETE RESTRICT
+CREATE TABLE `Articulos` (
+    `Codigo`          VARCHAR(30)   NOT NULL,
+    `Descripcion`     VARCHAR(150)  NOT NULL,
+    `Modelo`          VARCHAR(60)   NULL,
+    `Codigo_Barras`   VARCHAR(30)   NULL,
+    `Id_Tipo_IVA`     VARCHAR(10)   NOT NULL,
+    `Id_Familia`      VARCHAR(10)   NULL,
+    `Id_Marca`        VARCHAR(10)   NULL,
+    `Stock_Minimo`    DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
+    `Precio_Venta_1`  DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
+    `Precio_Venta_2`  DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
+    `Precio_Venta_3`  DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
+    `Precio_Venta_4`  DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
+    `Precio_Venta_5`  DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
+    `Precio_Venta_6`  DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
+    `Precio_Venta_7`  DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
+    `Precio_Venta_8`  DECIMAL(12,4) NOT NULL DEFAULT 0.0000,
+    `Descuento`       DECIMAL(5,2)  NOT NULL DEFAULT 0.00,
+    `Activo`          CHAR(1)       NOT NULL DEFAULT 'S',
+    PRIMARY KEY (`Codigo`),
+    INDEX `idx_art_barras`  (`Codigo_Barras`),
+    INDEX `idx_art_familia` (`Id_Familia`),
+    CONSTRAINT `fk_art_tipo_iva` FOREIGN KEY (`Id_Tipo_IVA`)
+        REFERENCES `Tipos_IVA` (`Codigo`) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT `fk_art_familia` FOREIGN KEY (`Id_Familia`)
+        REFERENCES `Familias` (`Codigo`) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Líneas de detalle de los albaranes';
+  COMMENT='Catálogo de artículos y servicios';
 
 -- =============================================================
--- 7. FACTURAS
---
--- [FIX-1] ENUM estado_verifactu: 'enviada' → 'enviado'
---          para coincidir con registros_verifactu.estado
---
--- INMUTABILIDAD: el trigger trg_facturas_no_update (abajo)
--- impide cualquier UPDATE tras la inserción inicial.
+-- 11. ALBARANES DE CLIENTES
 -- =============================================================
-CREATE TABLE facturas (
-    id                     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    serie_id               BIGINT UNSIGNED NOT NULL,
-    cliente_id             BIGINT UNSIGNED NULL  COMMENT 'NULL permitido en simplificada',
-    numero                 INT UNSIGNED    NOT NULL,
-    numero_completo        VARCHAR(30)     NOT NULL UNIQUE COMMENT 'Ej: A-2025-0001',
-    tipo                   ENUM('completa','simplificada','rectificativa','recapitulativa') NOT NULL,
-
-    -- [FIX-1] 'enviada' → 'enviado' para coincidir con registros_verifactu
-    estado_verifactu       ENUM('no_aplica','pendiente','enviado','aceptado','rechazado','error')
-                           NOT NULL DEFAULT 'pendiente',
-
-    -- Fechas
-    fecha_emision          DATE            NOT NULL,
-    fecha_operacion        DATE            NULL COMMENT 'Si difiere de la emisión',
-
-    -- Importes
-    base_imponible         DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
-    cuota_iva              DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
-    total                  DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
-
-    -- Rectificativa
-    factura_rectificada_id BIGINT UNSIGNED NULL  COMMENT 'Solo en tipo=rectificativa',
-    motivo_rectificacion   TEXT            NULL,
-
-    -- Recapitulativa
-    periodo_desde          DATE            NULL  COMMENT 'Solo en tipo=recapitulativa',
-    periodo_hasta          DATE            NULL  COMMENT 'Solo en tipo=recapitulativa',
-
-    -- VeriFactu
-    hash_verifactu         CHAR(64)        NULL  COMMENT 'SHA-256 de este registro',
-    hash_anterior          CHAR(64)        NULL  COMMENT 'SHA-256 del registro anterior',
-    xml_verifactu          LONGTEXT        NULL  COMMENT 'XML generado (copia local)',
-    qr_url                 VARCHAR(500)    NULL  COMMENT 'URL sede electrónica AEAT',
-    pdf_path               VARCHAR(300)    NULL  COMMENT 'Ruta relativa al PDF generado',
-
-    observaciones          TEXT            NULL,
-    -- updated_at omitido intencionalmente: inmutabilidad reforzada por trigger
-    created_at             TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id),
-    INDEX idx_f_cliente     (cliente_id),
-    INDEX idx_f_serie       (serie_id),
-    INDEX idx_f_tipo        (tipo),
-    INDEX idx_f_verifactu   (estado_verifactu),
-    INDEX idx_f_fecha       (fecha_emision),
-    INDEX idx_f_rectificada (factura_rectificada_id),
-
-    CONSTRAINT fk_f_cliente    FOREIGN KEY (cliente_id)
-        REFERENCES clientes (id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_f_serie      FOREIGN KEY (serie_id)
-        REFERENCES series   (id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_f_rectificada FOREIGN KEY (factura_rectificada_id)
-        REFERENCES facturas (id) ON UPDATE CASCADE ON DELETE RESTRICT
+CREATE TABLE `Albaranes_Clientes` (
+    `Codigo`                      VARCHAR(30)   NOT NULL,
+    `Id_Canal`                    VARCHAR(10)   NOT NULL,
+    `Numero`                      INT UNSIGNED  NOT NULL,
+    `Fecha`                       DATE          NOT NULL,
+    `Id_Cliente`                  VARCHAR(30)   NOT NULL,
+    `Id_Forma_Pago`               VARCHAR(10)   NULL,
+    `Observaciones`               TEXT          NULL,
+    `Importe_Bruto`               DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    `Base_Imponible`              DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    `Total`                       DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    `Cerrado`                     CHAR(1)       NOT NULL DEFAULT 'N',
+    `Facturado`                   CHAR(1)       NOT NULL DEFAULT 'N',
+    `Cobrado`                     CHAR(1)       NOT NULL DEFAULT 'N',
+    `Fecha_Cierre`                DATE          NULL,
+    `Fecha_Cobro`                 DATE          NULL,
+    `Direccion`                   VARCHAR(200)  NULL,
+    `Es_Plantilla`                CHAR(1)       NOT NULL DEFAULT 'N',
+    `Nombre_Plantilla`            VARCHAR(100)  NULL,
+    `Fecha_Alta`                  DATETIME      NULL,
+    `Usuario_Alta`                VARCHAR(50)   NULL,
+    `Ultima_Modificacion`         DATETIME      NULL,
+    `Usuario_Ultima_Modificacion` VARCHAR(50)   NULL,
+    PRIMARY KEY (`Codigo`),
+    INDEX `idx_alb_cliente`   (`Id_Cliente`),
+    INDEX `idx_alb_canal`     (`Id_Canal`),
+    INDEX `idx_alb_cerrado`   (`Cerrado`),
+    INDEX `idx_alb_facturado` (`Facturado`),
+    CONSTRAINT `fk_alb_cliente`    FOREIGN KEY (`Id_Cliente`)   REFERENCES `Clientes`    (`Codigo`) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT `fk_alb_canal`      FOREIGN KEY (`Id_Canal`)     REFERENCES `Canales`     (`Codigo`) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT `fk_alb_forma_pago` FOREIGN KEY (`Id_Forma_Pago`) REFERENCES `Formas_Pago` (`Codigo`) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Registro central de facturas. INMUTABLE: trigger impide UPDATE tras emisión.';
-
--- [FIX-3] Trigger que refuerza la inmutabilidad en base de datos
--- La única excepción permitida es actualizar estado_verifactu, hash, xml y qr
--- (campos que el proceso VeriFactu necesita rellenar tras la inserción inicial)
-DELIMITER $$
-CREATE TRIGGER trg_facturas_no_update
-BEFORE UPDATE ON facturas
-FOR EACH ROW
-BEGIN
-    -- Campos fiscales inmutables: nunca deben cambiar tras la emisión
-    IF OLD.numero_completo   != NEW.numero_completo   OR
-       OLD.tipo              != NEW.tipo              OR
-       OLD.fecha_emision     != NEW.fecha_emision     OR
-       OLD.base_imponible    != NEW.base_imponible    OR
-       OLD.cuota_iva         != NEW.cuota_iva         OR
-       OLD.total             != NEW.total             OR
-       OLD.cliente_id        != NEW.cliente_id        OR
-       OLD.serie_id          != NEW.serie_id
-    THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Las facturas son inmutables: los campos fiscales no pueden modificarse tras la emisión.';
-    END IF;
-END$$
-DELIMITER ;
+  COMMENT='Albaranes de clientes';
 
 -- =============================================================
--- 8. LÍNEAS DE FACTURA
+-- 12. LÍNEAS DE ALBARÁN
 -- =============================================================
-CREATE TABLE lineas_factura (
-    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    factura_id      BIGINT UNSIGNED NOT NULL,
-    producto_id     BIGINT UNSIGNED NULL,
-    descripcion     VARCHAR(255)    NOT NULL,
-    cantidad        DECIMAL(12,4)   NOT NULL DEFAULT 1.0000,
-    precio_unitario DECIMAL(12,4)   NOT NULL DEFAULT 0.0000,
-    descuento       DECIMAL(5,2)    NOT NULL DEFAULT 0.00,
-    impuesto_id     BIGINT UNSIGNED NOT NULL,
-    base_imponible  DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
-    cuota_iva       DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
-    total           DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
-    orden           SMALLINT        NOT NULL DEFAULT 0,
-    PRIMARY KEY (id),
-    INDEX idx_lf_factura  (factura_id),
-    INDEX idx_lf_producto (producto_id),
-    INDEX idx_lf_impuesto (impuesto_id),
-    CONSTRAINT fk_lf_factura  FOREIGN KEY (factura_id)
-        REFERENCES facturas  (id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_lf_producto FOREIGN KEY (producto_id)
-        REFERENCES productos (id) ON UPDATE CASCADE ON DELETE SET NULL,
-    CONSTRAINT fk_lf_impuesto FOREIGN KEY (impuesto_id)
-        REFERENCES impuestos (id) ON UPDATE CASCADE ON DELETE RESTRICT
+CREATE TABLE `Lineas_Albaranes_Clientes` (
+    `Id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `Id_Albaran`     VARCHAR(30)     NOT NULL,
+    `Linea`          SMALLINT        NOT NULL DEFAULT 1,
+    `Id_Articulo`    VARCHAR(30)     NULL,
+    `Descripcion`    VARCHAR(255)    NOT NULL,
+    `Cantidad`       DECIMAL(12,4)   NOT NULL DEFAULT 1.0000,
+    `Precio`         DECIMAL(12,4)   NOT NULL DEFAULT 0.0000,
+    `Descuento`      DECIMAL(5,2)    NOT NULL DEFAULT 0.00,
+    `Id_Tipo_IVA`    VARCHAR(10)     NOT NULL,
+    `Importe_Bruto`  DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
+    `Base_Imponible` DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
+    `RE`             DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
+    `Aplica_RE`      CHAR(1)         NOT NULL DEFAULT 'N',
+    `Total`          DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
+    PRIMARY KEY (`Id`),
+    INDEX `idx_la_albaran`  (`Id_Albaran`),
+    INDEX `idx_la_articulo` (`Id_Articulo`),
+    CONSTRAINT `fk_la_albaran`  FOREIGN KEY (`Id_Albaran`)  REFERENCES `Albaranes_Clientes` (`Codigo`) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT `fk_la_articulo` FOREIGN KEY (`Id_Articulo`) REFERENCES `Articulos`           (`Codigo`) ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT `fk_la_tipo_iva` FOREIGN KEY (`Id_Tipo_IVA`) REFERENCES `Tipos_IVA`           (`Codigo`) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='Líneas de detalle de las facturas';
+  COMMENT='Líneas de detalle de albaranes';
 
 -- =============================================================
--- 9. TABLA PIVOTE ALBARÁN ↔ FACTURA
--- [FIX-2] Índice en factura_id para búsquedas inversas
+-- 13. FACTURAS DE CLIENTES
 -- =============================================================
-CREATE TABLE albaran_factura (
-    id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    albaran_id BIGINT UNSIGNED NOT NULL,
-    factura_id BIGINT UNSIGNED NOT NULL,
-    created_at TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE KEY uq_af (albaran_id, factura_id),
-    -- [FIX-2] Índice para buscar "qué albaranes componen una factura"
-    INDEX idx_af_factura (factura_id),
-    CONSTRAINT fk_af_albaran FOREIGN KEY (albaran_id)
-        REFERENCES albaranes (id) ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_af_factura FOREIGN KEY (factura_id)
-        REFERENCES facturas  (id) ON UPDATE CASCADE ON DELETE RESTRICT
+CREATE TABLE `Facturas_Clientes` (
+    `Codigo`                      VARCHAR(30)   NOT NULL,
+    `Id_Canal`                    VARCHAR(10)   NOT NULL,
+    `Numero`                      INT UNSIGNED  NOT NULL,
+    `Fecha`                       DATE          NOT NULL,
+    `Id_Cliente`                  VARCHAR(30)   NULL  COMMENT 'NULL permitido en simplificada',
+    `Id_Forma_Pago`               VARCHAR(10)   NULL,
+    `Tipo_Documento`              VARCHAR(20)   NOT NULL DEFAULT 'COMPLETA'
+                                  COMMENT 'COMPLETA, SIMPLIFICADA, RECTIFICATIVA, RECAPITULATIVA',
+    `Observaciones`               TEXT          NULL,
+    `Descuento_Especial`          DECIMAL(5,2)  NOT NULL DEFAULT 0.00,
+    `Descuento_PP`                DECIMAL(5,2)  NOT NULL DEFAULT 0.00,
+    `Descuento_Comercial`         DECIMAL(5,2)  NOT NULL DEFAULT 0.00,
+    `Importe_Bruto`               DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    `Importe_Dto_Especial`        DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    `Importe_Dto_PP`              DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    `Base_Imponible`              DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    `Cuota_IVA`                   DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    `Total`                       DECIMAL(14,4) NOT NULL DEFAULT 0.0000,
+    `Cerrada`                     CHAR(1)       NOT NULL DEFAULT 'N',
+    `Cobrada`                     CHAR(1)       NOT NULL DEFAULT 'N',
+    `Abono`                       CHAR(1)       NOT NULL DEFAULT 'N',
+    `Recapitulada`                CHAR(1)       NOT NULL DEFAULT 'N',
+    `Fecha_Cierre`                DATE          NULL,
+    `Fecha_Cobro`                 DATE          NULL,
+    `Fecha_Operacion`             DATE          NULL,
+    `Periodo_Desde`               DATE          NULL  COMMENT 'Solo en recapitulativa',
+    `Periodo_Hasta`               DATE          NULL  COMMENT 'Solo en recapitulativa',
+    `Factura_Rectificada_Id`      VARCHAR(30)   NULL  COMMENT 'Solo en rectificativa',
+    `Motivo_Rectificacion`        TEXT          NULL,
+    `Direccion`                   VARCHAR(200)  NULL,
+    `Hash_Verifactu`              CHAR(64)      NULL  COMMENT 'SHA-256 de este registro',
+    `Hash_Anterior`               CHAR(64)      NULL  COMMENT 'SHA-256 del registro anterior',
+    `Xml_Verifactu`               LONGTEXT      NULL,
+    `Qr_Url`                      VARCHAR(500)  NULL,
+    `Pdf_Path`                    VARCHAR(300)  NULL,
+    `Fecha_Alta`                  DATETIME      NULL,
+    `Usuario_Alta`                VARCHAR(50)   NULL,
+    `Ultima_Modificacion`         DATETIME      NULL,
+    `Usuario_Ultima_Modificacion` VARCHAR(50)   NULL,
+    PRIMARY KEY (`Codigo`),
+    INDEX `idx_fact_cliente`  (`Id_Cliente`),
+    INDEX `idx_fact_canal`    (`Id_Canal`),
+    INDEX `idx_fact_tipo`     (`Tipo_Documento`),
+    INDEX `idx_fact_cerrada`  (`Cerrada`),
+    INDEX `idx_fact_rectif`   (`Factura_Rectificada_Id`),
+    INDEX `idx_fact_fecha`    (`Fecha`),
+    CONSTRAINT `fk_fact_cliente`     FOREIGN KEY (`Id_Cliente`)   REFERENCES `Clientes`    (`Codigo`) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT `fk_fact_canal`       FOREIGN KEY (`Id_Canal`)     REFERENCES `Canales`     (`Codigo`) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT `fk_fact_forma_pago`  FOREIGN KEY (`Id_Forma_Pago`) REFERENCES `Formas_Pago` (`Codigo`) ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Facturas de clientes';
+
+-- =============================================================
+-- 14. LÍNEAS DE FACTURA
+-- =============================================================
+CREATE TABLE `Lineas_Facturas_Clientes` (
+    `Id`               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `Id_Factura`       VARCHAR(30)     NOT NULL,
+    `Linea`            SMALLINT        NOT NULL DEFAULT 1,
+    `Id_Articulo`      VARCHAR(30)     NULL,
+    `Descripcion`      VARCHAR(255)    NOT NULL,
+    `Cantidad`         DECIMAL(12,4)   NOT NULL DEFAULT 1.0000,
+    `Precio`           DECIMAL(12,4)   NOT NULL DEFAULT 0.0000,
+    `Descuento`        DECIMAL(5,2)    NOT NULL DEFAULT 0.00,
+    `Id_Tipo_IVA`      VARCHAR(10)     NOT NULL,
+    `Importe_Bruto`    DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
+    `Importe_Descuento` DECIMAL(14,4)  NOT NULL DEFAULT 0.0000,
+    `Base_Imponible`   DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
+    `Cuota_IVA`        DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
+    `RE`               DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
+    `Aplica_RE`        CHAR(1)         NOT NULL DEFAULT 'N',
+    `Total`            DECIMAL(14,4)   NOT NULL DEFAULT 0.0000,
+    `Id_Canal`         VARCHAR(10)     NULL,
+    `Id_Ticket`        VARCHAR(30)     NULL,
+    `Id_Almacen`       VARCHAR(10)     NULL,
+    `Calificacion`     VARCHAR(10)     NULL,
+    `Clave_Regimen`    VARCHAR(10)     NULL,
+    PRIMARY KEY (`Id`),
+    INDEX `idx_lf_factura`  (`Id_Factura`),
+    INDEX `idx_lf_articulo` (`Id_Articulo`),
+    CONSTRAINT `fk_lf_factura`  FOREIGN KEY (`Id_Factura`)  REFERENCES `Facturas_Clientes` (`Codigo`) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT `fk_lf_articulo` FOREIGN KEY (`Id_Articulo`) REFERENCES `Articulos`          (`Codigo`) ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT `fk_lf_tipo_iva` FOREIGN KEY (`Id_Tipo_IVA`) REFERENCES `Tipos_IVA`          (`Codigo`) ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Líneas de detalle de facturas';
+
+-- =============================================================
+-- 15. RELACIÓN ALBARÁN ↔ FACTURA
+-- =============================================================
+CREATE TABLE `Albaran_Factura` (
+    `Id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `Id_Albaran`  VARCHAR(30)     NOT NULL,
+    `Id_Factura`  VARCHAR(30)     NOT NULL,
+    `created_at`  TIMESTAMP       NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `uq_af` (`Id_Albaran`, `Id_Factura`),
+    INDEX `idx_af_factura` (`Id_Factura`),
+    CONSTRAINT `fk_af_albaran` FOREIGN KEY (`Id_Albaran`) REFERENCES `Albaranes_Clientes` (`Codigo`) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT `fk_af_factura` FOREIGN KEY (`Id_Factura`) REFERENCES `Facturas_Clientes`  (`Codigo`) ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Relación N:M entre albaranes y facturas';
 
 -- =============================================================
--- 10. REGISTROS VERIFACTU
+-- 16. FACTURAS SUSTITUIDAS (para recapitulativas F3)
 -- =============================================================
-CREATE TABLE registros_verifactu (
-    id                   BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
-    factura_id           BIGINT UNSIGNED  NOT NULL,
-    xml_enviado          LONGTEXT         NULL COMMENT 'Payload XML firmado enviado',
-    xml_respuesta        LONGTEXT         NULL COMMENT 'Respuesta XML de la AEAT',
-    estado               ENUM('pendiente','enviado','aceptado','rechazado','error')
-                         NOT NULL DEFAULT 'pendiente',
-    codigo_respuesta     VARCHAR(20)      NULL COMMENT 'Código de estado AEAT',
-    descripcion_respuesta TEXT            NULL COMMENT 'Mensaje legible de la AEAT',
-    fecha_envio          DATETIME         NULL,
-    fecha_respuesta      DATETIME         NULL,
-    reintentos           TINYINT UNSIGNED NOT NULL DEFAULT 0,
-    created_at           TIMESTAMP        NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at           TIMESTAMP        NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    INDEX idx_rv_factura (factura_id),
-    INDEX idx_rv_estado  (estado),
-    CONSTRAINT fk_rv_factura FOREIGN KEY (factura_id)
-        REFERENCES facturas (id) ON UPDATE CASCADE ON DELETE RESTRICT
+CREATE TABLE `Facturas_Sustituidas` (
+    `Id`                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `Id_Recapitulativa` VARCHAR(30)     NOT NULL,
+    `Id_Simplificada`   VARCHAR(30)     NOT NULL,
+    PRIMARY KEY (`Id`),
+    UNIQUE KEY `uq_fs` (`Id_Recapitulativa`, `Id_Simplificada`),
+    INDEX `idx_fs_recapitulativa` (`Id_Recapitulativa`),
+    CONSTRAINT `fk_fs_recapitulativa` FOREIGN KEY (`Id_Recapitulativa`) REFERENCES `Facturas_Clientes` (`Codigo`) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT `fk_fs_simplificada`   FOREIGN KEY (`Id_Simplificada`)   REFERENCES `Facturas_Clientes` (`Codigo`) ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Facturas simplificadas sustituidas por una recapitulativa';
+
+-- =============================================================
+-- 17. REGISTROS VERIFACTU
+-- =============================================================
+CREATE TABLE `Verifactu_Registros` (
+    `Id`                  BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
+    `Tipo_Origen`         VARCHAR(20)      NOT NULL DEFAULT 'FACTURA',
+    `Id_Documento`        VARCHAR(30)      NOT NULL,
+    `Estado_Envio`        VARCHAR(20)      NOT NULL DEFAULT 'PENDIENTE'
+                          COMMENT 'PENDIENTE, GENERADO, ENVIADO, ERROR, ANULADO',
+    `Fecha_Generacion`    DATETIME         NULL,
+    `Fecha_Envio`         DATETIME         NULL,
+    `Reintentos`          TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    `Huella_Actual`       VARCHAR(64)      NULL,
+    `Huella_Anterior`     VARCHAR(64)      NULL,
+    `Xml_Enviado`         LONGTEXT         NULL  COMMENT 'Payload XML firmado enviado a AEAT',
+    `Respuesta_Hacienda`  TEXT             NULL  COMMENT 'Respuesta XML de la AEAT',
+    `CSV_Hacienda`        VARCHAR(40)      NULL  COMMENT 'CSV asignado por la AEAT',
+    `Ultimo_Error`        VARCHAR(500)     NULL,
+    `URL_Verificacion`    VARCHAR(500)     NULL,
+    PRIMARY KEY (`Id`),
+    INDEX `idx_vr_documento` (`Id_Documento`),
+    INDEX `idx_vr_estado`    (`Estado_Envio`),
+    INDEX `idx_vr_tipo`      (`Tipo_Origen`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Historial de envíos VeriFactu a la AEAT';
 
@@ -326,480 +448,358 @@ CREATE TABLE registros_verifactu (
 -- VISTAS
 -- =============================================================
 
-CREATE OR REPLACE VIEW v_panel_facturacion AS
+CREATE OR REPLACE VIEW `v_panel_facturacion` AS
 SELECT
-    COUNT(*)                                            AS total_facturas,
-    SUM(estado_verifactu = 'aceptado')                  AS enviadas_ok,
-    SUM(estado_verifactu IN ('pendiente','no_aplica'))  AS pendientes,
-    SUM(estado_verifactu IN ('error','rechazado'))      AS con_error,
-    SUM(tipo = 'completa')                              AS completas,
-    SUM(tipo = 'simplificada')                          AS simplificadas,
-    SUM(tipo = 'rectificativa')                         AS rectificativas,
-    SUM(tipo = 'recapitulativa')                        AS recapitulativas,
-    SUM(total)                                          AS importe_total,
-    DATE_FORMAT(MIN(fecha_emision), '%Y-%m-%d')         AS primera_factura,
-    DATE_FORMAT(MAX(fecha_emision), '%Y-%m-%d')         AS ultima_factura
-FROM facturas;
+    COUNT(*)                                                       AS total_facturas,
+    SUM(CASE WHEN vr.Estado_Envio = 'ENVIADO'   THEN 1 ELSE 0 END) AS enviadas_ok,
+    SUM(CASE WHEN vr.Estado_Envio = 'PENDIENTE'
+              OR  vr.Id IS NULL                 THEN 1 ELSE 0 END) AS pendientes,
+    SUM(CASE WHEN vr.Estado_Envio = 'ERROR'     THEN 1 ELSE 0 END) AS con_error,
+    SUM(f.Tipo_Documento = 'COMPLETA')                             AS completas,
+    SUM(f.Tipo_Documento = 'SIMPLIFICADA')                         AS simplificadas,
+    SUM(f.Tipo_Documento = 'RECTIFICATIVA')                        AS rectificativas,
+    SUM(f.Tipo_Documento = 'RECAPITULATIVA')                       AS recapitulativas,
+    SUM(f.Total)                                                   AS importe_total,
+    MIN(f.Fecha)                                                   AS primera_factura,
+    MAX(f.Fecha)                                                   AS ultima_factura
+FROM `Facturas_Clientes` f
+LEFT JOIN `Verifactu_Registros` vr ON vr.Id_Documento = f.Codigo
+    AND vr.Tipo_Origen = 'FACTURA';
 
-CREATE OR REPLACE VIEW v_albaranes_pendientes AS
+CREATE OR REPLACE VIEW `v_albaranes_pendientes` AS
 SELECT
-    a.id,
-    a.numero,
-    a.fecha,
-    c.nombre         AS cliente,
-    c.nif_cif,
-    SUM(la.subtotal) AS importe_sin_iva
-FROM albaranes a
-JOIN clientes       c  ON c.id = a.cliente_id
-JOIN lineas_albaran la ON la.albaran_id = a.id
-WHERE a.estado != 'facturado'
-GROUP BY a.id, a.numero, a.fecha, c.nombre, c.nif_cif;
+    a.`Codigo`,
+    a.`Numero`,
+    a.`Fecha`,
+    c.`Archivar_Como`  AS cliente,
+    c.`NIF`,
+    a.`Total`
+FROM `Albaranes_Clientes` a
+JOIN `Clientes` c ON c.`Codigo` = a.`Id_Cliente`
+WHERE a.`Facturado` = 'N';
 
-CREATE OR REPLACE VIEW v_facturas_resumen AS
+CREATE OR REPLACE VIEW `v_facturas_resumen` AS
 SELECT
-    f.id,
-    f.numero_completo,
-    f.tipo,
-    f.fecha_emision,
-    c.nombre         AS cliente,
-    c.nif_cif,
-    f.base_imponible,
-    f.cuota_iva,
-    f.total,
-    f.estado_verifactu,
-    rv.fecha_envio,
-    rv.codigo_respuesta,
-    rv.reintentos
-FROM facturas f
-LEFT JOIN clientes c ON c.id = f.cliente_id
-LEFT JOIN registros_verifactu rv
-    ON rv.id = (
-        SELECT id FROM registros_verifactu
-        WHERE factura_id = f.id
-        ORDER BY created_at DESC LIMIT 1
-    );
-
-SET FOREIGN_KEY_CHECKS = 1;
-
+    f.`Codigo`,
+    f.`Tipo_Documento`,
+    f.`Fecha`,
+    c.`Archivar_Como`  AS cliente,
+    c.`NIF`,
+    f.`Base_Imponible`,
+    f.`Cuota_IVA`,
+    f.`Total`,
+    vr.`Estado_Envio`  AS estado_verifactu,
+    vr.`Fecha_Envio`,
+    vr.`CSV_Hacienda`,
+    vr.`Reintentos`
+FROM `Facturas_Clientes` f
+LEFT JOIN `Clientes` c ON c.`Codigo` = f.`Id_Cliente`
+LEFT JOIN `Verifactu_Registros` vr ON vr.`Id` = (
+    SELECT `Id` FROM `Verifactu_Registros`
+    WHERE `Id_Documento` = f.`Codigo`
+    ORDER BY `Fecha_Generacion` DESC LIMIT 1
+);
 
 -- =============================================================
--- ██████████████████████████████████████████████████████████
---   DATOS DE PRUEBA
---   10 clientes · 15 productos · 8 albaranes · 12 facturas
---   (completas, simplificadas, rectificativa, recapitulativa)
--- ██████████████████████████████████████████████████████████
+-- DATOS DE PRUEBA
 -- =============================================================
 
--- -----------------------------------------------------------
--- CLIENTES (10)
--- 6 empresas + 4 personas físicas (autónomos)
--- -----------------------------------------------------------
-INSERT INTO clientes (tipo, nombre, nif_cif, email, telefono, direccion, ciudad, codigo_postal, pais) VALUES
--- Empresas
-('empresa',  'Construcciones Valdemar S.L.',     'B12345678', 'admin@valdemar.es',       '916 111 222', 'Calle Mayor 10, 1º',        'Madrid',    '28001', 'ES'),
-('empresa',  'Distribuciones Norte S.A.',         'A87654321', 'facturacion@norte-sa.es', '944 222 333', 'Av. de la Constitución 55', 'Bilbao',    '48001', 'ES'),
-('empresa',  'Tech Solutions Europe GmbH',        'ESB99887766','billing@techsol.eu',     '931 333 444', 'Gran Via 88, 3º',           'Barcelona', '08010', 'ES'),
-('empresa',  'Restaurantes La Huerta S.L.',       'B55443322', 'contabilidad@lahuerta.es','965 444 555', 'Plaza del Mercado 3',       'Alicante',  '03001', 'ES'),
-('empresa',  'Clínica Dental Sonríe S.L.',        'B11223344', 'admin@sonrie.es',         '954 555 666', 'Calle San Fernando 22',     'Sevilla',   '41001', 'ES'),
-('empresa',  'Inversiones Atlántico S.A.',        'A22334455', 'inv@atlantico-sa.es',     '922 666 777', 'Paseo Marítimo 100',        'Santa Cruz de Tenerife','38001','ES'),
--- Personas físicas (autónomos)
-('persona',  'Ana García Fernández',              '12345678A', 'ana.garcia@gmail.com',    '666 100 200', 'Calle Rosal 5, 2ºB',        'Valencia',  '46001', 'ES'),
-('persona',  'Carlos Martín López',               '87654321B', 'carlos.martin@outlook.es','677 200 300', 'Av. Libertad 12, 4ºA',      'Zaragoza',  '50001', 'ES'),
-('persona',  'María José Ruiz Sánchez',           '11223344C', 'mjruiz@hotmail.com',      '688 300 400', 'Calle del Pino 8, 1ºC',     'Málaga',    '29001', 'ES'),
-('persona',  'Pedro Jiménez Torres',              '44332211D', 'pedro.jimenez@icloud.com','699 400 500', 'Camino Real 30',             'Murcia',    '30001', 'ES');
+INSERT INTO `Clientes` (`Codigo`, `NIF`, `Archivar_Como`, `Id_Tipo_IVA`, `Id_Forma_Pago`, `Tarifa`, `Activo`, `Fecha_Alta`, `Usuario_Alta`) VALUES
+    ('CLI001', 'B12345678', 'Construcciones Valdemar S.L.', '01', 'TRF', 1, 'S', NOW(), 'sistema'),
+    ('CLI002', 'A87654321', 'Servicios Digitales Norte S.A.', '01', 'TAR', 1, 'S', NOW(), 'sistema'),
+    ('CLI003', '12345678A', 'García López, Juan', '01', 'EFE', 1, 'S', NOW(), 'sistema'),
+    ('CLI004', 'B99887766', 'Distribuciones Sur S.L.', '02', 'DOM', 2, 'S', NOW(), 'sistema');
+
+INSERT INTO `Articulos` (`Codigo`, `Descripcion`, `Id_Tipo_IVA`, `Id_Familia`, `Precio_Venta_1`, `Precio_Venta_2`, `Activo`) VALUES
+    ('ART001', 'Servicio de consultoría hora', '01', 'GEN', 75.0000, 70.0000, 'S'),
+    ('ART002', 'Licencia software anual',      '01', 'GEN', 299.0000, 279.0000, 'S'),
+    ('ART003', 'Soporte técnico mensual',      '01', 'GEN', 150.0000, 140.0000, 'S'),
+    ('ART004', 'Material de oficina',          '02', 'GEN', 25.0000, 22.0000, 'S');
 
 -- -----------------------------------------------------------
--- PRODUCTOS (15)
--- Variedad de tipos de IVA: General(1), Reducido(2), Superreducido(3), Exento(4)
+-- Familias adicionales
 -- -----------------------------------------------------------
-INSERT INTO productos (codigo, nombre, descripcion, precio_unitario, impuesto_id) VALUES
--- Servicios profesionales (IVA General 21%)
-('SRV-001', 'Consultoría técnica (hora)',       'Servicio de consultoría IT por hora',           85.0000, 1),
-('SRV-002', 'Desarrollo web (hora)',             'Desarrollo de aplicaciones web por hora',       75.0000, 1),
-('SRV-003', 'Mantenimiento mensual web',         'Mantenimiento y hosting mensual',              150.0000, 1),
-('SRV-004', 'Diseño gráfico (hora)',             'Diseño de material corporativo por hora',       60.0000, 1),
-('SRV-005', 'Auditoría fiscal (informe)',        'Elaboración de informe de auditoría fiscal',   400.0000, 1),
--- Materiales de construcción (IVA General 21%)
-('MAT-001', 'Cemento Portland 25kg',             'Saco de cemento para construcción',             8.5000, 1),
-('MAT-002', 'Azulejo cerámico 1m²',              'Azulejo 60x60 primera calidad',                22.0000, 1),
--- Alimentación / Restauración (IVA Reducido 10%)
-('ALM-001', 'Menú del día (por persona)',        'Menú completo primer y segundo plato + postre', 12.0000, 2),
-('ALM-002', 'Catering corporativo (persona)',    'Servicio de catering para eventos empresa',     28.0000, 2),
-('ALM-003', 'Café y desayuno (persona)',         'Desayuno de trabajo con café, zumo y bollería',  6.5000, 2),
--- Sanidad / Dental (IVA Superreducido 4%)
-('DEN-001', 'Revisión dental completa',         'Exploración, diagnóstico y presupuesto',         45.0000, 3),
-('DEN-002', 'Limpieza dental profesional',      'Profilaxis dental completa con flúor',           60.0000, 3),
--- Servicios exentos (IVA Exento 0%)
-('FIN-001', 'Asesoramiento financiero (hora)',  'Consulta de inversión y planificación fiscal',   90.0000, 4),
-('FIN-002', 'Gestión de cartera (mensual)',     'Gestión mensual de cartera de inversión',       200.0000, 4),
--- Formación (IVA Exento 0%)
-('FOR-001', 'Curso online PHP/Laravel (acceso)','Acceso completo al curso de 40 horas',          99.0000, 4);
+INSERT INTO `Familias` (`Codigo`, `Descripcion`, `Tarifa_1_Porcentaje`, `Tarifa_2_Porcentaje`) VALUES
+    ('SERV', 'Servicios Profesionales', 0.00, 5.00),
+    ('SOFT', 'Software y Licencias',    0.00, 5.00),
+    ('HARD', 'Hardware y Equipos',      0.00, 3.00);
 
 -- -----------------------------------------------------------
--- ACTUALIZAR SERIE ultimo_numero antes de insertar facturas
+-- Artículos adicionales (ART005-ART012)
 -- -----------------------------------------------------------
-UPDATE series SET ultimo_numero = 8  WHERE codigo = 'A';
-UPDATE series SET ultimo_numero = 1  WHERE codigo = 'RECT';
-UPDATE series SET ultimo_numero = 1  WHERE codigo = 'REC';
-UPDATE series SET ultimo_numero = 2  WHERE codigo = 'S';
-
--- -----------------------------------------------------------
--- ALBARANES (8)
--- Estados: borrador, emitido, facturado
--- -----------------------------------------------------------
-INSERT INTO albaranes (cliente_id, numero, fecha, estado, observaciones) VALUES
-(1, 'AL-2025-0001', '2025-01-10', 'facturado',  'Materiales fase 1 obra C/ Mayor'),
-(1, 'AL-2025-0002', '2025-01-28', 'facturado',  'Materiales fase 2 obra C/ Mayor'),
-(2, 'AL-2025-0003', '2025-02-05', 'facturado',  'Distribución norte enero'),
-(3, 'AL-2025-0004', '2025-02-14', 'facturado',  'Horas desarrollo proyecto Alpha'),
-(4, 'AL-2025-0005', '2025-03-03', 'facturado',  'Catering evento 15 pax'),
-(3, 'AL-2025-0006', '2025-03-18', 'emitido',    'Mantenimiento web Q1'),
-(7, 'AL-2025-0007', '2025-04-02', 'borrador',   'Consultoría diseño logo'),
-(5, 'AL-2025-0008', '2025-04-10', 'emitido',    'Revisiones dentales abril');
-
--- -----------------------------------------------------------
--- LÍNEAS DE ALBARÁN
--- -----------------------------------------------------------
--- Albarán 1: Construcciones Valdemar - materiales
-INSERT INTO lineas_albaran (albaran_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, subtotal, orden) VALUES
-(1, 6, 'Cemento Portland 25kg',   50.0000,  8.5000, 0.00, 1,  425.0000, 1),
-(1, 7, 'Azulejo cerámico 1m²',   30.0000, 22.0000, 5.00, 1,  627.0000, 2);
-
--- Albarán 2: Construcciones Valdemar - más materiales
-INSERT INTO lineas_albaran (albaran_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, subtotal, orden) VALUES
-(2, 6, 'Cemento Portland 25kg',   80.0000,  8.5000, 0.00, 1,  680.0000, 1),
-(2, 7, 'Azulejo cerámico 1m²',   60.0000, 22.0000, 5.00, 1, 1254.0000, 2);
-
--- Albarán 3: Distribuciones Norte - consultoría
-INSERT INTO lineas_albaran (albaran_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, subtotal, orden) VALUES
-(3, 1, 'Consultoría técnica (hora)', 8.0000, 85.0000, 0.00, 1, 680.0000, 1),
-(3, 5, 'Auditoría fiscal',           1.0000,400.0000, 0.00, 1, 400.0000, 2);
-
--- Albarán 4: Tech Solutions - desarrollo web
-INSERT INTO lineas_albaran (albaran_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, subtotal, orden) VALUES
-(4, 2, 'Desarrollo web (hora)',    20.0000, 75.0000, 10.00, 1, 1350.0000, 1),
-(4, 3, 'Mantenimiento mensual web', 2.0000,150.0000,  0.00, 1,  300.0000, 2);
-
--- Albarán 5: Restaurantes La Huerta - catering
-INSERT INTO lineas_albaran (albaran_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, subtotal, orden) VALUES
-(5, 9, 'Catering corporativo (persona)', 15.0000, 28.0000, 0.00, 2, 420.0000, 1),
-(5,10, 'Café y desayuno (persona)',       15.0000,  6.5000, 0.00, 2,  97.5000, 2);
-
--- Albarán 6: Tech Solutions - mantenimiento (emitido, aún no facturado)
-INSERT INTO lineas_albaran (albaran_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, subtotal, orden) VALUES
-(6, 3, 'Mantenimiento mensual web', 3.0000, 150.0000, 0.00, 1, 450.0000, 1);
-
--- Albarán 7: Ana García - diseño (borrador)
-INSERT INTO lineas_albaran (albaran_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, subtotal, orden) VALUES
-(7, 4, 'Diseño gráfico (hora)',     5.0000, 60.0000, 0.00, 1, 300.0000, 1);
-
--- Albarán 8: Clínica Dental Sonríe - revisiones
-INSERT INTO lineas_albaran (albaran_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, subtotal, orden) VALUES
-(8,11, 'Revisión dental completa',    6.0000, 45.0000, 0.00, 3, 270.0000, 1),
-(8,12, 'Limpieza dental profesional', 4.0000, 60.0000, 0.00, 3, 240.0000, 2);
-
--- -----------------------------------------------------------
--- FACTURAS (12)
--- serie_id: 1=A, 2=RECT, 3=REC, 4=S
--- -----------------------------------------------------------
--- Hashes ficticios SHA-256 para simular cadena VeriFactu
--- En producción los genera josemmo/verifactu-php
-
-INSERT INTO facturas
-    (serie_id, cliente_id, numero, numero_completo, tipo, estado_verifactu,
-     fecha_emision, fecha_operacion,
-     base_imponible, cuota_iva, total,
-     hash_verifactu, hash_anterior,
-     qr_url, pdf_path, observaciones)
+INSERT INTO `Articulos`
+    (`Codigo`, `Descripcion`, `Modelo`, `Id_Tipo_IVA`, `Id_Familia`,
+     `Precio_Venta_1`, `Precio_Venta_2`, `Precio_Venta_3`, `Descuento`, `Activo`)
 VALUES
-
--- F1: Completa - Construcciones Valdemar (albarán 1)
-(1, 1, 1, 'A-2025-0001', 'completa', 'aceptado',
- '2025-01-15', '2025-01-10',
- 1052.0000, 220.9200, 1272.9200,
- 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
- NULL,
- 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=B12345678&numserie=A-2025-0001&fecha=20250115&importe=1272.92',
- 'facturas/pdf/A-2025-0001.pdf',
- 'Materiales fase 1. Albarán AL-2025-0001'),
-
--- F2: Completa - Construcciones Valdemar (albaranes 1+2 agrupados en F2)
-(1, 1, 2, 'A-2025-0002', 'completa', 'aceptado',
- '2025-02-01', '2025-01-28',
- 1934.0000, 406.1400, 2340.1400,
- 'b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3',
- 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
- 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=B12345678&numserie=A-2025-0002&fecha=20250201&importe=2340.14',
- 'facturas/pdf/A-2025-0002.pdf',
- 'Materiales fase 2. Albarán AL-2025-0002'),
-
--- F3: Completa - Distribuciones Norte
-(1, 2, 3, 'A-2025-0003', 'completa', 'aceptado',
- '2025-02-10', '2025-02-05',
- 1080.0000, 226.8000, 1306.8000,
- 'c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4',
- 'b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3',
- 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=A87654321&numserie=A-2025-0003&fecha=20250210&importe=1306.80',
- 'facturas/pdf/A-2025-0003.pdf',
- 'Consultoría y auditoría enero-febrero'),
-
--- F4: Completa - Tech Solutions desarrollo web
-(1, 3, 4, 'A-2025-0004', 'completa', 'aceptado',
- '2025-02-28', '2025-02-14',
- 1650.0000, 346.5000, 1996.5000,
- 'd4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5',
- 'c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4',
- 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=ESB99887766&numserie=A-2025-0004&fecha=20250228&importe=1996.50',
- 'facturas/pdf/A-2025-0004.pdf',
- 'Proyecto Alpha - desarrollo y mantenimiento Q1'),
-
--- F5: Completa - Restaurantes La Huerta (catering)
-(1, 4, 5, 'A-2025-0005', 'completa', 'aceptado',
- '2025-03-05', '2025-03-03',
- 517.5000, 51.7500, 569.2500,
- 'e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6',
- 'd4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5',
- 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=B55443322&numserie=A-2025-0005&fecha=20250305&importe=569.25',
- 'facturas/pdf/A-2025-0005.pdf',
- 'Catering evento corporativo 15 pax'),
-
--- F6: Completa - Inversiones Atlántico (asesoramiento exento)
-(1, 6, 6, 'A-2025-0006', 'completa', 'aceptado',
- '2025-03-15', NULL,
- 800.0000, 0.0000, 800.0000,
- 'f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1',
- 'e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6',
- 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=A22334455&numserie=A-2025-0006&fecha=20250315&importe=800.00',
- 'facturas/pdf/A-2025-0006.pdf',
- 'Asesoramiento financiero y gestión cartera marzo'),
-
--- F7: Completa pendiente de envío - Distribuciones Norte
-(1, 2, 7, 'A-2025-0007', 'completa', 'pendiente',
- '2025-04-01', NULL,
- 680.0000, 142.8000, 822.8000,
- NULL, NULL, NULL,
- 'facturas/pdf/A-2025-0007.pdf',
- 'Consultoría técnica abril - pendiente envío AEAT'),
-
--- F8: Completa con error VeriFactu - Carlos Martín
-(1, 8, 8, 'A-2025-0008', 'completa', 'error',
- '2025-04-05', NULL,
- 450.0000, 94.5000, 544.5000,
- NULL, NULL, NULL,
- 'facturas/pdf/A-2025-0008.pdf',
- 'Error de comunicación con AEAT - pendiente reintento'),
-
--- F9: RECTIFICATIVA de F3 (error en importe consultoría)
-(2, 2, 1, 'RECT-2025-0001', 'rectificativa', 'aceptado',
- '2025-02-20', '2025-02-10',
- -1080.0000, -226.8000, -1306.8000,
- '1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b',
- 'f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1',
- 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=A87654321&numserie=RECT-2025-0001&fecha=20250220&importe=-1306.80',
- 'facturas/pdf/RECT-2025-0001.pdf',
- NULL),
-
--- F10: RECAPITULATIVA (agrupa simplificadas S-2025-0001 y S-2025-0002)
-(3, 9, 1, 'REC-2025-0001', 'recapitulativa', 'aceptado',
- '2025-03-31', NULL,
- 199.0000, 7.9600, 206.9600,
- '2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c',
- '1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b',
- 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=11223344C&numserie=REC-2025-0001&fecha=20250331&importe=206.96',
- 'facturas/pdf/REC-2025-0001.pdf',
- NULL),
-
--- F11: SIMPLIFICADA - María José Ruiz (revisión dental, importe pequeño)
-(4, NULL, 1, 'S-2025-0001', 'simplificada', 'aceptado',
- '2025-03-10', NULL,
- 99.0000, 3.9600, 102.9600,
- '3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d',
- '2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c',
- 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=&numserie=S-2025-0001&fecha=20250310&importe=102.96',
- 'facturas/pdf/S-2025-0001.pdf',
- 'Ticket revisión dental - sin identificación receptor'),
-
--- F12: SIMPLIFICADA - Pedro Jiménez (curso online)
-(4, NULL, 2, 'S-2025-0002', 'simplificada', 'aceptado',
- '2025-03-22', NULL,
- 99.0000, 0.0000, 99.0000,
- '4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e',
- '3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d5e6f1a2b3c4d',
- 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?nif=&numserie=S-2025-0002&fecha=20250322&importe=99.00',
- 'facturas/pdf/S-2025-0002.pdf',
- 'Acceso curso PHP/Laravel - exento IVA formación');
-
--- Actualizar motivo y factura_rectificada en la rectificativa
-UPDATE facturas
-SET factura_rectificada_id = 3,
-    motivo_rectificacion   = 'Error en el precio unitario de la consultoría técnica. Se emite factura rectificativa por el total de la factura A-2025-0003 y se re-emitirá corrección.'
-WHERE numero_completo = 'RECT-2025-0001';
-
--- Actualizar periodo en la recapitulativa
-UPDATE facturas
-SET periodo_desde = '2025-03-01',
-    periodo_hasta = '2025-03-31'
-WHERE numero_completo = 'REC-2025-0001';
+    ('ART005', 'Auditoría de sistemas',          NULL,    '01', 'SERV',  450.0000,  420.0000,  400.0000, 0.00, 'S'),
+    ('ART006', 'Formación presencial (día)',      NULL,    '01', 'SERV',  600.0000,  550.0000,  500.0000, 0.00, 'S'),
+    ('ART007', 'Suite ofimática - Licencia',     'PRO',   '01', 'SOFT',  180.0000,  165.0000,  150.0000, 0.00, 'S'),
+    ('ART008', 'Antivirus empresarial anual',    NULL,    '01', 'SOFT',   49.0000,   45.0000,   40.0000, 0.00, 'S'),
+    ('ART009', 'Ordenador portátil 15"',         'LAP15', '01', 'HARD',  899.0000,  849.0000,  799.0000, 5.00, 'S'),
+    ('ART010', 'Monitor 27" Full HD',            'MON27', '01', 'HARD',  249.0000,  229.0000,  209.0000, 3.00, 'S'),
+    ('ART011', 'Impresora láser multifunción',   'IMP-MF','01', 'HARD',  349.0000,  319.0000,  299.0000, 0.00, 'S'),
+    ('ART012', 'Papel A4 500h (caja 5 resmas)',  NULL,    '02', 'GEN',    18.5000,   17.0000,   16.0000, 0.00, 'S');
 
 -- -----------------------------------------------------------
--- LÍNEAS DE FACTURA (para las facturas completas)
+-- Clientes adicionales (CLI005-CLI008)
 -- -----------------------------------------------------------
-
--- F1: A-2025-0001 (Construcciones Valdemar, alb.1)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(1, 6, 'Cemento Portland 25kg',  50.0000,  8.5000, 0.00, 1,  425.0000,  89.2500,  514.2500, 1),
-(1, 7, 'Azulejo cerámico 1m²',  30.0000, 22.0000, 5.00, 1,  627.0000, 131.6700,  758.6700, 2);
-
--- F2: A-2025-0002 (Construcciones Valdemar, alb.2)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(2, 6, 'Cemento Portland 25kg',  80.0000,  8.5000, 0.00, 1,  680.0000, 142.8000,  822.8000, 1),
-(2, 7, 'Azulejo cerámico 1m²',  60.0000, 22.0000, 5.00, 1, 1254.0000, 263.3400, 1517.3400, 2);
-
--- F3: A-2025-0003 (Distribuciones Norte)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(3, 1, 'Consultoría técnica (hora)',  8.0000, 85.0000, 0.00, 1,  680.0000, 142.8000,  822.8000, 1),
-(3, 5, 'Auditoría fiscal (informe)',  1.0000,400.0000, 0.00, 1,  400.0000,  84.0000,  484.0000, 2);
-
--- F4: A-2025-0004 (Tech Solutions)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(4, 2, 'Desarrollo web (hora)',      20.0000, 75.0000, 10.00, 1, 1350.0000, 283.5000, 1633.5000, 1),
-(4, 3, 'Mantenimiento mensual web',   2.0000,150.0000,  0.00, 1,  300.0000,  63.0000,  363.0000, 2);
-
--- F5: A-2025-0005 (Restaurantes La Huerta, IVA 10%)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(5, 9, 'Catering corporativo (persona)', 15.0000, 28.0000, 0.00, 2, 420.0000, 42.0000, 462.0000, 1),
-(5,10, 'Café y desayuno (persona)',       15.0000,  6.5000, 0.00, 2,  97.5000,  9.7500, 107.2500, 2);
-
--- F6: A-2025-0006 (Inversiones Atlántico, exento)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(6,13, 'Asesoramiento financiero (hora)',  4.0000, 90.0000, 0.00, 4, 360.0000, 0.0000, 360.0000, 1),
-(6,14, 'Gestión de cartera (mensual)',     2.0000,200.0000, 0.00, 4, 400.0000, 0.0000, 400.0000, 2),
-(6,15, 'Curso online PHP/Laravel',         1.0000, 99.0000, 0.00, 4,  40.0000, 0.0000,  40.0000, 3);
-
--- F7: A-2025-0007 (pendiente)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(7, 1, 'Consultoría técnica (hora)', 8.0000, 85.0000, 0.00, 1, 680.0000, 142.8000, 822.8000, 1);
-
--- F8: A-2025-0008 (error VeriFactu)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(8, 4, 'Diseño gráfico (hora)', 5.0000, 60.0000, 0.00, 1, 300.0000, 63.0000, 363.0000, 1),
-(8, 2, 'Desarrollo web (hora)', 2.0000, 75.0000, 0.00, 1, 150.0000, 31.5000, 181.5000, 2);
-
--- F9: RECT-2025-0001 (negativa)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(9, 1, 'Rectificación: Consultoría técnica (hora)', -8.0000, 85.0000, 0.00, 1, -680.0000, -142.8000, -822.8000, 1),
-(9, 5, 'Rectificación: Auditoría fiscal (informe)', -1.0000,400.0000, 0.00, 1, -400.0000,  -84.0000, -484.0000, 2);
-
--- F10: REC-2025-0001 (recapitulativa - línea resumen)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(10, 11, 'Revisión dental completa',      1.0000, 45.0000, 0.00, 3, 45.0000, 1.8000,  46.8000, 1),
-(10, 15, 'Curso PHP/Laravel (acceso)',    1.0000, 99.0000, 0.00, 4, 99.0000, 0.0000,  99.0000, 2),
-(10, 12, 'Limpieza dental profesional',   1.0000, 60.0000, 0.00, 3, 55.0000, 2.2000,  57.2000, 3);
-
--- F11: S-2025-0001 (simplificada dental)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(11, 15, 'Curso online PHP/Laravel (acceso)', 1.0000, 99.0000, 0.00, 3, 99.0000, 3.9600, 102.9600, 1);
-
--- F12: S-2025-0002 (simplificada curso)
-INSERT INTO lineas_factura (factura_id, producto_id, descripcion, cantidad, precio_unitario, descuento, impuesto_id, base_imponible, cuota_iva, total, orden) VALUES
-(12, 15, 'Curso online PHP/Laravel (acceso)', 1.0000, 99.0000, 0.00, 4, 99.0000, 0.0000, 99.0000, 1);
-
--- -----------------------------------------------------------
--- TABLA PIVOTE ALBARÁN ↔ FACTURA
--- -----------------------------------------------------------
-INSERT INTO albaran_factura (albaran_id, factura_id) VALUES
-(1, 1),   -- AL-0001 → A-2025-0001
-(2, 2),   -- AL-0002 → A-2025-0002
-(3, 3),   -- AL-0003 → A-2025-0003
-(3, 9),   -- AL-0003 → RECT-2025-0001 (también vinculado a la rectificativa)
-(4, 4),   -- AL-0004 → A-2025-0004
-(5, 5);   -- AL-0005 → A-2025-0005
-
--- -----------------------------------------------------------
--- REGISTROS VERIFACTU
--- Uno por cada factura enviada a la AEAT
--- -----------------------------------------------------------
-INSERT INTO registros_verifactu
-    (factura_id, estado, codigo_respuesta, descripcion_respuesta,
-     fecha_envio, fecha_respuesta, reintentos,
-     xml_enviado, xml_respuesta)
+INSERT INTO `Clientes`
+    (`Codigo`, `NIF`, `Archivar_Como`, `Apellidos`, `Id_Tipo_IVA`,
+     `RE_Porcentaje`, `Aplica_RE`, `Id_Forma_Pago`, `Tarifa`,
+     `Email_Facturacion`, `Activo`, `Fecha_Alta`, `Usuario_Alta`)
 VALUES
+    ('CLI005', 'A34567890', 'Tecnologías Avanzadas S.A.',  NULL,      '01', 0.00, 'N', 'TRF', 2, 'facturacion@tecavanzadas.es',   'S', NOW(), 'sistema'),
+    ('CLI006', 'B55443322', 'Logística Express S.L.',      NULL,      '01', 0.00, 'N', 'DOM', 1, 'admin@logexpress.es',            'S', NOW(), 'sistema'),
+    ('CLI007', '87654321B', 'Martínez Ruiz',               'Ana',     '01', 5.20, 'S', 'EFE', 1, 'ana.martinez@gmail.com',         'S', NOW(), 'sistema'),
+    ('CLI008', '45678901C', 'Fernández García',            'Carlos',  '01', 0.00, 'N', 'TAR', 3, 'carlos.fernandez@outlook.com',   'S', NOW(), 'sistema');
 
--- F1 aceptada
-(1, 'aceptado', '0000', 'Registro de factura aceptado correctamente',
- '2025-01-15 10:05:00', '2025-01-15 10:05:03', 0,
- '<soapenv:Envelope><!-- XML VeriFactu F1 simplificado --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><CSV>CSV00001</CSV><EstadoEnvio>Correcto</EstadoEnvio></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>'),
+-- -----------------------------------------------------------
+-- Direcciones de clientes
+-- -----------------------------------------------------------
+INSERT INTO `Direcciones_Clientes`
+    (`Id_Cliente`, `Direccion`, `Ciudad`, `Codigo_Postal`, `Pais`, `Correo_Electronico`, `Predeterminada`)
+VALUES
+    ('CLI001', 'Calle Mayor 10, 1ª Planta',       'Madrid',    '28001', 'ES', 'admin@valdemar.es',            'S'),
+    ('CLI002', 'Avda. Diagonal 445, 3º B',        'Barcelona', '08036', 'ES', 'info@serviciosdigitales.es',   'S'),
+    ('CLI003', 'Calle Ancha 23, 2ª',              'Sevilla',   '41001', 'ES', 'juangarcia@correo.es',         'S'),
+    ('CLI004', 'Polígono Ind. Sur, Nave 12',      'Valencia',  '46014', 'ES', 'compras@distribsur.es',        'S'),
+    ('CLI005', 'Gran Vía 50, 5ª Planta',          'Madrid',    '28013', 'ES', 'facturacion@tecavanzadas.es',  'S'),
+    ('CLI005', 'Calle Serrano 12, oficina 2',     'Madrid',    '28001', 'ES', 'soporte@tecavanzadas.es',      'N'),
+    ('CLI006', 'Calle Industria 88, Nave 3',      'Zaragoza',  '50006', 'ES', 'admin@logexpress.es',          'S'),
+    ('CLI007', 'Avda. Constitución 5, 3ºA',       'Granada',   '18012', 'ES', 'ana.martinez@gmail.com',       'S'),
+    ('CLI008', 'Plaza España 2, 1ºB',             'Málaga',    '29012', 'ES', 'carlos.fernandez@outlook.com', 'S');
 
--- F2 aceptada
-(2, 'aceptado', '0000', 'Registro de factura aceptado correctamente',
- '2025-02-01 09:12:00', '2025-02-01 09:12:04', 0,
- '<soapenv:Envelope><!-- XML VeriFactu F2 simplificado --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><CSV>CSV00002</CSV><EstadoEnvio>Correcto</EstadoEnvio></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>'),
+-- -----------------------------------------------------------
+-- Teléfonos de clientes
+-- -----------------------------------------------------------
+INSERT INTO `Telefonos_Clientes` (`Id_Cliente`, `Telefono`, `Tipo`) VALUES
+    ('CLI001', '916 111 222', 'fijo'),
+    ('CLI001', '612 345 678', 'movil'),
+    ('CLI002', '932 456 789', 'fijo'),
+    ('CLI002', '655 987 654', 'movil'),
+    ('CLI003', '954 321 654', 'fijo'),
+    ('CLI004', '963 111 000', 'fijo'),
+    ('CLI004', '699 888 777', 'movil'),
+    ('CLI005', '914 222 333', 'fijo'),
+    ('CLI006', '976 543 210', 'fijo'),
+    ('CLI007', '671 234 567', 'movil'),
+    ('CLI008', '952 111 222', 'fijo');
 
--- F3 aceptada
-(3, 'aceptado', '0000', 'Registro de factura aceptado correctamente',
- '2025-02-10 11:30:00', '2025-02-10 11:30:05', 0,
- '<soapenv:Envelope><!-- XML VeriFactu F3 simplificado --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><CSV>CSV00003</CSV><EstadoEnvio>Correcto</EstadoEnvio></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>'),
+-- -----------------------------------------------------------
+-- Albaranes de clientes (6)
+-- Formato Codigo: YYYY + Canal + NNNN  →  LEFT(Codigo,4) = ejercicio
+-- -----------------------------------------------------------
+INSERT INTO `Albaranes_Clientes`
+    (`Codigo`, `Id_Canal`, `Numero`, `Fecha`, `Id_Cliente`, `Id_Forma_Pago`,
+     `Importe_Bruto`, `Base_Imponible`, `Total`,
+     `Cerrado`, `Facturado`, `Cobrado`, `Fecha_Cierre`,
+     `Fecha_Alta`, `Usuario_Alta`, `Ultima_Modificacion`, `Usuario_Ultima_Modificacion`)
+VALUES
+    -- Cerrados y facturados (vinculados a facturas 2026A0001 y 2026A0002)
+    ('2026A0001','A',1,'2026-01-15','CLI001','TRF',  525.0000,  525.0000,  635.2500,'S','S','S','2026-01-20', NOW(),'sistema',NOW(),'sistema'),
+    ('2026A0002','A',2,'2026-01-22','CLI002','TAR',  299.0000,  299.0000,  361.7900,'S','S','S','2026-01-25', NOW(),'sistema',NOW(),'sistema'),
+    -- Cerrado, pendiente de facturar
+    ('2026A0003','A',3,'2026-02-05','CLI003','EFE',  450.0000,  450.0000,  544.5000,'S','N','N','2026-02-10', NOW(),'sistema',NOW(),'sistema'),
+    -- Abiertos
+    ('2026A0004','A',4,'2026-02-18','CLI001','TRF',  600.0000,  600.0000,  726.0000,'N','N','N', NULL,        NOW(),'sistema',NOW(),'sistema'),
+    ('2026A0005','A',5,'2026-03-02','CLI004','DOM',  899.0000,  899.0000, 1087.7900,'N','N','N', NULL,        NOW(),'sistema',NOW(),'sistema'),
+    ('2026A0006','A',6,'2026-03-10','CLI006','DOM',  349.0000,  349.0000,  422.2900,'N','N','N', NULL,        NOW(),'sistema',NOW(),'sistema');
 
--- F4 aceptada
-(4, 'aceptado', '0000', 'Registro de factura aceptado correctamente',
- '2025-02-28 16:45:00', '2025-02-28 16:45:06', 0,
- '<soapenv:Envelope><!-- XML VeriFactu F4 simplificado --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><CSV>CSV00004</CSV><EstadoEnvio>Correcto</EstadoEnvio></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>'),
+-- -----------------------------------------------------------
+-- Líneas de albaranes
+-- -----------------------------------------------------------
+INSERT INTO `Lineas_Albaranes_Clientes`
+    (`Id_Albaran`, `Linea`, `Id_Articulo`, `Descripcion`,
+     `Cantidad`, `Precio`, `Descuento`, `Id_Tipo_IVA`,
+     `Importe_Bruto`, `Base_Imponible`, `RE`, `Aplica_RE`, `Total`)
+VALUES
+    -- Albarán 2026A0001: consultoría + soporte → base 525, total 635.25
+    ('2026A0001',1,'ART001','Servicio de consultoría hora', 5.0000, 75.0000,0.00,'01', 375.0000, 375.0000,0.0000,'N', 453.7500),
+    ('2026A0001',2,'ART003','Soporte técnico mensual',      1.0000,150.0000,0.00,'01', 150.0000, 150.0000,0.0000,'N', 181.5000),
+    -- Albarán 2026A0002: licencia → base 299, total 361.79
+    ('2026A0002',1,'ART002','Licencia software anual',      1.0000,299.0000,0.00,'01', 299.0000, 299.0000,0.0000,'N', 361.7900),
+    -- Albarán 2026A0003: auditoría → base 450, total 544.50
+    ('2026A0003',1,'ART005','Auditoría de sistemas',        1.0000,450.0000,0.00,'01', 450.0000, 450.0000,0.0000,'N', 544.5000),
+    -- Albarán 2026A0004: formación → base 600, total 726
+    ('2026A0004',1,'ART006','Formación presencial (día)',   1.0000,600.0000,0.00,'01', 600.0000, 600.0000,0.0000,'N', 726.0000),
+    -- Albarán 2026A0005: ordenador → base 899, total 1087.79
+    ('2026A0005',1,'ART009','Ordenador portátil 15"',       1.0000,899.0000,0.00,'01', 899.0000, 899.0000,0.0000,'N',1087.7900),
+    -- Albarán 2026A0006: impresora → base 349, total 422.29
+    ('2026A0006',1,'ART011','Impresora láser multifunción', 1.0000,349.0000,0.00,'01', 349.0000, 349.0000,0.0000,'N', 422.2900);
 
--- F5 aceptada
-(5, 'aceptado', '0000', 'Registro de factura aceptado correctamente',
- '2025-03-05 08:20:00', '2025-03-05 08:20:04', 0,
- '<soapenv:Envelope><!-- XML VeriFactu F5 simplificado --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><CSV>CSV00005</CSV><EstadoEnvio>Correcto</EstadoEnvio></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>'),
+-- -----------------------------------------------------------
+-- Facturas de clientes (8)
+-- 4 COMPLETA · 2 SIMPLIFICADA · 1 RECTIFICATIVA · 1 RECAPITULATIVA
+-- -----------------------------------------------------------
+INSERT INTO `Facturas_Clientes`
+    (`Codigo`, `Id_Canal`, `Numero`, `Fecha`, `Id_Cliente`, `Id_Forma_Pago`,
+     `Tipo_Documento`, `Importe_Bruto`, `Base_Imponible`, `Cuota_IVA`, `Total`,
+     `Cerrada`, `Cobrada`, `Abono`, `Recapitulada`,
+     `Factura_Rectificada_Id`, `Motivo_Rectificacion`,
+     `Periodo_Desde`, `Periodo_Hasta`,
+     `Fecha_Cierre`, `Fecha_Cobro`,
+     `Fecha_Alta`, `Usuario_Alta`, `Ultima_Modificacion`, `Usuario_Ultima_Modificacion`)
+VALUES
+    -- COMPLETA 1: CLI001 - consultoría + soporte - cobrada
+    ('2026A0001','A',1,'2026-01-20','CLI001','TRF','COMPLETA',
+      525.0000, 525.0000, 110.2500,  635.2500,
+      'S','S','N','N', NULL,NULL, NULL,NULL,
+      '2026-01-20','2026-01-28', NOW(),'sistema',NOW(),'sistema'),
 
--- F6 aceptada
-(6, 'aceptado', '0000', 'Registro de factura aceptado correctamente',
- '2025-03-15 14:00:00', '2025-03-15 14:00:07', 0,
- '<soapenv:Envelope><!-- XML VeriFactu F6 simplificado --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><CSV>CSV00006</CSV><EstadoEnvio>Correcto</EstadoEnvio></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>'),
+    -- COMPLETA 2: CLI002 - licencia - cerrada sin cobrar
+    ('2026A0002','A',2,'2026-01-25','CLI002','TAR','COMPLETA',
+      299.0000, 299.0000,  62.7900,  361.7900,
+      'S','N','N','N', NULL,NULL, NULL,NULL,
+      '2026-01-25', NULL,        NOW(),'sistema',NOW(),'sistema'),
 
--- F8 primer intento: error
-(8, 'error', '5001', 'Error en la firma digital del certificado. Certificado caducado.',
- '2025-04-05 10:00:00', '2025-04-05 10:00:08', 0,
- '<soapenv:Envelope><!-- XML VeriFactu F8 intento 1 --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><EstadoEnvio>Incorrecto</EstadoEnvio><DescripcionErrorRegistro>Certificado no válido o caducado</DescripcionErrorRegistro></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>'),
+    -- COMPLETA 3: CLI004 - ordenador - pendiente
+    ('2026A0003','A',3,'2026-02-15','CLI004','DOM','COMPLETA',
+      899.0000, 899.0000, 188.7900, 1087.7900,
+      'N','N','N','N', NULL,NULL, NULL,NULL,
+       NULL,NULL,                  NOW(),'sistema',NOW(),'sistema'),
 
--- F8 segundo intento: error (reintento)
-(8, 'error', '5001', 'Error en la firma digital del certificado. Certificado caducado.',
- '2025-04-05 10:15:00', '2025-04-05 10:15:09', 1,
- '<soapenv:Envelope><!-- XML VeriFactu F8 intento 2 --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><EstadoEnvio>Incorrecto</EstadoEnvio><DescripcionErrorRegistro>Certificado no válido o caducado</DescripcionErrorRegistro></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>'),
+    -- COMPLETA 4: CLI005 - soporte 2 meses - pendiente
+    ('2026A0004','A',4,'2026-03-01','CLI005','TRF','COMPLETA',
+      300.0000, 300.0000,  63.0000,  363.0000,
+      'N','N','N','N', NULL,NULL, NULL,NULL,
+       NULL,NULL,                  NOW(),'sistema',NOW(),'sistema'),
 
--- F9 rectificativa aceptada
-(9, 'aceptado', '0000', 'Registro de factura rectificativa aceptado correctamente',
- '2025-02-20 09:00:00', '2025-02-20 09:00:05', 0,
- '<soapenv:Envelope><!-- XML VeriFactu RECT-0001 --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><CSV>CSV00009</CSV><EstadoEnvio>Correcto</EstadoEnvio></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>'),
+    -- SIMPLIFICADA 1: material oficina - cobrada en caja
+    ('2026S0001','S',1,'2026-01-10', NULL,'EFE','SIMPLIFICADA',
+      100.0000, 100.0000,  10.0000,  110.0000,
+      'S','S','N','S', NULL,NULL, NULL,NULL,
+      '2026-01-10','2026-01-10', NOW(),'sistema',NOW(),'sistema'),
 
--- F10 recapitulativa aceptada
-(10, 'aceptado', '0000', 'Registro de factura recapitulativa aceptado correctamente',
- '2025-03-31 17:30:00', '2025-03-31 17:30:06', 0,
- '<soapenv:Envelope><!-- XML VeriFactu REC-0001 --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><CSV>CSV00010</CSV><EstadoEnvio>Correcto</EstadoEnvio></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>'),
+    -- SIMPLIFICADA 2: antivirus - cobrada en caja
+    ('2026S0002','S',2,'2026-01-18', NULL,'EFE','SIMPLIFICADA',
+       49.0000,  49.0000,  10.2900,   59.2900,
+      'S','S','N','S', NULL,NULL, NULL,NULL,
+      '2026-01-18','2026-01-18', NOW(),'sistema',NOW(),'sistema'),
 
--- F11 simplificada aceptada
-(11, 'aceptado', '0000', 'Registro de factura simplificada aceptado correctamente',
- '2025-03-10 12:00:00', '2025-03-10 12:00:04', 0,
- '<soapenv:Envelope><!-- XML VeriFactu S-0001 --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><CSV>CSV00011</CSV><EstadoEnvio>Correcto</EstadoEnvio></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>'),
+    -- RECTIFICATIVA: anula soporte de 2026A0001
+    ('2026R0001','RECT',1,'2026-02-01','CLI001','TRF','RECTIFICATIVA',
+     -150.0000,-150.0000, -31.5000, -181.5000,
+      'S','S','S','N', '2026A0001','Error en línea de soporte técnico: importe incorrecto',
+      NULL,NULL,
+      '2026-02-01','2026-02-05', NOW(),'sistema',NOW(),'sistema'),
 
--- F12 simplificada aceptada
-(12, 'aceptado', '0000', 'Registro de factura simplificada aceptado correctamente',
- '2025-03-22 15:10:00', '2025-03-22 15:10:05', 0,
- '<soapenv:Envelope><!-- XML VeriFactu S-0002 --></soapenv:Envelope>',
- '<soapenv:Envelope><RespuestaRegFactuSistemaFacturacion><CSV>CSV00012</CSV><EstadoEnvio>Correcto</EstadoEnvio></RespuestaRegFactuSistemaFacturacion></soapenv:Envelope>');
+    -- RECAPITULATIVA: agrupa S0001 + S0002 (enero 2026)
+    ('2026C0001','REC',1,'2026-01-31', NULL,'EFE','RECAPITULATIVA',
+      149.0000, 149.0000,  20.2900,  169.2900,
+      'S','S','N','N', NULL,NULL,
+      '2026-01-01','2026-01-31',
+      '2026-01-31','2026-01-31', NOW(),'sistema',NOW(),'sistema');
 
--- =============================================================
--- VERIFICACIÓN RÁPIDA (ejecutar tras el script)
--- =============================================================
--- SELECT * FROM v_panel_facturacion;
--- SELECT * FROM v_albaranes_pendientes;
--- SELECT * FROM v_facturas_resumen;
+-- -----------------------------------------------------------
+-- Líneas de facturas
+-- -----------------------------------------------------------
+INSERT INTO `Lineas_Facturas_Clientes`
+    (`Id_Factura`, `Linea`, `Id_Articulo`, `Descripcion`,
+     `Cantidad`, `Precio`, `Descuento`, `Id_Tipo_IVA`,
+     `Importe_Bruto`, `Importe_Descuento`, `Base_Imponible`, `Cuota_IVA`, `RE`, `Aplica_RE`, `Total`)
+VALUES
+    -- 2026A0001: consultoría 5h + soporte 1 mes
+    ('2026A0001',1,'ART001','Servicio de consultoría hora', 5.0000, 75.0000,0.00,'01', 375.0000,0.0000, 375.0000, 78.7500,0.0000,'N',  453.7500),
+    ('2026A0001',2,'ART003','Soporte técnico mensual',      1.0000,150.0000,0.00,'01', 150.0000,0.0000, 150.0000, 31.5000,0.0000,'N',  181.5000),
+    -- 2026A0002: licencia
+    ('2026A0002',1,'ART002','Licencia software anual',      1.0000,299.0000,0.00,'01', 299.0000,0.0000, 299.0000, 62.7900,0.0000,'N',  361.7900),
+    -- 2026A0003: ordenador
+    ('2026A0003',1,'ART009','Ordenador portátil 15"',       1.0000,899.0000,0.00,'01', 899.0000,0.0000, 899.0000,188.7900,0.0000,'N', 1087.7900),
+    -- 2026A0004: soporte 2 meses
+    ('2026A0004',1,'ART003','Soporte técnico mensual',      2.0000,150.0000,0.00,'01', 300.0000,0.0000, 300.0000, 63.0000,0.0000,'N',  363.0000),
+    -- 2026S0001: material oficina (IVA reducido 10%)
+    ('2026S0001',1,'ART004','Material de oficina',          4.0000, 25.0000,0.00,'02', 100.0000,0.0000, 100.0000, 10.0000,0.0000,'N',  110.0000),
+    -- 2026S0002: antivirus + papel
+    ('2026S0002',1,'ART008','Antivirus empresarial anual',  1.0000, 49.0000,0.00,'01',  49.0000,0.0000,  49.0000, 10.2900,0.0000,'N',   59.2900),
+    -- 2026R0001: rectificativa (cantidad negativa)
+    ('2026R0001',1,'ART003','Soporte técnico mensual (anulación)', -1.0000,150.0000,0.00,'01',-150.0000,0.0000,-150.0000,-31.5000,0.0000,'N',-181.5000),
+    -- 2026C0001: recapitulativa (línea resumen)
+    ('2026C0001',1, NULL,   'Resumen facturas simplificadas enero 2026', 1.0000,149.0000,0.00,'01', 149.0000,0.0000, 149.0000, 20.2900,0.0000,'N',  169.2900);
+
+-- -----------------------------------------------------------
+-- Relación albarán ↔ factura
+-- -----------------------------------------------------------
+INSERT INTO `Albaran_Factura` (`Id_Albaran`, `Id_Factura`) VALUES
+    ('2026A0001', '2026A0001'),
+    ('2026A0002', '2026A0002');
+
+-- -----------------------------------------------------------
+-- Facturas sustituidas por la recapitulativa
+-- -----------------------------------------------------------
+INSERT INTO `Facturas_Sustituidas` (`Id_Recapitulativa`, `Id_Simplificada`) VALUES
+    ('2026C0001', '2026S0001'),
+    ('2026C0001', '2026S0002');
+
+-- -----------------------------------------------------------
+-- Registros Verifactu
+-- Huellas: 64 caracteres hexadecimales (SHA-256 simulado)
+-- CSV: código devuelto por la AEAT tras el envío
+-- -----------------------------------------------------------
+INSERT INTO `Verifactu_Registros`
+    (`Tipo_Origen`, `Id_Documento`, `Estado_Envio`,
+     `Fecha_Generacion`, `Fecha_Envio`, `Reintentos`,
+     `Huella_Actual`, `Huella_Anterior`,
+     `CSV_Hacienda`, `URL_Verificacion`)
+VALUES
+    -- 2026A0001: ENVIADO (primer registro, sin anterior)
+    ('FACTURA','2026A0001','ENVIADO',
+     '2026-01-20 09:00:00','2026-01-20 09:02:15', 0,
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0001',
+      NULL,
+     'CSVF2026A00010001', 'https://sede.agenciatributaria.gob.es/verifactu/0001'),
+
+    -- 2026A0002: ENVIADO
+    ('FACTURA','2026A0002','ENVIADO',
+     '2026-01-25 10:15:00','2026-01-25 10:17:30', 0,
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0002',
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0001',
+     'CSVF2026A00020002', 'https://sede.agenciatributaria.gob.es/verifactu/0002'),
+
+    -- 2026A0003: PENDIENTE (generado, no enviado aún)
+    ('FACTURA','2026A0003','PENDIENTE',
+     '2026-02-15 08:30:00', NULL, 0,
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0003',
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0002',
+      NULL, NULL),
+
+    -- 2026A0004: PENDIENTE
+    ('FACTURA','2026A0004','PENDIENTE',
+     '2026-03-01 11:00:00', NULL, 0,
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0004',
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0003',
+      NULL, NULL),
+
+    -- 2026S0001: ENVIADO
+    ('FACTURA','2026S0001','ENVIADO',
+     '2026-01-10 12:00:00','2026-01-10 12:01:45', 0,
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0005',
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0004',
+     'CSVS2026S00010005', 'https://sede.agenciatributaria.gob.es/verifactu/0005'),
+
+    -- 2026S0002: ENVIADO
+    ('FACTURA','2026S0002','ENVIADO',
+     '2026-01-18 14:30:00','2026-01-18 14:31:20', 0,
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0006',
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0005',
+     'CSVS2026S00020006', 'https://sede.agenciatributaria.gob.es/verifactu/0006'),
+
+    -- 2026R0001: ENVIADO (rectificativa)
+    ('FACTURA','2026R0001','ENVIADO',
+     '2026-02-01 09:45:00','2026-02-01 09:46:55', 0,
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0007',
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0006',
+     'CSVR2026R00010007', 'https://sede.agenciatributaria.gob.es/verifactu/0007'),
+
+    -- 2026C0001: ENVIADO (recapitulativa, con un reintento previo)
+    ('FACTURA','2026C0001','ENVIADO',
+     '2026-01-31 16:00:00','2026-01-31 16:05:30', 1,
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0008',
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0007',
+     'CSVC2026C00010008', 'https://sede.agenciatributaria.gob.es/verifactu/0008'),
+
+    -- 2026A0003: primer intento fallido (ERROR, antes del pendiente actual)
+    ('FACTURA','2026A0003','ERROR',
+     '2026-02-15 08:00:00', NULL, 1,
+     NULL,
+     'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0002',
+      NULL, NULL);

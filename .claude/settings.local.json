@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/User/.claude/projects/c--xampp-htdocs-SistemaGestionFacturas/**)",
+      "Bash(php -r ':*)",
+      "Bash(/c/xampp/php/php.exe -r ':*)"
+    ]
+  }
+}
