@@ -1,0 +1,5 @@
+{
+    "require": {
+        "josemmo/verifactu-php": "^0.3.4"
+    }
+}

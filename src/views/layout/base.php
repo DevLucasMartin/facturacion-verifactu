@@ -140,12 +140,6 @@
         <i class="bi bi-receipt me-2"></i>VeriFACTU
     </div>
     <ul class="nav flex-column mt-2">
-        <li class="nav-item">
-            <a class="nav-link <?= ($fact_active_menu ?? '') === 'inicio' ? 'active' : '' ?>"
-               href="/SistemaGestionFacturas/src/views/index.php">
-                <i class="bi bi-house"></i> Inicio
-            </a>
-        </li>
         <div class="nav-section">Facturación</div>
         <li class="nav-item">
             <a class="nav-link <?= ($fact_active_menu ?? '') === 'facturas' ? 'active' : '' ?>"
@@ -157,18 +151,6 @@
             <a class="nav-link <?= ($fact_active_menu ?? '') === 'albaranes' ? 'active' : '' ?>"
                href="/SistemaGestionFacturas/src/views/albaranes/listado.php">
                 <i class="bi bi-clipboard2-check"></i> Albaranes
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link <?= ($fact_active_menu ?? '') === 'clientes' ? 'active' : '' ?>"
-               href="/SistemaGestionFacturas/src/views/clientes/listado.php">
-                <i class="bi bi-people"></i> Clientes
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link <?= ($fact_active_menu ?? '') === 'articulos' ? 'active' : '' ?>"
-               href="/SistemaGestionFacturas/src/views/articulos/listado.php">
-                <i class="bi bi-box-seam"></i> Artículos
             </a>
         </li>
         <div class="nav-section">Verifactu</div>
