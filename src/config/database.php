@@ -72,4 +72,18 @@ class Database {
     public function delete(string $table, string $where, array $whereParams = []): int {
         return $this->query("DELETE FROM `{$table}` WHERE {$where}", $whereParams)->rowCount();
     }
+
+    public function beginTransaction(): void {
+        $this->pdo->beginTransaction();
+    }
+
+    public function commit(): void {
+        $this->pdo->commit();
+    }
+
+    public function rollBack(): void {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+    }
 }

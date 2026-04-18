@@ -77,7 +77,7 @@ ob_start();
     </div>
 </div>
 
-<div class="fact-list-actions">
+<div class="fact-list-actions d-flex flex-wrap gap-2 mb-3">
     <a href="/SistemaGestionFacturas/src/views/albaranes/nuevo.php"
        class="btn btn-primary btn-sm fact-btn">
         <i class="bi bi-plus-lg me-1"></i>Nuevo documento
@@ -90,6 +90,10 @@ ob_start();
         id="btnExportarExcel" title="Exportar a Excel">
         <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
     </button>
+    <div id="exportIndicator" style="display:none;" class="align-self-center ms-2">
+        <span class="spinner-border spinner-border-sm text-success me-1"></span>
+        <small class="text-muted">Generando Excel...</small>
+    </div>
 </div>
 
 <!-- LISTADO -->
@@ -144,7 +148,7 @@ $content = ob_get_clean();
 
 ob_start();
 ?>
-<script src="/SistemaGestionFacturas/assets/js/facturas/listado.js" defer></script>
+<script src="/SistemaGestionFacturas/assets/js/Facturas/listado.js" defer></script>
 <?php
 $extra_js = ob_get_clean();
 

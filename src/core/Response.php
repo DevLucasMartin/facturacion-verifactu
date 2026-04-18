@@ -46,13 +46,46 @@ class Response {
     }
 
     /**
+     * 201 Created.
+     */
+    public static function created(mixed $data = null, string $message = 'Creado correctamente'): void {
+        self::send(201, [
+            'ok'      => true,
+            'message' => $message,
+            'data'    => $data,
+        ]);
+    }
+
+    /**
+     * 422 Unprocessable Entity - errores de validación.
+     */
+    public static function validationError(array $errors): void {
+        self::send(422, [
+            'ok'      => false,
+            'message' => 'Error de validación',
+            'errors'  => $errors,
+        ]);
+    }
+
+    /**
+     * Envía una respuesta JSON con cuerpo y status arbitrarios.
+     */
+    public static function json(array $body, int $status = 200): void {
+        self::send($status, $body);
+    }
+
+    /**
      * 500 Internal Server Error.
      */
-    public static function serverError(string $message = 'Error interno del servidor'): void {
-        self::send(500, [
+    public static function serverError(string $message = 'Error interno del servidor', ?\Throwable $e = null): void {
+        $body = [
             'ok'      => false,
             'message' => $message,
-        ]);
+        ];
+        if ($e !== null && (defined('APP_DEBUG') && APP_DEBUG)) {
+            $body['debug'] = $e->getMessage();
+        }
+        self::send(500, $body);
     }
 
     /**

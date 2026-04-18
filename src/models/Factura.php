@@ -366,14 +366,28 @@ class Factura
         );
 
         $sql = "SELECT
-                    F.`Codigo`, F.`Numero`, F.`Fecha`,
-                    F.`Id_Cliente`, F.`Id_Canal`,
-                    F.`Tipo_Documento`, F.`Total`,
-                    F.`Cerrada`, F.`Cobrada`,
-                    C.`NIF`, C.`Archivar_Como` AS Nombre,
-                    VR.`Estado_Envio` AS Verifactu_Estado,
-                    VR.`CSV_Hacienda`,
-                    VR.`Ultimo_Error`
+                    F.`Codigo`         AS codigo,
+                    F.`Numero`         AS numero,
+                    F.`Fecha`          AS fecha,
+                    F.`Id_Canal`       AS id_canal,
+                    F.`Tipo_Documento` AS tipo_documento,
+                    F.`Total`          AS total,
+                    F.`Id_Cliente`     AS id_cliente,
+                    C.`Archivar_Como`  AS nombre_cliente,
+                    CASE
+                        WHEN F.`Abono`   = 'S' THEN 'ANULADA'
+                        WHEN F.`Cobrada` = 'S' THEN 'PAGADA'
+                        WHEN F.`Cerrada` = 'S' THEN 'EMITIDA'
+                        ELSE 'BORRADOR'
+                    END AS estado,
+                    CASE COALESCE(VR.`Estado_Envio`, 'NINGUNO')
+                        WHEN 'ENVIADO'   THEN 'ENVIADA'
+                        WHEN 'GENERADO'  THEN 'PENDIENTE'
+                        WHEN 'PENDIENTE' THEN 'PENDIENTE'
+                        WHEN 'ERROR'     THEN 'ERROR'
+                        WHEN 'ANULADO'   THEN 'RECHAZADA'
+                        ELSE 'NO_ENVIADA'
+                    END AS estado_verifactu
                 FROM `Facturas_Clientes` F
                 LEFT JOIN `Clientes` C ON C.`Codigo` = F.`Id_Cliente`
                 LEFT JOIN `Verifactu_Registros` VR ON VR.`Id_Documento` = F.`Codigo`

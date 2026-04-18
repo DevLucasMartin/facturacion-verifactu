@@ -3,7 +3,16 @@
     "allow": [
       "Read(//c/Users/User/.claude/projects/c--xampp-htdocs-SistemaGestionFacturas/**)",
       "Bash(php -r ':*)",
-      "Bash(/c/xampp/php/php.exe -r ':*)"
+      "Bash(/c/xampp/php/php.exe -r ':*)",
+      "Read(//c/Users/User/Desktop/**)",
+      "Bash(grep -A 20 \"CREATE TABLE \\\\`Canales\\\\`\" \"c:/xampp/htdocs/SistemaGestionFacturas/database.sql\")",
+      "Bash(grep -A 60 \"CREATE TABLE \\\\`Facturas_Clientes\\\\`\" \"c:/xampp/htdocs/SistemaGestionFacturas/database.sql\")",
+      "Bash(php -l \"c:/xampp/htdocs/SistemaGestionFacturas/src/api/canales.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/SistemaGestionFacturas/src/api/clientes.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/SistemaGestionFacturas/src/api/facturas.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/SistemaGestionFacturas/src/models/Factura.php\")",
+      "Bash(php -l \"c:/xampp/htdocs/SistemaGestionFacturas/src/controllers/FacturaController.php\")",
+      "Bash(grep -l \"fact-badge\" c:/xampp/htdocs/SistemaGestionFacturas/assets/css/*.css)"
     ]
   }
 }
