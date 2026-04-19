@@ -43,7 +43,7 @@ $(document).ready(function() {
                 const rows = (data && data.data) ? data.data : [];
                 return {
                     results: rows.map(function(c) {
-                        return { id: c.Codigo, text: c.Descripcion };
+                        return { id: c.id_canal, text: c.nombre };
                     })
                 };
             },
@@ -67,10 +67,9 @@ $(document).ready(function() {
                 const lista = (resp && resp.data) ? resp.data : [];
                 return {
                     results: lista.map(function(c) {
-                        const apellidos = c.Apellidos != null ? c.Apellidos : '';
                         return {
                             id:   c.Codigo,
-                            text: (c.Nombre || 'Sin nombre') + (apellidos ? ' ' + apellidos : '') + ' (' + (c.NIF || '-') + ')'
+                            text: (c.Archivar_Como || c.Nombre || c.Codigo) + ' (' + (c.NIF || '-') + ')'
                         };
                     })
                 };

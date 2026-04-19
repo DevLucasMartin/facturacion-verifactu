@@ -4,6 +4,38 @@
  * Módulo de Facturación
  */
 
+// Capturar cualquier error PHP y devolverlo como JSON
+ini_set('display_errors', 0);
+set_exception_handler(function(Throwable $e) {
+    http_response_code(500);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'ok'      => false,
+        'success' => false,
+        'message' => $e->getMessage(),
+        'error_detail' => [
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
+            'trace'   => $e->getTraceAsString(),
+        ],
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+});
+register_shutdown_function(function() {
+    $err = error_get_last();
+    if ($err && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'ok'      => false,
+            'success' => false,
+            'message' => 'Fatal error: ' . $err['message'],
+            'error_detail' => $err,
+        ], JSON_UNESCAPED_UNICODE);
+    }
+});
+
 require_once __DIR__ . '/../controllers/FacturaController.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -21,7 +53,7 @@ if (str_starts_with($path, $scriptDir)) {
 
 $path     = str_replace('.php', '', $path);
 $path     = trim($path, '/');
-$parts    = ($path === '') ? [] : explode('/', $path);
+$parts    = ($path === '') ? [] : array_map('rawurldecode', explode('/', $path));
 $resource = $parts[0] ?? '';
 
 try {
@@ -259,10 +291,10 @@ try {
     echo json_encode([
         'success'      => false,
         'message'      => 'Error al procesar solicitud',
-        'error_detail' => getenv('APP_ENV') === 'development' ? [
+        'error_detail' => [
             'message' => $e->getMessage(),
-            'file'    => $e->getFile(),
+            'file'    => str_replace(__DIR__ . '/../../', '', $e->getFile()),
             'line'    => $e->getLine(),
-        ] : null,
+        ],
     ], JSON_UNESCAPED_UNICODE);
 }

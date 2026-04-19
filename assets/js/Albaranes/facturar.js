@@ -85,8 +85,8 @@ function cargarFormasPago() {
             sel.empty();
             sel.append(new Option('Elige la forma de pago...', ' '));
             lista.forEach(function(fp) {
-                const codigo = fp.Id_Forma_Pago;
-                sel.append(new Option(codigo, codigo));
+                const label = fp.Descripcion ? `${fp.Id_Forma_Pago} – ${fp.Descripcion}` : fp.Id_Forma_Pago;
+                sel.append(new Option(label, fp.Id_Forma_Pago));
             });
         })
         .fail(function() {
@@ -543,16 +543,26 @@ async function facturar() {
 
     App.showLoading();
     try {
-        const resp   = await factApiSend('/facturas.php/from-albaranes', 'POST', payload);
-        App.hideLoading();
+        const resp = await factApiSend('/facturas.php/from-albaranes', payload, 'POST');
+
+        // Comprobar si el servidor devolvió un error
+        if (resp.ok === false || resp.success === false) {
+            throw new Error(resp.message || 'Error al crear la factura.');
+        }
+
         const codigo = resp.data?.codigo ?? '';
+        if (!codigo) {
+            throw new Error('La factura se procesó pero no se obtuvo el código. Revisa el listado de facturas.');
+        }
+
+        App.hideLoading();
         App.notify('Factura ' + codigo + ' creada correctamente.', 'success');
         setTimeout(function() {
             window.location = BASE + '/src/views/facturas/ver.php?codigo=' + encodeURIComponent(codigo);
         }, 1000);
     } catch (err) {
         App.hideLoading();
-        App.notify(err.message || 'Error al crear la factura.', 'error');
+        App.notify(err.message || 'Error al crear la factura.', 'danger');
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-file-earmark-check me-1"></i>Crear Factura';
     }

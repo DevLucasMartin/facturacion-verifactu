@@ -21,7 +21,7 @@ if (str_starts_with($path, $scriptDir)) {
 
 $path     = str_replace('.php', '', $path);
 $path     = trim($path, '/');
-$parts    = ($path === '') ? [] : explode('/', $path);
+$parts    = ($path === '') ? [] : array_map('rawurldecode', explode('/', $path));
 $resource = $parts[0] ?? '';
 
 try {

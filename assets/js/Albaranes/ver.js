@@ -76,7 +76,7 @@ function cargarAlbaran(codigo) {
                 escapeHtml(msg) + '</div>'
             );
             $('#lineasBody').html(
-                '<tr><td colspan="7" class="text-center text-danger py-3">No se pudieron cargar las líneas.</td></tr>'
+                '<tr><td colspan="8" class="text-center text-danger py-3">No se pudieron cargar las líneas.</td></tr>'
             );
             $('#totalesPanel').html('<div class="text-danger">No se pudieron cargar los totales.</div>');
             $('#clientePanel').html('<div class="text-danger">No se pudo cargar el cliente.</div>');
@@ -93,7 +93,7 @@ function renderAlbaranData(a) {
         '<dt class="col-sm-4">Código:</dt><dd class="col-sm-8"><strong>' +
         escapeHtml(a.Codigo || '') + '</strong></dd>' +
         '<dt class="col-sm-4">Fecha:</dt><dd class="col-sm-8">' +
-        fmtDate(a.Fecha.date) + '</dd>' +
+        fmtDate(a.Fecha) + '</dd>' +
         '<dt class="col-sm-4">Canal:</dt><dd class="col-sm-8">' +
         escapeHtml(a.Id_Canal || '-') + '</dd>' +
         '</dl></div>' +
@@ -115,11 +115,9 @@ function renderAlbaranData(a) {
 
     $('#albaranData').html(html);
 
-    // Deshabilitar botón Facturar si ya está completamente facturado
+    // Ocultar botón Facturar si ya está completamente facturado
     if (facturado) {
-        $('#btnFacturar')
-            .addClass('disabled')
-            .attr('title', 'Este albarán ya está completamente facturado');
+        $('#btnFacturar').hide();
     }
 }
 
@@ -182,7 +180,7 @@ var PAGE_SIZE  = 10;
 
 function renderLineas(lineas) {
     if (!lineas.length) {
-        $('#lineasBody').html('<tr><td colspan="7" class="text-center text-muted py-3">Sin líneas.</td></tr>');
+        $('#lineasBody').html('<tr><td colspan="8" class="text-center text-muted py-3">Sin líneas.</td></tr>');
         $('#lineasPaginacion').hide();
         $('#lineasCount').text('');
         return;

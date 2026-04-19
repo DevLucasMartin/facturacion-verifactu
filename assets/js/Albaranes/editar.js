@@ -144,10 +144,11 @@
         var select = document.getElementById('selectCanal');
         if (!select) return;
         select.innerHTML = '';
+        // La API devuelve id_canal/nombre (aliases), no Codigo/Descripcion
         (json.data || []).forEach(function(c) {
             var opt = document.createElement('option');
-            opt.value = c.Codigo;
-            opt.textContent = c.Descripcion;
+            opt.value = c.id_canal;
+            opt.textContent = c.nombre;
             select.appendChild(opt);
         });
     }
@@ -156,11 +157,11 @@
         const json = await apiGet('/formas_pago.php');
         const select = document.getElementById('selectFormaPago');
         if (!select) return;
-        select.innerHTML = '<option value="">Seleccionar...</option>';
+        select.innerHTML = '';
         (json.data || []).forEach(fp => {
             const opt = document.createElement('option');
             opt.value = fp.Id_Forma_Pago;
-            opt.textContent = fp.Id_Forma_Pago;
+            opt.textContent = fp.Descripcion ? `${fp.Id_Forma_Pago} – ${fp.Descripcion}` : fp.Id_Forma_Pago;
             select.appendChild(opt);
         });
     }
