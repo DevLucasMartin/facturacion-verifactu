@@ -21,12 +21,14 @@
     const RECTIFICA_CODE  = urlParams.get('rectifica') || '';
 
     // Estado
-    let lineas        = [];
-    let clienteActual = null;
-    let tarifaActual  = 1;
-    let rePorcentaje  = 0;
-    let tiposIVA      = {};
-    let lineaEditando = null;
+    let lineas             = [];
+    let clienteActual      = null;
+    let tarifaActual       = 1;
+    let rePorcentaje       = 0;
+    let claveRegimenGlobal = '01';
+    let tiposIVA           = {};
+    let territorioActual   = 'PENINSULAR';
+    let lineaEditando      = null;
 
     // ---------- Notify ----------
     function notify(msg, type = 'warning') {
@@ -108,6 +110,79 @@
         });
     }
 
+    // ---------- Helpers IVA / Calificación ----------
+    function resolverTerritorio(t) {
+        if (t.Tipo_Territorio) {
+            return t.Tipo_Territorio === 'PENINSULA' ? 'PENINSULAR' : t.Tipo_Territorio;
+        }
+        const c = t.Codigo || '';
+        if (c.startsWith('IG') || c.startsWith('I1')) return 'CANARIAS';
+        if (c.startsWith('IP')) return 'CEUTA_MELILLA';
+        return 'PENINSULAR';
+    }
+
+    function defaultIvaTerritorio() {
+        return Object.values(tiposIVA).find(t =>
+            resolverTerritorio(t) === territorioActual && t.Activo !== 'N'
+        )?.Codigo || null;
+    }
+
+    function buildIvaOptions(ivaSeleccionado) {
+        const tipos = Object.values(tiposIVA).filter(t =>
+            t.Activo !== 'N' &&
+            (!territorioActual || resolverTerritorio(t) === territorioActual)
+        );
+        return tipos.map(t => {
+            const label = `${escapeHtml(t.Descripcion || t.Codigo)} (${t.IVA}%)`;
+            return `<option value="${escapeHtml(t.Codigo)}" ${ivaSeleccionado === t.Codigo ? 'selected' : ''}>${label}</option>`;
+        }).join('');
+    }
+
+    function esExentoONoSujeto(calif) {
+        return ['N1','N2','E1','E2','E3','E4','E5','E6'].includes(calif);
+    }
+
+    function textoIvaExento(calif) {
+        return (calif === 'N1' || calif === 'N2') ? 'No sujeto' : 'Exento';
+    }
+
+    const CALIFICACION_HELP = {
+        S1: 'Operación <strong>sujeta y no exenta</strong>, sin inversión del sujeto pasivo.',
+        S2: 'Operación <strong>sujeta y no exenta</strong>, con inversión del sujeto pasivo.',
+        N1: 'Operación <strong>no sujeta</strong> por los artículos 7, 14 u otras causas.',
+        N2: 'Operación <strong>no sujeta</strong> por las reglas de localización.',
+        E1: '<strong>Exenta – Art. 20 LIVA.</strong> Exenciones interiores.',
+        E2: '<strong>Exenta – Art. 21 LIVA.</strong> Exportaciones definitivas.',
+        E3: '<strong>Exenta – Art. 22 LIVA.</strong> Operaciones asimiladas a exportaciones.',
+        E4: '<strong>Exenta – Art. 23 y 24 LIVA.</strong> Zonas francas.',
+        E5: '<strong>Exenta – Art. 25 LIVA.</strong> Entregas intracomunitarias de bienes.',
+        E6: '<strong>Exenta – Otros artículos LIVA.</strong>',
+    };
+
+    window.actualizarPopoverCalif = function (index) {
+        const valor  = document.getElementById(`calif-select-${index}`)?.value || 'S1';
+        const iconEl = document.getElementById(`calif-info-${index}`);
+        if (!iconEl) return;
+        const popover = bootstrap.Popover.getOrCreateInstance(iconEl);
+        popover.setContent({
+            '.popover-header': 'Calificación de la operación',
+            '.popover-body':   CALIFICACION_HELP[valor] || valor,
+        });
+    };
+
+    const CLAVE_REGIMEN_E456 = ['E4', 'E5', 'E6'];
+
+    window.cambiarTerritorio = function (valor) {
+        territorioActual = valor;
+        lineas.forEach(linea => {
+            if (resolverTerritorio(tiposIVA[linea.tipoIVA] || {}) !== territorioActual) {
+                linea.tipoIVA = defaultIvaTerritorio() || linea.tipoIVA;
+            }
+        });
+        renderLineas();
+        recalcular();
+    };
+
     // ---------- Pre-carga de rectificativa ----------
     async function cargarDatosRectificativa(codigo) {
         // Mostrar campos de rectificación
@@ -153,12 +228,13 @@
         // Cargar líneas del original (negadas para abono)
         if (lResp.success && Array.isArray(lResp.data)) {
             lineas = lResp.data.map(l => ({
-                idArticulo:  l.referencia   || '',
-                descripcion: l.descripcion  || '',
-                cantidad:    l.cantidad     || 0,
-                precio:      l.precio_unitario || 0,
-                descuento:   l.descuento    || 0,
-                tipoIVA:     l.tipo_iva     || '',
+                idArticulo:   l.referencia        || '',
+                descripcion:  l.descripcion       || '',
+                cantidad:     l.cantidad          || 0,
+                precio:       l.precio_unitario   || 0,
+                descuento:    l.descuento         || 0,
+                tipoIVA:      l.tipo_iva          || '',
+                calificacion: l.Calificacion      || 'S1',
             }));
         }
     }
@@ -214,6 +290,11 @@
         document.getElementById('selectTarifa')?.addEventListener('change', (e) => {
             tarifaActual = parseInt(e.target.value) || 1;
         });
+
+        // Territorio
+        document.getElementById('selectTerritorio')?.addEventListener('change', function () {
+            window.cambiarTerritorio(this.value);
+        });
     }
 
     // ---------- Modal: seleccionar cliente ----------
@@ -239,7 +320,7 @@
                 <tr style="cursor:pointer" onclick="seleccionarClienteReal('${escapeHtml(c.Codigo)}')">
                     <td>${escapeHtml(c.Codigo || '')}</td>
                     <td>${escapeHtml(c.NIF || '-')}</td>
-                    <td>${escapeHtml(c.Razon_Social || c.Nombre || '-')}</td>
+                    <td>${escapeHtml(c.Archivar_Como || '-')}</td>
                     <td>${escapeHtml(c.Id_Forma_Pago || '-')}</td>
                 </tr>`).join('');
             tbody.innerHTML = rows || `<tr><td colspan="4" class="text-muted text-center">Sin resultados</td></tr>`;
@@ -258,11 +339,13 @@
             document.getElementById('clienteEmpty').style.display  = 'none';
             document.getElementById('clienteData').style.display   = '';
             document.getElementById('inputIdCliente').value         = clienteActual.Codigo || '';
-            document.getElementById('clienteNombre').textContent    = clienteActual.Razon_Social || clienteActual.Nombre || '';
+            document.getElementById('clienteNombre').textContent    = clienteActual.Archivar_Como || '';
             document.getElementById('clienteNIF').textContent       = clienteActual.NIF || '';
             document.getElementById('clienteDireccion').textContent = clienteActual.Direccion || '-';
-            document.getElementById('clienteFormaPago').textContent = clienteActual.Id_Forma_Pago || '-';
+            document.getElementById('clienteFormaPago').textContent = (clienteActual.Id_Forma_Pago || '-').toUpperCase();
             document.getElementById('clienteTarifa').textContent    = 'Tarifa ' + tarifaActual;
+            document.getElementById('clienteTipoIVA').textContent   = clienteActual.Id_Tipo_IVA || '-';
+            document.getElementById('clienteAplicaRE').textContent  = (clienteActual.Aplica_RE == 1) ? 'Sí' : 'No';
 
             // Pre-seleccionar forma de pago del cliente
             const selFP = document.getElementById('selectFormaPago');
@@ -438,7 +521,7 @@
         if (!lineas.length) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="text-center text-muted py-4">
+                    <td colspan="10" class="text-center text-muted py-4">
                         <i class="bi bi-cart-plus fs-1 d-block mb-2"></i>
                         Añada líneas a la factura
                     </td>
@@ -447,11 +530,12 @@
         }
 
         tbody.innerHTML = lineas.map((linea, index) => {
-            const tipo        = tiposIVA[linea.tipoIVA] || {};
+            const tipo         = tiposIVA[linea.tipoIVA] || { IVA: 21, RE: 0 };
             const importeBruto = linea.cantidad * linea.precio;
-            const dto         = importeBruto * ((linea.descuento || 0) / 100);
-            const base        = importeBruto - dto;
-            const cuotaIVA    = base * (Number(tipo.IVA ?? 0) / 100);
+            const base         = importeBruto * (1 - (linea.descuento || 0) / 100);
+            const ivaPct       = Number(tipo.IVA ?? 21);
+            const sinIVA       = esExentoONoSujeto(linea.calificacion);
+            const IVACalc      = (linea.calificacion === 'S2' || sinIVA) ? 0 : base * (ivaPct / 100);
 
             return `
             <tr data-index="${index}">
@@ -459,30 +543,57 @@
                 <td>
                     <input type="hidden" name="lineas[${index}][Id_Articulo]" value="${escapeHtml(linea.idArticulo)}">
                     <input type="hidden" name="lineas[${index}][Descripcion]" value="${escapeHtml(linea.descripcion)}">
-                    <input type="hidden" name="lineas[${index}][Id_Tipo_IVA]" value="${escapeHtml(linea.tipoIVA)}">
+                    <input type="hidden" name="lineas[${index}][Calificacion]" value="${escapeHtml(linea.calificacion || 'S1')}">
                     <strong>${escapeHtml(linea.idArticulo)}</strong><br>
                     <small class="text-muted">${escapeHtml((linea.descripcion || '').substring(0, 40))}</small>
                 </td>
                 <td>
                     <input type="number" class="form-control form-control-sm fact-form-control"
-                        name="lineas[${index}][Cantidad]" value="${Number(linea.cantidad).toFixed(2)}"
-                        step="any" min="0.01" onchange="actualizarLinea(${index}, 'cantidad', this.value)">
+                        name="lineas[${index}][Cantidad]"
+                        value="${Number(linea.cantidad) === 0 ? '' : Number(linea.cantidad)}"
+                        placeholder="0" min="1" step="1"
+                        oninput="actualizarLinea(${index}, 'cantidad', this.value)">
                 </td>
                 <td>
                     <input type="number" class="form-control form-control-sm fact-form-control"
-                        name="lineas[${index}][Precio]" value="${Number(linea.precio).toFixed(2)}"
-                        min="0" step="any" onchange="actualizarLinea(${index}, 'precio', this.value)">
+                        name="lineas[${index}][Precio]"
+                        value="${Number(linea.precio).toFixed(2) == 0 ? '' : Number(linea.precio).toFixed(2)}"
+                        placeholder="0.00" step="0.01"
+                        oninput="actualizarLinea(${index}, 'precio', this.value)">
                 </td>
                 <td>
                     <input type="number" class="form-control form-control-sm fact-form-control"
-                        name="lineas[${index}][Descuento]" value="${Number(linea.descuento || 0)}"
-                        min="0" max="100" step="any" onchange="actualizarLinea(${index}, 'descuento', this.value)">
+                        name="lineas[${index}][Descuento]"
+                        value="${Number(linea.descuento) === 0 ? '' : Number(linea.descuento)}"
+                        placeholder="0.00" min="0" max="100" step="0.25"
+                        oninput="actualizarLinea(${index}, 'descuento', this.value)">
                 </td>
                 <td>
-                    <span class="badge bg-secondary">${escapeHtml(linea.tipoIVA)} (${Number(tipo.IVA ?? 0)}%)</span>
+                    <select class="form-control form-control-sm fact-form-control"
+                        id="iva-select-${index}" name="lineas[${index}][Id_Tipo_IVA]"
+                        onchange="actualizarLinea(${index}, 'tipoIVA', this.value)">
+                        ${buildIvaOptions(linea.tipoIVA)}
+                    </select>
                 </td>
-                <td class="text-end">${formatCurrency(base)}</td>
-                <td class="text-end">${formatCurrency(cuotaIVA)}</td>
+                <td>
+                    <input type="hidden" name="lineas[${index}][Calificacion]" value="${escapeHtml(linea.calificacion || 'S1')}">
+                    <select class="form-control form-control-sm fact-form-control"
+                        id="calif-select-${index}"
+                        onchange="actualizarLinea(${index}, 'calificacion', this.value)">
+                        <option value="S1" ${(linea.calificacion || 'S1') === 'S1' ? 'selected' : ''}>Sujeta no exenta – Sin inv. (S1)</option>
+                        <option value="S2" ${linea.calificacion === 'S2' ? 'selected' : ''}>Sujeta no exenta – Con inv. (S2)</option>
+                        <option value="N1" ${linea.calificacion === 'N1' ? 'selected' : ''}>No sujeta – Art. 7, 14… (N1)</option>
+                        <option value="N2" ${linea.calificacion === 'N2' ? 'selected' : ''}>No sujeta – Localización (N2)</option>
+                        <option value="E1" ${linea.calificacion === 'E1' ? 'selected' : ''}>Exenta – Art. 20 (E1)</option>
+                        <option value="E2" ${linea.calificacion === 'E2' ? 'selected' : ''}>Exenta – Art. 21 export. (E2)</option>
+                        <option value="E3" ${linea.calificacion === 'E3' ? 'selected' : ''}>Exenta – Art. 22 (E3)</option>
+                        <option value="E4" ${linea.calificacion === 'E4' ? 'selected' : ''}>Exenta – Art. 23-24 (E4)</option>
+                        <option value="E5" ${linea.calificacion === 'E5' ? 'selected' : ''}>Exenta – Art. 25 UE (E5)</option>
+                        <option value="E6" ${linea.calificacion === 'E6' ? 'selected' : ''}>Exenta – Otros (E6)</option>
+                    </select>
+                </td>
+                <td class="text-end"><strong id="base-linea-${index}">${formatCurrency(base)}</strong></td>
+                <td class="text-end"><strong id="iva-linea-${index}">${sinIVA ? textoIvaExento(linea.calificacion) : formatCurrency(IVACalc)}</strong></td>
                 <td class="text-center">
                     <button type="button" class="btn btn-sm btn-outline-warning me-1"
                         onclick="editarLinea(${index})" title="Cambiar artículo">
@@ -495,11 +606,39 @@
                 </td>
             </tr>`;
         }).join('');
+
+        lineas.forEach((_, index) => {
+            const el = document.getElementById(`calif-info-${index}`);
+            if (el) bootstrap.Popover.getOrCreateInstance(el, { html: true });
+        });
     }
 
-    window.actualizarLinea = function(index, campo, valor) {
-        const n = parseFloat(valor);
-        lineas[index][campo] = isNaN(n) ? 0 : n;
+    window.actualizarLinea = function (index, campo, valor) {
+        if (campo === 'tipoIVA') {
+            lineas[index].tipoIVA = valor;
+        } else if (campo === 'calificacion') {
+            lineas[index].calificacion = valor;
+            const hiddenInput = document.querySelector(`input[name="lineas[${index}][Calificacion]"]`);
+            if (hiddenInput) hiddenInput.value = valor;
+        } else {
+            const n = parseFloat(valor);
+            lineas[index][campo] = isNaN(n) ? 0 : n;
+        }
+
+        // Actualizar base e IVA de la línea en tiempo real
+        const linea           = lineas[index];
+        const tipo            = tiposIVA[linea.tipoIVA] || {};
+        const importe_bruto   = Number(linea.cantidad) * Number(linea.precio);
+        const base_imponible  = importe_bruto * (1 - (Number(linea.descuento) || 0) / 100);
+        const ivaPct          = Number(tipo.IVA ?? 21);
+        const sinIVA          = esExentoONoSujeto(linea.calificacion);
+        const IVA_calculado   = (linea.calificacion === 'S2' || sinIVA) ? 0 : base_imponible * (ivaPct / 100);
+
+        const baseEl = document.getElementById(`base-linea-${index}`);
+        const ivaEl  = document.getElementById(`iva-linea-${index}`);
+        if (baseEl) baseEl.textContent = formatCurrency(base_imponible);
+        if (ivaEl)  ivaEl.textContent  = sinIVA ? textoIvaExento(linea.calificacion) : formatCurrency(IVA_calculado);
+
         recalcular();
     };
 
@@ -531,12 +670,17 @@
         }
 
         const lineasParaCalculo = lineas.map(l => {
-            const t = tiposIVA[l.tipoIVA] || {};
+            const sinIVA = esExentoONoSujeto(l.calificacion);
+            const t      = sinIVA ? {} : (tiposIVA[l.tipoIVA] || {});
             return {
                 cantidad:  Number(l.cantidad)  || 0,
                 precio:    Number(l.precio)    || 0,
                 descuento: Number(l.descuento) || 0,
-                tipoIVA:   { codigo: l.tipoIVA, iva: Number(t.IVA ?? 0), re: Number(t.RE ?? 0) },
+                tipoIVA: sinIVA ? null : {
+                    codigo: l.tipoIVA,
+                    iva:    l.calificacion === 'S2' ? 0 : Number(t.IVA ?? 0),
+                    re:     0,
+                },
             };
         });
 
@@ -598,17 +742,19 @@
             Id_Forma_Pago:       idFormaPago,
             Tipo_Documento:      tipo,
             Observaciones:       document.getElementById('textareaObservaciones')?.value || '',
-            Descuento_Especial:  descuentos.especial,
-            Descuento_PP:        descuentos.pp,
-            Descuento_Comercial: descuentos.comercial,
+            Descuento_Especial:  parseFloat(document.getElementById('inputDtoEspecial')?.value)  || 0,
+            Descuento_PP:        parseFloat(document.getElementById('inputDtoPP')?.value)        || 0,
+            Descuento_Comercial: parseFloat(document.getElementById('inputDtoComercial')?.value) || 0,
             enviar_verifactu:    enviarVerifactu,
             lineas: lineas.map(l => ({
-                Id_Articulo: l.idArticulo,
-                Descripcion: l.descripcion,
-                Cantidad:    l.cantidad,
-                Precio:      l.precio,
-                Descuento:   l.descuento,
-                Id_Tipo_IVA: l.tipoIVA,
+                Id_Articulo:   l.idArticulo,
+                Descripcion:   l.descripcion,
+                Cantidad:      l.cantidad,
+                Precio:        l.precio,
+                Descuento:     l.descuento,
+                Id_Tipo_IVA:   l.tipoIVA,
+                Calificacion:  l.calificacion || 'S1',
+                Clave_Regimen: CLAVE_REGIMEN_E456.includes(l.calificacion) ? claveRegimenGlobal : '01',
             })),
         };
 

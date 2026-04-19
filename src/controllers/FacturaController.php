@@ -10,6 +10,7 @@ require_once __DIR__ . '/../core/Validator.php';
 require_once __DIR__ . '/../core/NifInvalidoException.php';
 require_once __DIR__ . '/../models/Factura.php';
 require_once __DIR__ . '/../models/Cliente.php';
+require_once __DIR__ . '/../models/Albaran.php';
 require_once __DIR__ . '/../models/VerifactuRegistro.php';
 require_once __DIR__ . '/../services/CalculoService.php';
 require_once __DIR__ . '/../services/NumeracionService.php';
@@ -20,6 +21,7 @@ class FacturaController
 {
     private Factura $facturaModel;
     private Cliente $clienteModel;
+    private Albaran $albaranModel;
     private CalculoService $calculoService;
     private NumeracionService $numeracionService;
     private VerifactuWrapper $verifactu;
@@ -29,6 +31,7 @@ class FacturaController
     {
         $this->facturaModel      = new Factura();
         $this->clienteModel      = new Cliente();
+        $this->albaranModel      = new Albaran();
         $this->calculoService    = new CalculoService();
         $this->numeracionService = new NumeracionService();
         $this->verifactu         = new VerifactuWrapper();
@@ -501,46 +504,40 @@ class FacturaController
             }
 
             $facturaData = [
-                'Codigo'                      => $numeracion['codigo'],
-                'Numero'                      => $numeracion['numero'],
-                'Id_Canal'                    => $data['Id_Canal'],
-                'Fecha'                       => $data['Fecha'],
-                'Id_Cliente'                  => $data['Id_Cliente'],
-                'Id_Forma_Pago'               => $data['Id_Forma_Pago'],
-                'Tipo_Documento'              => $data['Tipo_Documento'],
-                'Abono'                       => $data['Tipo_Documento'] === 'RECTIFICATIVA' ? 'S' : 'N',
-                'Observaciones'               => $data['Observaciones'] ?? '',
-                'Direccion'                   => $data['Direccion']     ?? '',
-                'Descuento_Especial'          => $descuentos['Descuento_Especial'],
-                'Descuento_PP'                => $descuentos['Descuento_PP'],
-                'Descuento_Comercial'         => $descuentos['Descuento_Comercial'],
-                'Importe_Dto_Especial'        => $resultadoCalculo['descuentos']['Importe_Dto_Especial'],
-                'Importe_Dto_PP'              => $resultadoCalculo['descuentos']['Importe_Dto_PP'],
-                'Importe_Dto_Comercial'       => $resultadoCalculo['descuentos']['Importe_Dto_Comercial'],
-                'Importe_Bruto'               => $resultadoCalculo['subtotal'],
-                'Base_Imponible'              => $resultadoCalculo['base_imponible'],
-                'Importe_IVA'                 => $resultadoCalculo['importe_iva'],
-                'Importe_RE'                  => $resultadoCalculo['importe_re'],
-                'Total'                       => $resultadoCalculo['total'],
-                'Id_Factura_Origen'           => $data['Id_Factura_Origen']            ?? null,
-                'Motivo_Rectificacion'        => $data['Motivo_Rectificacion']         ?? null,
-                'Tipo_Rectificativa_Verifactu' => $data['Tipo_Rectificativa_Verifactu'] ?? null,
-                'Subtipo_Rectificativa'       => $data['Subtipo_Rectificativa']        ?? null,
-                'Base_Rectificada'            => isset($data['Base_Rectificada'])       ? (float)$data['Base_Rectificada']      : null,
-                'Cuota_Rectificada'           => isset($data['Cuota_Rectificada'])      ? (float)$data['Cuota_Rectificada']     : null,
-                'Cuota_Recargo_Rectificado'   => isset($data['Cuota_Recargo_Rectificado']) ? (float)$data['Cuota_Recargo_Rectificado'] : null,
-                'Numero_Lineas'               => count($data['lineas']),
-                'Cerrada'                     => 'N',
-                'Cobrada'                     => 'N',
-                'Liquidada'                   => 'N',
-                'Contabilizada'               => 'N',
-                'Impresa'                     => 'N',
+                'Codigo'               => $numeracion['codigo'],
+                'Numero'               => $numeracion['numero'],
+                'Id_Canal'             => $data['Id_Canal'],
+                'Fecha'                => $data['Fecha'],
+                'Id_Cliente'           => $data['Id_Cliente']   ?? null,
+                'Id_Forma_Pago'        => $data['Id_Forma_Pago'] ?? null,
+                'Tipo_Documento'       => $data['Tipo_Documento'],
+                'Abono'                => $data['Tipo_Documento'] === 'RECTIFICATIVA' ? 'S' : 'N',
+                'Observaciones'        => $data['Observaciones'] ?? '',
+                'Direccion'            => $data['Direccion']     ?? '',
+                'Descuento_Especial'   => $descuentos['Descuento_Especial'],
+                'Descuento_PP'         => $descuentos['Descuento_PP'],
+                'Descuento_Comercial'  => $descuentos['Descuento_Comercial'],
+                'Importe_Dto_Especial' => $resultadoCalculo['descuentos']['Importe_Dto_Especial'],
+                'Importe_Dto_PP'       => $resultadoCalculo['descuentos']['Importe_Dto_PP'],
+                'Importe_Bruto'        => $resultadoCalculo['subtotal'],
+                'Base_Imponible'       => $resultadoCalculo['base_imponible'],
+                'Cuota_IVA'            => $resultadoCalculo['importe_iva'],
+                'Total'                => $resultadoCalculo['total'],
+                'Factura_Rectificada_Id' => $data['Id_Factura_Origen'] ?? null,
+                'Motivo_Rectificacion'   => $data['Motivo_Rectificacion'] ?? null,
+                'Cerrada'              => 'N',
+                'Cobrada'              => 'N',
             ];
 
             $lineasGuardar        = $this->calculoService->generarLineasParaGuardar($data['lineas'], $descuentos, $rePorcentaje);
             $facturaData['lineas'] = $this->normalizarLineasParaInsert($lineasGuardar);
 
             $codigoCreado = $this->facturaModel->create($facturaData);
+
+            // Si viene de un albarán, marcarlo como facturado
+            if (!empty($data['Id_Albaran'])) {
+                $this->albaranModel->marcarFacturado((string)$data['Id_Albaran']);
+            }
 
             Response::created([
                 'codigo' => $codigoCreado,
@@ -1114,7 +1111,7 @@ class FacturaController
                 'Base_Imponible'    => (float)($l['Base_Imponible']    ?? 0),
                 'Total'             => (float)($l['Total']      ?? 0),
                 'RE'                => (float)($l['RE']         ?? 0),
-                'Aplica_RE'         => (int)($l['Aplica_RE']    ?? 0),
+                'Aplica_RE'         => ($l['Aplica_RE'] ?? 0) ? 'S' : 'N',
                 'Calificacion'      => (string)($l['Calificacion']  ?? 'S1'),
                 'Clave_Regimen'     => (string)($l['Clave_Regimen'] ?? '01'),
             ];

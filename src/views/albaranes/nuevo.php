@@ -253,6 +253,10 @@ ob_start();
                     <button type="submit" class="btn btn-primary fact-btn w-100 mb-2" id="btnGuardar">
                         <i class="bi bi-floppy me-1"></i>Guardar albarán
                     </button>
+                    <button type="button" class="btn btn-success fact-btn w-100 mb-2" id="btnGuardarFacturar"
+                            onclick="guardarYFacturar()">
+                        <i class="bi bi-receipt me-1"></i>Guardar y Facturar
+                    </button>
                     <a href="/SistemaGestionFacturas/src/views/albaranes/listado.php"
                        class="btn btn-outline-secondary w-100 fact-btn">
                         <i class="bi bi-x-lg me-1"></i>Cancelar

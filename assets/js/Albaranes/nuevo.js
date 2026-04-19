@@ -1320,6 +1320,69 @@
         };
     };
 
+    // ---------- Guardar y Facturar (sin VeriFACTU) ----------
+    window.guardarYFacturar = async function () {
+        if (!document.getElementById('inputIdCliente').value) {
+            notify('Debe seleccionar un cliente', 'warning');
+            return;
+        }
+        if (!lineas.length) {
+            notify('Debe añadir al menos una línea', 'warning');
+            return;
+        }
+        if (!validarClienteN2()) { mostrarPopupN2(); return; }
+
+        try {
+            App.showLoading?.();
+
+            // 1. Guardar el albarán
+            const saveJson  = await guardarAlbaran(false);
+            const albCodigo = saveJson?.data?.codigo;
+            if (!albCodigo) throw new Error('No se obtuvo el código del albarán.');
+
+            // 2. Crear la factura a partir de las líneas del albarán
+            const fecha = new Date().toISOString().slice(0, 10);
+            const factPayload = {
+                Id_Albaran:          albCodigo,
+                Id_Canal:            document.getElementById('selectCanal').value,
+                Fecha:               fecha,
+                Id_Cliente:          document.getElementById('inputIdCliente').value,
+                Tipo_Documento:      'FACTURA',
+                Id_Forma_Pago:       document.getElementById('selectFormaPago')?.value || '',
+                Observaciones:       document.querySelector('textarea[name="Observaciones"]')?.value || '',
+                Descuento_Especial:  parseFloat(document.getElementById('inputDtoEspecial')?.value)  || 0,
+                Descuento_Comercial: parseFloat(document.getElementById('inputDtoComercial')?.value) || 0,
+                Descuento_PP:        parseFloat(document.getElementById('inputDtoPP')?.value)        || 0,
+                lineas: lineas.map(l => ({
+                    Id_Articulo:   l.idArticulo,
+                    Descripcion:   l.descripcion,
+                    Cantidad:      l.cantidad,
+                    Precio:        l.precio,
+                    Descuento:     l.descuento,
+                    Id_Tipo_IVA:   l.tipoIVA,
+                    Aplica_RE:     l.aplicaRE ? 1 : 0,
+                    Calificacion:  l.calificacion || 'S1',
+                    Clave_Regimen: CLAVE_REGIMEN_E456.includes(l.calificacion) ? claveRegimenGlobal : '01',
+                })),
+            };
+
+            const factJson   = await apiSend('/facturas.php', factPayload, 'POST');
+            const factCodigo = factJson?.data?.codigo;
+            if (!factCodigo) throw new Error('No se obtuvo el código de la factura.');
+
+            App.hideLoading?.();
+            notify('Factura ' + factCodigo + ' creada correctamente.', 'success');
+            setTimeout(() => {
+                window.location.href = BASE + '/src/views/facturas/ver.php?codigo=' + encodeURIComponent(factCodigo);
+            }, 800);
+
+        } catch (err) {
+            App.hideLoading?.();
+            notify(err.message || 'Error al facturar el albarán.', 'danger');
+            console.error(err);
+        }
+    };
+
     async function ejecutarFacturarYEnviar(tipoDoc, fecha) {
         try {
             if (tipoDoc !== 'SIMPLIFICADA' && !document.getElementById('inputIdCliente').value) {

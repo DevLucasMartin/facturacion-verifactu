@@ -12,7 +12,11 @@
       "Bash(php -l \"c:/xampp/htdocs/SistemaGestionFacturas/src/api/facturas.php\")",
       "Bash(php -l \"c:/xampp/htdocs/SistemaGestionFacturas/src/models/Factura.php\")",
       "Bash(php -l \"c:/xampp/htdocs/SistemaGestionFacturas/src/controllers/FacturaController.php\")",
-      "Bash(grep -l \"fact-badge\" c:/xampp/htdocs/SistemaGestionFacturas/assets/css/*.css)"
+      "Bash(grep -l \"fact-badge\" c:/xampp/htdocs/SistemaGestionFacturas/assets/css/*.css)",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root -e \"SELECT Codigo, Descripcion, IVA, Tipo_Territorio, Activo FROM Tipos_IVA ORDER BY Tipo_Territorio, IVA;\" SistemaGestionFacturas)",
+      "Read(//c/xampp/**)",
+      "Bash(./mysql/bin/mysql.exe -u root SistemaGestionFacturas -e \"SELECT Codigo, Descripcion, IVA, Tipo_Territorio, Activo FROM Tipos_IVA ORDER BY Tipo_Territorio, IVA;\")",
+      "Bash(./mysql/bin/mysql.exe -u root --socket=/tmp/mysql.sock SistemaGestionFacturas -e \"SELECT Codigo, Descripcion, IVA, Tipo_Territorio FROM Tipos_IVA;\")"
     ]
   }
 }

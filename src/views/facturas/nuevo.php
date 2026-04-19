@@ -231,7 +231,8 @@ ob_start();
                                     <th style="width:100px;">Cantidad</th>
                                     <th style="width:100px;">Precio (€)</th>
                                     <th style="width:95px;">Dto.%</th>
-                                    <th style="width:100px;">Impuestos</th>
+                                    <th style="width:110px;">Impuestos</th>
+                                    <th style="width:160px;">Calificación</th>
                                     <th style="width:90px;">Base imp.</th>
                                     <th style="width:90px;">IVA calc.</th>
                                     <th style="width:60px;"></th>

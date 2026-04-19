@@ -49,10 +49,25 @@ CREATE TABLE `Tipos_IVA` (
   COMMENT='Tipos impositivos de IVA';
 
 INSERT INTO `Tipos_IVA` (`Codigo`, `Descripcion`, `IVA`, `RE`, `Tipo_Territorio`, `Activo`, `Orden`, `Codigo_Verifactu`, `Actualizado`) VALUES
-    ('01', 'IVA General 21%',      21.00, 5.20, 'PENINSULAR', 'S', 1, 'S1', 1),
-    ('02', 'IVA Reducido 10%',     10.00, 1.40, 'PENINSULAR', 'S', 2, 'S1', 1),
-    ('03', 'IVA Superreducido 4%',  4.00, 0.50, 'PENINSULAR', 'S', 3, 'S1', 1),
-    ('04', 'Exento',                0.00, 0.00, 'PENINSULAR', 'S', 4, 'E1', 1);
+    -- Península e Islas Baleares (IVA)
+    ('01',     'IVA General 21%',         21.00, 5.20, 'PENINSULAR',    'S',  1, 'S1', 1),
+    ('02',     'IVA Reducido 10%',        10.00, 1.40, 'PENINSULAR',    'S',  2, 'S1', 1),
+    ('03',     'IVA Superreducido 4%',     4.00, 0.50, 'PENINSULAR',    'S',  3, 'S1', 1),
+    ('04',     'Exento (IVA)',             0.00, 0.00, 'PENINSULAR',    'S',  4, 'E1', 1),
+    -- Islas Canarias (IGIC)
+    ('IGIC0',  'IGIC Tipo Cero 0%',       0.00, 0.00, 'CANARIAS',      'S', 10, 'S1', 1),
+    ('IGIC3',  'IGIC Reducido 3%',        3.00, 0.00, 'CANARIAS',      'S', 11, 'S1', 1),
+    ('IGIC7',  'IGIC General 7%',         7.00, 0.00, 'CANARIAS',      'S', 12, 'S1', 1),
+    ('IGIC95', 'IGIC Incrementado 9.5%',  9.50, 0.00, 'CANARIAS',      'S', 13, 'S1', 1),
+    ('IGIC15', 'IGIC Especial 15%',      15.00, 0.00, 'CANARIAS',      'S', 14, 'S1', 1),
+    ('IGICEX', 'Exento (IGIC)',           0.00, 0.00, 'CANARIAS',      'S', 15, 'E1', 1),
+    -- Ceuta y Melilla (IPSI)
+    ('IPSI0',  'IPSI Exento 0%',          0.00, 0.00, 'CEUTA_MELILLA', 'S', 20, 'E1', 1),
+    ('IPSI05', 'IPSI 0.5%',              0.50, 0.00, 'CEUTA_MELILLA', 'S', 21, 'S1', 1),
+    ('IPSI1',  'IPSI 1%',                 1.00, 0.00, 'CEUTA_MELILLA', 'S', 22, 'S1', 1),
+    ('IPSI2',  'IPSI 2%',                 2.00, 0.00, 'CEUTA_MELILLA', 'S', 23, 'S1', 1),
+    ('IPSI4',  'IPSI 4%',                 4.00, 0.00, 'CEUTA_MELILLA', 'S', 24, 'S1', 1),
+    ('IPSI10', 'IPSI 10%',               10.00, 0.00, 'CEUTA_MELILLA', 'S', 25, 'S1', 1);
 
 -- =============================================================
 -- 2. PAÍSES
