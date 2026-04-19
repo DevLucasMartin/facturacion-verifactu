@@ -49,10 +49,10 @@ CREATE TABLE `Tipos_IVA` (
   COMMENT='Tipos impositivos de IVA';
 
 INSERT INTO `Tipos_IVA` (`Codigo`, `Descripcion`, `IVA`, `RE`, `Tipo_Territorio`, `Activo`, `Orden`, `Codigo_Verifactu`, `Actualizado`) VALUES
-    ('01', 'IVA General 21%',      21.00, 5.20, 'PENINSULA', 'S', 1, 'S1', 1),
-    ('02', 'IVA Reducido 10%',     10.00, 1.40, 'PENINSULA', 'S', 2, 'S1', 1),
-    ('03', 'IVA Superreducido 4%',  4.00, 0.50, 'PENINSULA', 'S', 3, 'S1', 1),
-    ('04', 'Exento',                0.00, 0.00, 'PENINSULA', 'S', 4, 'E1', 1);
+    ('01', 'IVA General 21%',      21.00, 5.20, 'PENINSULAR', 'S', 1, 'S1', 1),
+    ('02', 'IVA Reducido 10%',     10.00, 1.40, 'PENINSULAR', 'S', 2, 'S1', 1),
+    ('03', 'IVA Superreducido 4%',  4.00, 0.50, 'PENINSULAR', 'S', 3, 'S1', 1),
+    ('04', 'Exento',                0.00, 0.00, 'PENINSULAR', 'S', 4, 'E1', 1);
 
 -- =============================================================
 -- 2. PAÍSES

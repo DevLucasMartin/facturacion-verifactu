@@ -37,6 +37,35 @@ $recurso         = $segmentosRuta[0] ?? '';
 try {
     $controller = new VerifactuController();
 
+    // Acción de la vista de detalle (ver.js): estado via query-string
+    $qs_action = $_GET['action'] ?? '';
+    if ($method === 'GET' && $qs_action === 'estado') {
+        $qs_codigo = trim($_GET['codigo'] ?? '');
+        if ($qs_codigo === '') {
+            echo json_encode(['success' => false, 'message' => 'Código requerido'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        require_once __DIR__ . '/../core/Database.php';
+        $registro = Database::getInstance()->fetch(
+            "SELECT * FROM `Verifactu_Registros`
+             WHERE `Tipo_Origen` = 'FACTURA' AND `Id_Documento` = ?
+             ORDER BY `Fecha_Generacion` DESC LIMIT 1",
+            [$qs_codigo]
+        );
+        if (!$registro) {
+            echo json_encode(['success' => false, 'message' => 'Sin registro Verifactu'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        echo json_encode(['success' => true, 'data' => [
+            'estado'            => $registro['Estado_Envio']    ?? '-',
+            'fecha_envio'       => $registro['Fecha_Generacion'] ?? null,
+            'hash'              => $registro['Huella']           ?? null,
+            'csv'               => $registro['CSV_Hacienda']    ?? null,
+            'descripcion_error' => $registro['Mensaje_Error']   ?? null,
+        ]], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     switch ($method) {
         case 'GET':
             switch ($recurso) {

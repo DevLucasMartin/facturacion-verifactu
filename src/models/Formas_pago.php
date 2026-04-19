@@ -22,13 +22,14 @@ class Formas_pago {
     }
 
     /**
-     * Obtener todas las formas de pago usadas en facturas
+     * Obtener todas las formas de pago activas
      */
     public function all(): array {
         return $this->fact_conex_BBDD_forma_pago->fetchAll(
-            "SELECT DISTINCT `Id_Forma_Pago`
-             FROM `Facturas_Clientes`
-             WHERE `Id_Forma_Pago` IS NOT NULL"
+            "SELECT `Codigo` AS `Id_Forma_Pago`, `Descripcion`
+             FROM `Formas_Pago`
+             WHERE `Activo` = 'S'
+             ORDER BY `Codigo`"
         );
     }
 

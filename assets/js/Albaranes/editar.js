@@ -98,7 +98,9 @@
     }
 
     function resolverTerritorio(t) {
-        if (t.Tipo_Territorio) return t.Tipo_Territorio;
+        if (t.Tipo_Territorio) {
+            return t.Tipo_Territorio === 'PENINSULA' ? 'PENINSULAR' : t.Tipo_Territorio;
+        }
         const c = t.Codigo || '';
         if (c.startsWith('IG') || c.startsWith('I1')) return 'CANARIAS';
         if (c.startsWith('IP')) return 'CEUTA_MELILLA';
@@ -570,7 +572,7 @@
         const path   = codigoEdicion ? `/albaranes.php/${encodeURIComponent(codigoEdicion)}` : `/albaranes.php`;
         const method = codigoEdicion ? 'PUT' : 'POST';
 
-        const json = await apiSend(path, method, formData);
+        const json = await apiSend(path, formData, method);
         notify('Albarán guardado correctamente', 'success');
 
         setTimeout(() => {

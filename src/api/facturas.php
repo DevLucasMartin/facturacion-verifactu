@@ -43,6 +43,138 @@ try {
         exit;
     }
 
+    // Acciones de la vista de detalle (ver.js): get, lineas, totales, cliente, pdf, xml
+    if ($method === 'GET' && in_array($qs_action, ['get', 'lineas', 'totales', 'cliente', 'pdf', 'xml'])) {
+        $qs_codigo = trim($_GET['codigo'] ?? '');
+        if ($qs_codigo === '') {
+            echo json_encode(['success' => false, 'message' => 'Código requerido'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        if ($qs_action === 'pdf') {
+            $controller->descargarPdf($qs_codigo);
+            exit;
+        }
+
+        if ($qs_action === 'xml') {
+            require_once __DIR__ . '/../controllers/VerifactuController.php';
+            $vc = new VerifactuController();
+            $vc->descargarXml('FACTURA/' . $qs_codigo, trim($_GET['tipo'] ?? 'sin-firma'));
+            exit;
+        }
+
+        $db = Database::getInstance();
+
+        switch ($qs_action) {
+            case 'get':
+                $f = $db->fetch("SELECT * FROM `Facturas_Clientes` WHERE `Codigo` = ?", [$qs_codigo]);
+                if (!$f) {
+                    echo json_encode(['success' => false, 'message' => 'Factura no encontrada'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+                $estado = ($f['Cerrada'] ?? 'N') === 'S' ? 'EMITIDA' : 'BORRADOR';
+                echo json_encode(['success' => true, 'data' => [
+                    'codigo'         => $f['Codigo']          ?? '',
+                    'fecha'          => $f['Fecha']           ?? null,
+                    'tipo_documento' => $f['Tipo_Documento']  ?? '',
+                    'estado'         => $estado,
+                    'canal'          => $f['Id_Canal']        ?? '',
+                    'id_cliente'     => $f['Id_Cliente']      ?? '',
+                    'id_forma_pago'  => $f['Id_Forma_Pago']   ?? '',
+                    'observaciones'  => $f['Observaciones']   ?? '',
+                    'dto_especial'   => (float)($f['Descuento_Especial']  ?? 0),
+                    'dto_comercial'  => (float)($f['Descuento_Comercial'] ?? 0),
+                    'dto_pp'         => (float)($f['Descuento_PP']        ?? 0),
+                ]], JSON_UNESCAPED_UNICODE);
+                exit;
+
+            case 'lineas':
+                $lineas = $db->fetchAll(
+                    "SELECT L.`Descripcion`, L.`Id_Articulo`, L.`Cantidad`, L.`Precio`,
+                            L.`Descuento`, L.`Total`, L.`Id_Tipo_IVA`,
+                            T.`IVA` AS tipo_iva_pct, T.`RE` AS tipo_re_pct
+                     FROM `Lineas_Facturas_Clientes` L
+                     LEFT JOIN `Tipos_IVA` T ON L.`Id_Tipo_IVA` = T.`Codigo`
+                     WHERE L.`Id_Factura` = ?
+                     ORDER BY L.`Linea`",
+                    [$qs_codigo]
+                );
+                $result = array_map(fn($l) => [
+                    'descripcion'     => $l['Descripcion']  ?? '',
+                    'referencia'      => $l['Id_Articulo']  ?? '',
+                    'cantidad'        => (float)($l['Cantidad']     ?? 0),
+                    'precio_unitario' => (float)($l['Precio']       ?? 0),
+                    'descuento'       => (float)($l['Descuento']    ?? 0),
+                    'porcentaje_iva'  => (float)($l['tipo_iva_pct'] ?? 0),
+                    'porcentaje_re'   => (float)($l['tipo_re_pct']  ?? 0),
+                    'tipo_iva'        => $l['Id_Tipo_IVA']  ?? '',
+                    'total'           => (float)($l['Total']        ?? 0),
+                ], $lineas);
+                echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE);
+                exit;
+
+            case 'totales':
+                $f = $db->fetch("SELECT * FROM `Facturas_Clientes` WHERE `Codigo` = ?", [$qs_codigo]);
+                if (!$f) {
+                    echo json_encode(['success' => false, 'message' => 'Factura no encontrada'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+                $cuotas = $db->fetchAll(
+                    "SELECT L.`Id_Tipo_IVA`, T.`IVA` AS iva_pct, T.`RE` AS re_pct,
+                            SUM(L.`Base_Imponible` * T.`IVA` / 100) AS cuota_iva,
+                            SUM(L.`RE`) AS cuota_re
+                     FROM `Lineas_Facturas_Clientes` L
+                     LEFT JOIN `Tipos_IVA` T ON L.`Id_Tipo_IVA` = T.`Codigo`
+                     WHERE L.`Id_Factura` = ?
+                     GROUP BY L.`Id_Tipo_IVA`, T.`IVA`, T.`RE`
+                     ORDER BY T.`IVA`",
+                    [$qs_codigo]
+                );
+                $cuotas_norm = array_map(fn($c) => [
+                    'porcentaje_iva' => (float)($c['iva_pct']   ?? 0),
+                    'cuota_iva'      => (float)($c['cuota_iva'] ?? 0),
+                    'porcentaje_re'  => (float)($c['re_pct']    ?? 0),
+                    'cuota_re'       => (float)($c['cuota_re']  ?? 0),
+                ], $cuotas);
+                echo json_encode(['success' => true, 'data' => [
+                    'subtotal'       => (float)($f['Importe_Bruto']          ?? 0),
+                    'dto_especial'   => (float)($f['Importe_Dto_Especial']   ?? 0),
+                    'dto_comercial'  => (float)($f['Importe_Dto_Comercial']  ?? 0),
+                    'dto_pp'         => (float)($f['Importe_Dto_PP']         ?? 0),
+                    'base_imponible' => (float)($f['Base_Imponible']         ?? 0),
+                    'cuotas_iva'     => $cuotas_norm,
+                    'total'          => (float)($f['Total']                  ?? 0),
+                ]], JSON_UNESCAPED_UNICODE);
+                exit;
+
+            case 'cliente':
+                $row = $db->fetch("SELECT `Id_Cliente` FROM `Facturas_Clientes` WHERE `Codigo` = ?", [$qs_codigo]);
+                if (!$row || empty($row['Id_Cliente'])) {
+                    echo json_encode(['success' => false, 'message' => 'Cliente no encontrado'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+                $c = $db->fetch("SELECT * FROM `Clientes` WHERE `Codigo` = ?", [$row['Id_Cliente']]);
+                if (!$c) {
+                    echo json_encode(['success' => false, 'message' => 'Cliente no encontrado'], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+                $nombreFiscal = $c['Archivar_Como'] ?? '';
+                if (empty(trim($nombreFiscal))) {
+                    $nombreFiscal = trim(($c['Nombre'] ?? '') . ' ' . ($c['Apellidos'] ?? ''));
+                }
+                echo json_encode(['success' => true, 'data' => [
+                    'nombre_fiscal' => $nombreFiscal,
+                    'nombre'        => $c['Nombre']            ?? '',
+                    'nif'           => $c['NIF']               ?? '',
+                    'direccion'     => $c['Direccion']         ?? '',
+                    'poblacion'     => $c['Poblacion']         ?? '',
+                    'cp'            => $c['CP']                ?? '',
+                    'email'         => $c['Email_Facturacion'] ?? '',
+                ]], JSON_UNESCAPED_UNICODE);
+                exit;
+        }
+    }
+
     switch ($method) {
         case 'GET':
             switch ($resource) {

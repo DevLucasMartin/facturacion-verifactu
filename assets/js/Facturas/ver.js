@@ -312,7 +312,7 @@
         App.showLoading();
         App.api(API + '/verifactu.php', {
             method: 'POST',
-            data: JSON.stringify({ action: 'enviar', codigo: CODIGO }),
+            data: JSON.stringify({ id_documento: CODIGO }),
             contentType: 'application/json'
         })
         .done(data => {
@@ -342,10 +342,10 @@
     };
 
     window.descargarPdf = function() {
-        const link = document.createElement('a');
-        link.href = API + '/facturas.php?action=pdf&download=1&codigo=' + encodeURIComponent(CODIGO);
-        link.download = 'factura_' + CODIGO + '.pdf';
-        link.click();
+        window.open(
+            API + '/facturas.php?action=pdf&codigo=' + encodeURIComponent(CODIGO),
+            '_blank'
+        );
     };
 
     window.enviarEmail = function() {

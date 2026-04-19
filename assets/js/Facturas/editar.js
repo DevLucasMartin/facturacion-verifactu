@@ -535,7 +535,7 @@
         if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...'; }
 
         try {
-            await apiSend(`/facturas.php/${encodeURIComponent(CODIGO_EDICION)}`, 'PUT', formData);
+            await apiSend(`/facturas.php/${encodeURIComponent(CODIGO_EDICION)}`, formData, 'PUT');
             notify('Borrador guardado correctamente', 'success');
             setTimeout(() => { window.location.href = BASE + '/src/views/facturas/listado.php'; }, 800);
         } finally {
@@ -552,7 +552,7 @@
 
         try {
             formData.Cerrada = 'S';
-            await apiSend(`/facturas.php/${encodeURIComponent(CODIGO_EDICION)}`, 'PUT', formData);
+            await apiSend(`/facturas.php/${encodeURIComponent(CODIGO_EDICION)}`, formData, 'PUT');
             notify('Factura confirmada correctamente', 'success');
             setTimeout(() => {
                 window.location.href = BASE + '/src/views/facturas/ver.php?codigo=' + encodeURIComponent(CODIGO_EDICION);

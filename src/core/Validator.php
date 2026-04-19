@@ -32,6 +32,30 @@ class Validator
     }
 
     /**
+     * Valida los datos mínimos requeridos para crear/actualizar un albarán.
+     * Devuelve array de errores (vacío = válido).
+     */
+    public static function validarAlbaran(array $data): array
+    {
+        $errors = [];
+
+        if (empty($data['Id_Canal'])) {
+            $errors[] = 'El canal es obligatorio';
+        }
+        if (empty($data['Fecha'])) {
+            $errors[] = 'La fecha es obligatoria';
+        }
+        if (empty($data['Id_Cliente'])) {
+            $errors[] = 'El cliente es obligatorio';
+        }
+        if (empty($data['lineas']) || !is_array($data['lineas'])) {
+            $errors[] = 'Se requiere al menos una línea';
+        }
+
+        return $errors;
+    }
+
+    /**
      * Valida el formato de un NIF/CIF español.
      * Devuelve null si es válido, o string con el error.
      */

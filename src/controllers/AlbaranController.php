@@ -409,7 +409,8 @@ class AlbaranController
                 $rePorcentaje
             );
             $albaranData['lineas'] = array_map(function ($l) {
-                unset($l['RE'], $l['Aplica_RE']);
+                unset($l['Importe_Descuento'], $l['Calificacion'], $l['Clave_Regimen']);
+                $l['Aplica_RE'] = !empty($l['Aplica_RE']) ? 'S' : 'N';
                 return $l;
             }, $lineasAlbaran);
 
@@ -512,7 +513,8 @@ class AlbaranController
                 $rePorcentaje
             );
             $albaranData['lineas'] = array_map(function ($l) {
-                unset($l['RE'], $l['Aplica_RE']);
+                unset($l['Importe_Descuento'], $l['Calificacion'], $l['Clave_Regimen']);
+                $l['Aplica_RE'] = !empty($l['Aplica_RE']) ? 'S' : 'N';
                 return $l;
             }, $lineasAlbaran);
 

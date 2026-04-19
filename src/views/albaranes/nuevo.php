@@ -73,16 +73,12 @@ ob_start();
                     <div class="row g-3 mt-2">
                         <div class="col-md-4">
                             <label class="form-label fact-form-label">Forma de Pago</label>
-                            <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select">
+                            <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select select-forma-pago">
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fact-form-label">Tarifa</label>
-                            <select id="selectTarifa" name="Tarifa" class="form-select fact-form-select">
-                                <option value="1">Tarifa 1</option>
-                                <option value="2">Tarifa 2</option>
-                                <option value="3">Tarifa 3</option>
-                                <option value="4">Tarifa 4</option>
+                            <select id="selectTarifa" name="Tarifa" class="form-select fact-form-select select-tarifa">
                             </select>
                         </div>
                         <div class="col-md-4">
