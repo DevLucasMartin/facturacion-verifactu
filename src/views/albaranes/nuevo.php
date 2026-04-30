@@ -185,14 +185,16 @@ ob_start();
                                     <th style="width:100px;">Precio (€)</th>
                                     <th style="width:95px;">Dto.%</th>
                                     <th style="width:80px;">IVA</th>
-                                    <th style="width:90px;">Base imp.</th>
+                                    <th id="thRE" class="d-none" style="width:80px;">RE</th>
+                                    <th id="thCalif" style="width:120px;">Cal. Operación</th>
+                                    <th style="width:90px;">Base Imp.</th>
                                     <th style="width:90px;">IVA calc.</th>
                                     <th style="width:60px;"></th>
                                 </tr>
                             </thead>
                             <tbody id="lineasBody">
                                 <tr>
-                                    <td colspan="9" class="text-center text-muted py-4">
+                                    <td colspan="10" class="text-center text-muted py-4">
                                         <i class="bi bi-plus-circle fs-1 d-block mb-2"></i>
                                         Añada líneas al albarán
                                     </td>
@@ -324,6 +326,50 @@ ob_start();
                         <tbody id="articulosBody"></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tipo de Factura -->
+<div class="modal fade" id="tipoFacturaModal" tabindex="-1" aria-labelledby="tipoFacturaModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tipoFacturaModalLabel">Tipo de factura</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="modalTipoDoc" id="modalTipoDocFactura" value="FACTURA" checked>
+                        <label class="form-check-label" for="modalTipoDocFactura">Factura</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="modalTipoDoc" id="modalTipoDocSimplificada" value="SIMPLIFICADA">
+                        <label class="form-check-label" for="modalTipoDocSimplificada">Simplificada</label>
+                    </div>
+                </div>
+                <div id="modalDestinatarioSimplificada" style="display:none;">
+                    <label class="form-label fw-semibold">Tipo de destinatario</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="modalDestinatarioTipo" id="modalDestParticular" value="particular" checked>
+                        <label class="form-check-label" for="modalDestParticular">Particular (límite 400 €)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="modalDestinatarioTipo" id="modalDestEmpresa" value="empresa">
+                        <label class="form-check-label" for="modalDestEmpresa">Empresa o profesional (límite 3.000 €)</label>
+                    </div>
+                    <div id="modalAvisoSimplificada" class="alert alert-warning mt-2 mb-0" style="display:none;">
+                        <span id="modalAvisoSimplificadaTexto"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnConfirmarTipoFactura">
+                    <i class="bi bi-receipt me-1"></i>Confirmar y facturar
+                </button>
             </div>
         </div>
     </div>

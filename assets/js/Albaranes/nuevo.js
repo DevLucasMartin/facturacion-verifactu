@@ -128,6 +128,12 @@
             r.addEventListener('change', actualizarModalDestinatario));
         document.querySelectorAll('input[name="modalDestinatarioTipo"]').forEach(r =>
             r.addEventListener('change', actualizarModalDestinatario));
+
+        document.getElementById('tipoFacturaModal')?.addEventListener('change', (e) => {
+            if (e.target.name === 'modalTipoDoc' || e.target.name === 'modalDestinatarioTipo') {
+                actualizarModalDestinatario();
+            }
+        });
     }
 
     // ---------- Calificación operación ----------
@@ -1321,39 +1327,48 @@
     };
 
     // ---------- Guardar y Facturar (sin VeriFACTU) ----------
-    window.guardarYFacturar = async function () {
-        if (!document.getElementById('inputIdCliente').value) {
-            notify('Debe seleccionar un cliente', 'warning');
-            return;
-        }
+    window.guardarYFacturar = function () {
         if (!lineas.length) {
             notify('Debe añadir al menos una línea', 'warning');
             return;
         }
         if (!validarClienteN2()) { mostrarPopupN2(); return; }
 
-        try {
-            App.showLoading?.();
+        const modalEl = document.getElementById('tipoFacturaModal');
+        if (!modalEl) return;
 
-            // 1. Guardar el albarán
-            const saveJson  = await guardarAlbaran(false);
-            const albCodigo = saveJson?.data?.codigo;
-            if (!albCodigo) throw new Error('No se obtuvo el código del albarán.');
+        document.getElementById('modalTipoDocFactura').checked = true;
+        actualizarModalDestinatario();
 
-            // 2. Crear la factura a partir de las líneas del albarán
-            const fecha = new Date().toISOString().slice(0, 10);
-            const factPayload = {
-                Id_Albaran:          albCodigo,
-                Id_Canal:            document.getElementById('selectCanal').value,
-                Fecha:               fecha,
-                Id_Cliente:          document.getElementById('inputIdCliente').value,
-                Tipo_Documento:      'FACTURA',
-                Id_Forma_Pago:       document.getElementById('selectFormaPago')?.value || '',
-                Observaciones:       document.querySelector('textarea[name="Observaciones"]')?.value || '',
-                Descuento_Especial:  parseFloat(document.getElementById('inputDtoEspecial')?.value)  || 0,
-                Descuento_Comercial: parseFloat(document.getElementById('inputDtoComercial')?.value) || 0,
-                Descuento_PP:        parseFloat(document.getElementById('inputDtoPP')?.value)        || 0,
-                lineas: lineas.map(l => ({
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+
+        document.getElementById('btnConfirmarTipoFactura').onclick = async function () {
+            const tipoDoc   = document.querySelector('input[name="modalTipoDoc"]:checked')?.value || 'FACTURA';
+            const idCliente = document.getElementById('inputIdCliente').value;
+
+            if (tipoDoc !== 'SIMPLIFICADA' && !idCliente) {
+                notify('Debe seleccionar un cliente para crear una factura ordinaria.', 'warning');
+                return;
+            }
+
+            if (tipoDoc === 'SIMPLIFICADA') {
+                const esEmpresa = document.querySelector('input[name="modalDestinatarioTipo"]:checked')?.value === 'empresa';
+                const limite    = esEmpresa ? 3000 : 400;
+                const total     = calcularTotalConTipoDoc('SIMPLIFICADA');
+                if (total > limite) {
+                    notify('El total supera el límite para factura simplificada. Usa una factura ordinaria.', 'warning');
+                    return;
+                }
+            }
+
+            modal.hide();
+
+            try {
+                App.showLoading?.();
+
+                const fecha    = new Date().toISOString().slice(0, 10);
+                const lineasPayload = lineas.map(l => ({
                     Id_Articulo:   l.idArticulo,
                     Descripcion:   l.descripcion,
                     Cantidad:      l.cantidad,
@@ -1363,24 +1378,50 @@
                     Aplica_RE:     l.aplicaRE ? 1 : 0,
                     Calificacion:  l.calificacion || 'S1',
                     Clave_Regimen: CLAVE_REGIMEN_E456.includes(l.calificacion) ? claveRegimenGlobal : '01',
-                })),
-            };
+                }));
 
-            const factJson   = await apiSend('/facturas.php', factPayload, 'POST');
-            const factCodigo = factJson?.data?.codigo;
-            if (!factCodigo) throw new Error('No se obtuvo el código de la factura.');
+                let albCodigo = null;
 
-            App.hideLoading?.();
-            notify('Factura ' + factCodigo + ' creada correctamente.', 'success');
-            setTimeout(() => {
-                window.location.href = BASE + '/src/views/facturas/ver.php?codigo=' + encodeURIComponent(factCodigo);
-            }, 800);
+                // Si hay cliente, guardar el albarán primero (flujo normal)
+                if (idCliente) {
+                    const saveJson = await guardarAlbaran(false, tipoDoc);
+                    albCodigo = saveJson?.data?.codigo;
+                    if (!albCodigo) throw new Error('No se obtuvo el código del albarán.');
+                }
 
-        } catch (err) {
-            App.hideLoading?.();
-            notify(err.message || 'Error al facturar el albarán.', 'danger');
-            console.error(err);
-        }
+                const factPayload = {
+                    Id_Canal:            document.getElementById('selectCanal').value,
+                    Fecha:               fecha,
+                    Id_Cliente:          idCliente || null,
+                    Tipo_Documento:      tipoDoc,
+                    Id_Forma_Pago:       document.getElementById('selectFormaPago')?.value || '',
+                    Observaciones:       document.querySelector('textarea[name="Observaciones"]')?.value || '',
+                    Descuento_Especial:  parseFloat(document.getElementById('inputDtoEspecial')?.value)  || 0,
+                    Descuento_Comercial: parseFloat(document.getElementById('inputDtoComercial')?.value) || 0,
+                    Descuento_PP:        parseFloat(document.getElementById('inputDtoPP')?.value)        || 0,
+                    lineas:              lineasPayload,
+                };
+                if (albCodigo) factPayload.Id_Albaran = albCodigo;
+
+                const factJson   = await apiSend('/facturas.php', factPayload, 'POST');
+                const factCodigo = factJson?.data?.codigo;
+                if (!factCodigo) {
+                    const detail = factJson?.message || factJson?.errors?.join(', ') || '';
+                    throw new Error('No se obtuvo el código de la factura.' + (detail ? ' ' + detail : ''));
+                }
+
+                App.hideLoading?.();
+                notify('Factura ' + factCodigo + ' creada correctamente.', 'success');
+                setTimeout(() => {
+                    window.location.href = BASE + '/src/views/facturas/ver.php?codigo=' + encodeURIComponent(factCodigo);
+                }, 800);
+
+            } catch (err) {
+                App.hideLoading?.();
+                notify(err.message || 'Error al facturar.', 'danger');
+                console.error(err);
+            }
+        };
     };
 
     async function ejecutarFacturarYEnviar(tipoDoc, fecha) {

@@ -45,6 +45,20 @@ ob_start();
             </div>
         </div>
 
+        <div class="card mb-4 fact-card" id="pagoCard">
+            <div class="card-header fact-card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-cash-coin me-2"></i>Pago</span>
+                <span class="badge bg-secondary" id="pagoBadge">Cargando...</span>
+            </div>
+            <div class="card-body" id="pagoPanel" aria-live="polite">
+                <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-secondary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card mb-4 fact-card">
             <div class="card-header fact-card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-list-ul me-2"></i>Líneas de Factura</span>

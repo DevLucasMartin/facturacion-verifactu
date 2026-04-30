@@ -17,7 +17,8 @@
       "Read(//c/xampp/**)",
       "Bash(./mysql/bin/mysql.exe -u root SistemaGestionFacturas -e \"SELECT Codigo, Descripcion, IVA, Tipo_Territorio, Activo FROM Tipos_IVA ORDER BY Tipo_Territorio, IVA;\")",
       "Bash(./mysql/bin/mysql.exe -u root --socket=/tmp/mysql.sock SistemaGestionFacturas -e \"SELECT Codigo, Descripcion, IVA, Tipo_Territorio FROM Tipos_IVA;\")",
-      "Bash(grep -A 40 \"CREATE TABLE \\\\`Lineas_Facturas_Clientes\\\\`\" database.sql)"
+      "Bash(grep -A 40 \"CREATE TABLE \\\\`Lineas_Facturas_Clientes\\\\`\" database.sql)",
+      "Bash(cmd.exe /c \"C:\\\\xampp\\\\mysql\\\\bin\\\\mysql.exe\" -u root SistemaGestionFacturas -e \"ALTER TABLE Facturas_Clientes ADD COLUMN IF NOT EXISTS Importe_Cobrado DECIMAL\\(14,4\\) NOT NULL DEFAULT 0.0000 AFTER Total;\")"
     ]
   }
 }

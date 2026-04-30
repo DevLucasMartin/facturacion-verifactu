@@ -57,11 +57,13 @@ try {
             exit;
         }
         echo json_encode(['success' => true, 'data' => [
-            'estado'            => $registro['Estado_Envio']    ?? '-',
+            'estado'            => $registro['Estado_Envio']     ?? '-',
             'fecha_envio'       => $registro['Fecha_Generacion'] ?? null,
             'hash'              => $registro['Huella']           ?? null,
-            'csv'               => $registro['CSV_Hacienda']    ?? null,
-            'descripcion_error' => $registro['Mensaje_Error']   ?? null,
+            'csv'               => $registro['CSV_Hacienda']     ?? null,
+            'url_verificacion'  => $registro['URL_Verificacion'] ?? null,
+            'descripcion_error' => $registro['Ultimo_Error']     ?? null,
+            'reintentos'        => (int)($registro['Reintentos'] ?? 0),
         ]], JSON_UNESCAPED_UNICODE);
         exit;
     }

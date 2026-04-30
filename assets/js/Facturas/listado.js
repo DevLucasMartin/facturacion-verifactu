@@ -120,19 +120,21 @@ $(document).ready(function() {
         const fact_rutaConsulta = `${FACT_API_BASE}/facturas.php?` + $.param(fact_filtros);
 
         peticionListadoFacturas(fact_rutaConsulta, { method: 'GET' })
-            .done(function(fact_JSON_respuesta) {
-                const fact_coleccionFacturas = fact_JSON_respuesta?.data?.items ?? fact_JSON_respuesta?.data ?? [];
-                const metadatosPaginacion    = fact_JSON_respuesta?.pagination ??
-                    fact_JSON_respuesta?.data?.pagination ??
-                    (fact_JSON_respuesta?.data?.page ? {
-                        page:        fact_JSON_respuesta.data.page,
-                        per_page:    fact_JSON_respuesta.data.per_page,
-                        total:       fact_JSON_respuesta.data.total,
-                        total_pages: fact_JSON_respuesta.data.total_pages
-                    } : null);
+            .done(function(r) {
+                // App.api normaliza: data=items[], total/pages/page en raíz
+                const d = r?.data ?? {};
+                const fact_coleccionFacturas = Array.isArray(d) ? d : (d.items ?? []);
+                const perPage = 25;
+                const total   = Number(r?.total ?? d.total ?? fact_coleccionFacturas.length);
+                const metadatosPaginacion = {
+                    page:        Number(r?.page  ?? d.page  ?? 1),
+                    per_page:    perPage,
+                    total:       total,
+                    total_pages: Number(r?.pages ?? d.total_pages ?? Math.ceil(total / perPage))
+                };
 
                 pintarTablaFacturas(fact_coleccionFacturas);
-                if (metadatosPaginacion) generarControlPaginacion(metadatosPaginacion);
+                generarControlPaginacion(metadatosPaginacion);
             })
             .fail(function(err) {
                 console.error('Error cargando facturas:', err.status, err.responseText);
@@ -171,10 +173,7 @@ $(document).ready(function() {
         };
 
         const fact_etiquetaEstado = {
-            'BORRADOR': { label: 'Borrador', class: 'bg-secondary' },
-            'EMITIDA':  { label: 'Emitida',  class: 'bg-success' },
-            'ANULADA':  { label: 'Anulada',  class: 'bg-danger' },
-            'PAGADA':   { label: 'Pagada',   class: 'bg-primary' }
+            'PAGADA': { label: 'Cobrado',   class: 'bg-success' }
         };
 
         fact_cuerpoTabla.html(fact_listadoFacturas.map(function(facturaActual) {
@@ -184,8 +183,8 @@ $(document).ready(function() {
             };
 
             const fact_estado = fact_etiquetaEstado[facturaActual.estado] || {
-                label: facturaActual.estado || '-',
-                class: 'bg-secondary'
+                label: 'Pendiente',
+                class: 'bg-warning text-dark'
             };
 
             const totalFormatted = (typeof App !== 'undefined' && typeof App.formatCurrency === 'function')

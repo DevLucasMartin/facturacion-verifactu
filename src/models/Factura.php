@@ -380,7 +380,14 @@ class Factura
                         WHEN F.`Cerrada` = 'S' THEN 'EMITIDA'
                         ELSE 'BORRADOR'
                     END AS estado,
-                    CASE COALESCE(VR.`Estado_Envio`, 'NINGUNO')
+                    CASE COALESCE(
+                        (SELECT VR2.`Estado_Envio`
+                         FROM `Verifactu_Registros` VR2
+                         WHERE VR2.`Id_Documento` = F.`Codigo`
+                           AND VR2.`Tipo_Origen`  = 'FACTURA'
+                         ORDER BY VR2.`Fecha_Generacion` DESC
+                         LIMIT 1),
+                        'NINGUNO')
                         WHEN 'ENVIADO'   THEN 'ENVIADA'
                         WHEN 'GENERADO'  THEN 'PENDIENTE'
                         WHEN 'PENDIENTE' THEN 'PENDIENTE'
@@ -390,8 +397,6 @@ class Factura
                     END AS estado_verifactu
                 FROM `Facturas_Clientes` F
                 LEFT JOIN `Clientes` C ON C.`Codigo` = F.`Id_Cliente`
-                LEFT JOIN `Verifactu_Registros` VR ON VR.`Id_Documento` = F.`Codigo`
-                    AND VR.`Tipo_Origen` = 'FACTURA'
                 WHERE {$where}
                 ORDER BY F.`Fecha_Alta` DESC
                 LIMIT {$perPage} OFFSET {$offset}";

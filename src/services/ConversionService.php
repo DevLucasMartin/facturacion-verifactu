@@ -226,9 +226,8 @@ class ConversionService
                 'Total'             => (float)$lc['Base_Imponible'],
                 'Calificacion'      => (string)($orig['Calificacion'] ?? 'S1'),
                 'Clave_Regimen'     => (string)($orig['Clave_Regimen'] ?? '01'),
-                'Id_Albaran'        => (string)$orig['_Id_Albaran'],
                 'RE'                => (float)($lc['RE'] ?? 0),
-                'Aplica_RE'         => (int)($lc['Aplica_RE'] ?? ($orig['Aplica_RE'] ?? 0)),
+                'Aplica_RE'         => ($lc['Aplica_RE'] ?? ($orig['Aplica_RE'] ?? 0)) ? 'S' : 'N',
             ];
         }
 

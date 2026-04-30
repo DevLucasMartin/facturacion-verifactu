@@ -4,6 +4,8 @@
  * Módulo de Facturación
  */
 
+ini_set('display_errors', 0);
+
 require_once __DIR__ . '/../controllers/AlbaranController.php';
 
 header('Content-Type: application/json; charset=utf-8');

@@ -508,7 +508,7 @@ class FacturaController
                 'Numero'               => $numeracion['numero'],
                 'Id_Canal'             => $data['Id_Canal'],
                 'Fecha'                => $data['Fecha'],
-                'Id_Cliente'           => $data['Id_Cliente']   ?? null,
+                'Id_Cliente'           => ($data['Id_Cliente'] ?? '') ?: null,
                 'Id_Forma_Pago'        => $data['Id_Forma_Pago'] ?? null,
                 'Tipo_Documento'       => $data['Tipo_Documento'],
                 'Abono'                => $data['Tipo_Documento'] === 'RECTIFICATIVA' ? 'S' : 'N',
@@ -757,8 +757,8 @@ class FacturaController
                 return;
             }
 
-            // 1. Cargar simplificadas registradas en Verifactu
-            $simplificadas = $this->facturaModel->findSimplificadasPendientes($idCanal, $anio, $mes, true);
+            // 1. Cargar simplificadas pendientes de recapitular
+            $simplificadas = $this->facturaModel->findSimplificadasPendientes($idCanal, $anio, $mes, false);
 
             if (!empty($codigos) && is_array($codigos)) {
                 $simplificadas = array_values(
@@ -842,35 +842,29 @@ class FacturaController
             $db->beginTransaction();
             try {
                 $db->insert('Facturas_Clientes', [
-                    'Codigo'                => $numeracion['codigo'],
-                    'Numero'                => $numeracion['numero'],
-                    'Id_Canal'              => $idCanal,
-                    'Fecha'                 => $fecha,
-                    'Id_Cliente'            => $idCliente,
-                    'Id_Forma_Pago'         => $idFormaPago,
-                    'Tipo_Documento'        => 'RECAPITULATIVA',
-                    'Abono'                 => 'N',
-                    'Observaciones'         => $observaciones,
-                    'Descuento_Especial'    => 0,
-                    'Descuento_PP'          => 0,
-                    'Descuento_Comercial'   => 0,
-                    'Importe_Bruto'         => $calc['subtotal'],
-                    'Importe_Dto_Especial'  => 0,
-                    'Importe_Dto_Comercial' => 0,
-                    'Importe_Dto_PP'        => 0,
-                    'Base_Imponible'        => $calc['base_imponible'],
-                    'Importe_IVA'           => $calc['importe_iva'],
-                    'Importe_RE'            => $calc['importe_re'],
-                    'Total'                 => $calc['total'],
-                    'Numero_Lineas'         => count($lineasGuardar),
-                    'Cerrada'               => 'N',
-                    'Cobrada'               => 'N',
-                    'Liquidada'             => 'N',
-                    'Contabilizada'         => 'N',
-                    'Impresa'               => 'N',
-                    'Fecha_Alta'            => date('Y-m-d H:i:s'),
-                    'Usuario_Alta'          => $_SESSION['usuario'] ?? 'sistema',
-                    'Ultima_Modificacion'   => date('Y-m-d H:i:s'),
+                    'Codigo'               => $numeracion['codigo'],
+                    'Numero'               => $numeracion['numero'],
+                    'Id_Canal'             => $idCanal,
+                    'Fecha'                => $fecha,
+                    'Id_Cliente'           => $idCliente,
+                    'Id_Forma_Pago'        => $idFormaPago,
+                    'Tipo_Documento'       => 'RECAPITULATIVA',
+                    'Abono'                => 'N',
+                    'Observaciones'        => $observaciones,
+                    'Descuento_Especial'   => 0,
+                    'Descuento_PP'         => 0,
+                    'Descuento_Comercial'  => 0,
+                    'Importe_Bruto'        => $calc['subtotal'],
+                    'Importe_Dto_Especial' => 0,
+                    'Importe_Dto_PP'       => 0,
+                    'Base_Imponible'       => $calc['base_imponible'],
+                    'Cuota_IVA'            => $calc['importe_iva'],
+                    'Total'                => $calc['total'],
+                    'Cerrada'              => 'N',
+                    'Cobrada'              => 'N',
+                    'Fecha_Alta'           => date('Y-m-d H:i:s'),
+                    'Usuario_Alta'         => $_SESSION['usuario'] ?? 'sistema',
+                    'Ultima_Modificacion'  => date('Y-m-d H:i:s'),
                 ]);
 
                 foreach ($lineasGuardar as $linea) {
@@ -883,6 +877,12 @@ class FacturaController
                         'Id_Recapitulativa' => $numeracion['codigo'],
                         'Id_Simplificada'   => $sf['Codigo'],
                     ]);
+                    $db->update(
+                        'Facturas_Clientes',
+                        ['Recapitulada' => 'S'],
+                        '`Codigo` = ?',
+                        [$sf['Codigo']]
+                    );
                 }
 
                 $db->commit();

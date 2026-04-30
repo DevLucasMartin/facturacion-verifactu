@@ -111,7 +111,7 @@ ob_start();
                         <th>Tipo</th>
                         <th>Cliente</th>
                         <th class="text-end">Total</th>
-                        <th class="text-center">Estado</th>
+                        <th class="text-center">Cobrado</th>
                         <th class="text-center">Verifactu</th>
                         <th class="text-center" style="width:120px;">Acciones</th>
                     </tr>

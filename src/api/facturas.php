@@ -106,17 +106,21 @@ try {
                 }
                 $estado = ($f['Cerrada'] ?? 'N') === 'S' ? 'EMITIDA' : 'BORRADOR';
                 echo json_encode(['success' => true, 'data' => [
-                    'codigo'         => $f['Codigo']          ?? '',
-                    'fecha'          => $f['Fecha']           ?? null,
-                    'tipo_documento' => $f['Tipo_Documento']  ?? '',
-                    'estado'         => $estado,
-                    'canal'          => $f['Id_Canal']        ?? '',
-                    'id_cliente'     => $f['Id_Cliente']      ?? '',
-                    'id_forma_pago'  => $f['Id_Forma_Pago']   ?? '',
-                    'observaciones'  => $f['Observaciones']   ?? '',
-                    'dto_especial'   => (float)($f['Descuento_Especial']  ?? 0),
-                    'dto_comercial'  => (float)($f['Descuento_Comercial'] ?? 0),
-                    'dto_pp'         => (float)($f['Descuento_PP']        ?? 0),
+                    'codigo'           => $f['Codigo']          ?? '',
+                    'fecha'            => $f['Fecha']           ?? null,
+                    'tipo_documento'   => $f['Tipo_Documento']  ?? '',
+                    'estado'           => $estado,
+                    'cobrada'          => ($f['Cobrada']        ?? 'N') === 'S',
+                    'recapitulada'     => ($f['Recapitulada']   ?? 'N') === 'S',
+                    'canal'            => $f['Id_Canal']        ?? '',
+                    'id_cliente'       => $f['Id_Cliente']      ?? '',
+                    'id_forma_pago'    => $f['Id_Forma_Pago']   ?? '',
+                    'observaciones'    => $f['Observaciones']   ?? '',
+                    'total'            => (float)($f['Total']            ?? 0),
+                    'importe_cobrado'  => (float)($f['Importe_Cobrado']  ?? 0),
+                    'dto_especial'     => (float)($f['Descuento_Especial']  ?? 0),
+                    'dto_comercial'    => (float)($f['Descuento_Comercial'] ?? 0),
+                    'dto_pp'           => (float)($f['Descuento_PP']        ?? 0),
                 ]], JSON_UNESCAPED_UNICODE);
                 exit;
 
@@ -205,6 +209,56 @@ try {
                 ]], JSON_UNESCAPED_UNICODE);
                 exit;
         }
+    }
+
+    // Registrar pago parcial o total
+    if ($method === 'POST' && $qs_action === 'pagar') {
+        $body       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $qs_codigo  = trim($body['codigo'] ?? '');
+        $importe    = (float)($body['importe'] ?? 0);
+        $fecha      = trim($body['fecha'] ?? date('Y-m-d'));
+
+        if ($qs_codigo === '') {
+            echo json_encode(['success' => false, 'message' => 'Código requerido'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ($importe <= 0) {
+            echo json_encode(['success' => false, 'message' => 'El importe debe ser mayor que cero'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $db = Database::getInstance();
+        $f  = $db->fetch("SELECT `Total`, `Importe_Cobrado`, `Cobrada` FROM `Facturas_Clientes` WHERE `Codigo` = ?", [$qs_codigo]);
+        if (!$f) {
+            echo json_encode(['success' => false, 'message' => 'Factura no encontrada'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $total           = (float)$f['Total'];
+        $cobradoActual   = (float)($f['Importe_Cobrado'] ?? 0);
+        $pendiente       = round($total - $cobradoActual, 4);
+
+        if ($importe > $pendiente + 0.001) {
+            echo json_encode(['success' => false, 'message' => 'El importe supera el pendiente de cobro'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $nuevoCobrado = round($cobradoActual + $importe, 4);
+        $totalCobrada = $nuevoCobrado >= ($total - 0.001);
+
+        $campos = ['Importe_Cobrado' => $nuevoCobrado];
+        if ($totalCobrada) {
+            $campos['Cobrada']     = 'S';
+            $campos['Fecha_Cobro'] = $fecha;
+        }
+        $db->update('Facturas_Clientes', $campos, '`Codigo` = ?', [$qs_codigo]);
+
+        echo json_encode(['success' => true, 'data' => [
+            'importe_cobrado' => $nuevoCobrado,
+            'pendiente'       => max(0, round($total - $nuevoCobrado, 4)),
+            'cobrada'         => $totalCobrada,
+        ]], JSON_UNESCAPED_UNICODE);
+        exit;
     }
 
     switch ($method) {
