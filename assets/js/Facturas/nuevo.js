@@ -496,10 +496,15 @@
                 precio,
                 descuento,
                 tipoIVA,
+                calificacion: 'S1',
             };
 
             if (lineaEditando !== null && lineaEditando < lineas.length) {
-                lineas[lineaEditando] = { ...lineas[lineaEditando], ...nuevaLinea };
+                lineas[lineaEditando] = {
+                    ...lineas[lineaEditando],
+                    ...nuevaLinea,
+                    calificacion: lineas[lineaEditando].calificacion || 'S1',
+                };
             } else {
                 lineas.push(nuevaLinea);
             }
@@ -543,7 +548,6 @@
                 <td>
                     <input type="hidden" name="lineas[${index}][Id_Articulo]" value="${escapeHtml(linea.idArticulo)}">
                     <input type="hidden" name="lineas[${index}][Descripcion]" value="${escapeHtml(linea.descripcion)}">
-                    <input type="hidden" name="lineas[${index}][Calificacion]" value="${escapeHtml(linea.calificacion || 'S1')}">
                     <strong>${escapeHtml(linea.idArticulo)}</strong><br>
                     <small class="text-muted">${escapeHtml((linea.descripcion || '').substring(0, 40))}</small>
                 </td>
@@ -568,18 +572,21 @@
                         placeholder="0.00" min="0" max="100" step="0.25"
                         oninput="actualizarLinea(${index}, 'descuento', this.value)">
                 </td>
-                <td>
+                <td class="${esExentoONoSujeto(linea.calificacion) ? 'iva-exento-cell' : ''}">
                     <select class="form-control form-control-sm fact-form-control"
                         id="iva-select-${index}" name="lineas[${index}][Id_Tipo_IVA]"
-                        onchange="actualizarLinea(${index}, 'tipoIVA', this.value)">
+                        onchange="actualizarLinea(${index}, 'tipoIVA', this.value)"
+                        style="${esExentoONoSujeto(linea.calificacion) ? 'display:none' : ''}">
                         ${buildIvaOptions(linea.tipoIVA)}
                     </select>
+                    <span id="iva-text-${index}" class="text-muted fw-bold" style="${esExentoONoSujeto(linea.calificacion) ? '' : 'display:none'}">${textoIvaExento(linea.calificacion)}</span>
                 </td>
                 <td>
                     <input type="hidden" name="lineas[${index}][Calificacion]" value="${escapeHtml(linea.calificacion || 'S1')}">
+                    <div class="d-flex align-items-center gap-1">
                     <select class="form-control form-control-sm fact-form-control"
                         id="calif-select-${index}"
-                        onchange="actualizarLinea(${index}, 'calificacion', this.value)">
+                        onchange="actualizarLinea(${index}, 'calificacion', this.value); actualizarPopoverCalif(${index})">
                         <option value="S1" ${(linea.calificacion || 'S1') === 'S1' ? 'selected' : ''}>Sujeta no exenta – Sin inv. (S1)</option>
                         <option value="S2" ${linea.calificacion === 'S2' ? 'selected' : ''}>Sujeta no exenta – Con inv. (S2)</option>
                         <option value="N1" ${linea.calificacion === 'N1' ? 'selected' : ''}>No sujeta – Art. 7, 14… (N1)</option>
@@ -591,6 +598,19 @@
                         <option value="E5" ${linea.calificacion === 'E5' ? 'selected' : ''}>Exenta – Art. 25 UE (E5)</option>
                         <option value="E6" ${linea.calificacion === 'E6' ? 'selected' : ''}>Exenta – Otros (E6)</option>
                     </select>
+                    <span id="calif-info-${index}"
+                        class="text-muted"
+                        style="cursor:pointer; font-size:1rem; line-height:1; flex-shrink:0;"
+                        tabindex="0"
+                        data-bs-toggle="popover"
+                        data-bs-trigger="focus"
+                        data-bs-placement="left"
+                        data-bs-html="true"
+                        data-bs-title="Calificación de la operación"
+                        data-bs-content="${escapeHtml(CALIFICACION_HELP[linea.calificacion || 'S1'] || '')}">
+                        &#9432;
+                    </span>
+                    </div>
                 </td>
                 <td class="text-end"><strong id="base-linea-${index}">${formatCurrency(base)}</strong></td>
                 <td class="text-end"><strong id="iva-linea-${index}">${sinIVA ? textoIvaExento(linea.calificacion) : formatCurrency(IVACalc)}</strong></td>
@@ -620,6 +640,15 @@
             lineas[index].calificacion = valor;
             const hiddenInput = document.querySelector(`input[name="lineas[${index}][Calificacion]"]`);
             if (hiddenInput) hiddenInput.value = valor;
+
+            const sinIVA    = esExentoONoSujeto(valor);
+            const ivaSelect = document.getElementById(`iva-select-${index}`);
+            const ivaText   = document.getElementById(`iva-text-${index}`);
+            if (ivaSelect) ivaSelect.style.display = sinIVA ? 'none' : '';
+            if (ivaText) {
+                ivaText.style.display = sinIVA ? '' : 'none';
+                if (sinIVA) ivaText.textContent = textoIvaExento(valor);
+            }
         } else {
             const n = parseFloat(valor);
             lineas[index][campo] = isNaN(n) ? 0 : n;

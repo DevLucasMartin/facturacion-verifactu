@@ -178,8 +178,15 @@ $(document).ready(function() {
             const verHref  = BASE_LIST + '/src/views/albaranes/ver.php?codigo=' + encodeURIComponent(facturaActual.Codigo);
             const editHref = BASE_LIST + '/src/views/albaranes/editar.php?codigo=' + encodeURIComponent(facturaActual.Codigo);
 
-            const accionesBotones =
-                `<a href="${editHref}" class="btn btn-outline-primary albr-btn" title="Editar">
+            const esFacturado = facturaActual.Facturado === 'S';
+            const accionesBotones = esFacturado
+                ? `<a href="${editHref}" class="btn btn-outline-secondary albr-btn disabled" title="No se puede editar un albarán facturado" aria-disabled="true" tabindex="-1">
+                    <i class="bi bi-pencil"></i>
+                </a>
+                <button class="btn btn-outline-secondary albr-btn" title="No se puede eliminar un albarán facturado" disabled>
+                    <i class="bi bi-trash"></i>
+                </button>`
+                : `<a href="${editHref}" class="btn btn-outline-primary albr-btn" title="Editar">
                     <i class="bi bi-pencil"></i>
                 </a>
                 <button class="btn btn-outline-danger albr-btn albr-btn-delete" title="Eliminar"

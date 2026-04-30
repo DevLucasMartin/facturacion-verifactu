@@ -271,10 +271,34 @@
         }).join('');
     }
 
+    const CALIFS_FUERA_ESPANA = ['E5', 'E2', 'N2'];
+
+    function buildCalifOptions(selected, territorio) {
+        const todas = [
+            { value: 'S1', label: 'Sujeta y no exenta – Sin inversión (S1)' },
+            { value: 'S2', label: 'Sujeta y no exenta – Con inversión (S2)' },
+            { value: 'N1', label: 'No sujeta – Art. 7, 14 y otros (N1)' },
+            { value: 'N2', label: 'No sujeta por reglas de localización (N2)' },
+            { value: 'E1', label: 'Exenta – Art. 20 LIVA (E1)' },
+            { value: 'E2', label: 'Exenta – Art. 21 LIVA (exportaciones) (E2)' },
+            { value: 'E3', label: 'Exenta – Art. 22 LIVA (E3)' },
+            { value: 'E4', label: 'Exenta – Art. 23 y 24 LIVA (E4)' },
+            { value: 'E5', label: 'Exenta – Art. 25 LIVA (intracomunitarias UE) (E5)' },
+            { value: 'E6', label: 'Exenta – Otros artículos (E6)' },
+        ];
+        const lista = territorio === 'FUERA_ESPANA'
+            ? todas.filter(o => CALIFS_FUERA_ESPANA.includes(o.value))
+            : todas.filter(o => !CALIFS_FUERA_ESPANA.includes(o.value));
+        return lista.map(o =>
+            `<option value="${o.value}" ${(selected || 'S1') === o.value ? 'selected' : ''}>${o.label}</option>`
+        ).join('');
+    }
+
     function buildIvaOptions(ivaSeleccionado, showRE = false) {
+        const territorioFiltro = territorioActual === 'FUERA_ESPANA' ? 'PENINSULAR' : territorioActual;
         const tipos = Object.values(tiposIVA).filter(t =>
             t.Activo !== 'N' &&
-            (!territorioActual || resolverTerritorio(t) === territorioActual)
+            (!territorioFiltro || resolverTerritorio(t) === territorioFiltro)
         );
         return tipos.map(t => {
             const rePct = Number(t.RE ?? 0);
@@ -342,13 +366,21 @@
 
     window.cambiarTerritorio = function (valor) {
         territorioActual = valor;
-        if (territorioActual) {
+        if (territorioActual === 'FUERA_ESPANA') {
             lineas.forEach(linea => {
+                if (!CALIFS_FUERA_ESPANA.includes(linea.calificacion)) {
+                    linea.calificacion = 'N2';
+                }
+            });
+        } else {
+            lineas.forEach(linea => {
+                linea.calificacion = 'S1';
                 if (resolverTerritorio(tiposIVA[linea.tipoIVA] || {}) !== territorioActual) {
                     linea.tipoIVA = defaultIvaTerritorio() || linea.tipoIVA;
                 }
             });
         }
+        actualizarVistaRE();
         renderLineas();
         recalcular();
     };
@@ -804,16 +836,7 @@
                         <select class="form-control form-control-sm fact-form-control"
                             id="calif-select-${index}"
                             onchange="actualizarLinea(${index}, 'calificacion', this.value); actualizarPopoverCalif(${index})">
-                            <option value="S1" ${(linea.calificacion || 'S1') === 'S1' ? 'selected' : ''}>Sujeta y no exenta – Sin inversión (S1)</option>
-                            <option value="S2" ${linea.calificacion === 'S2' ? 'selected' : ''}>Sujeta y no exenta – Con inversión (S2)</option>
-                            <option value="N1" ${linea.calificacion === 'N1' ? 'selected' : ''}>No sujeta – Art. 7, 14 y otros (N1)</option>
-                            <option value="N2" ${linea.calificacion === 'N2' ? 'selected' : ''}>No sujeta por reglas de localización (N2)</option>
-                            <option value="E1" ${linea.calificacion === 'E1' ? 'selected' : ''}>Exenta – Art. 20 LIVA (E1)</option>
-                            <option value="E2" ${linea.calificacion === 'E2' ? 'selected' : ''}>Exenta – Art. 21 LIVA (exportaciones) (E2)</option>
-                            <option value="E3" ${linea.calificacion === 'E3' ? 'selected' : ''}>Exenta – Art. 22 LIVA (E3)</option>
-                            <option value="E4" ${linea.calificacion === 'E4' ? 'selected' : ''}>Exenta – Art. 23 y 24 LIVA (E4)</option>
-                            <option value="E5" ${linea.calificacion === 'E5' ? 'selected' : ''}>Exenta – Art. 25 LIVA (intracomunitarias UE) (E5)</option>
-                            <option value="E6" ${linea.calificacion === 'E6' ? 'selected' : ''}>Exenta – Otros artículos (E6)</option>
+                            ${buildCalifOptions(linea.calificacion, territorioActual)}
                         </select>
                         <span id="calif-info-${index}"
                             class="text-muted"

@@ -147,6 +147,7 @@ ob_start();
                                 <option value="PENINSULAR" selected>Península e Islas Baleares (IVA)</option>
                                 <option value="CANARIAS">Islas Canarias (IGIC)</option>
                                 <option value="CEUTA_MELILLA">Ceuta y Melilla (IPSI)</option>
+                                <option value="FUERA_ESPANA">Fuera de España</option>
                             </select>
                         </div>
                         <div class="col-md-4">
