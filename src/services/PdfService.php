@@ -90,6 +90,7 @@ class PdfService
             'EMPRESA_PROVINCIA'    => is_array($empresaDir) ? ($empresaDir['provincia']     ?? '') : '',
             'EMPRESA_TELEFONO'     => $this->empresa['telefono'] ?? '',
             'EMPRESA_EMAIL'        => $this->empresa['email']    ?? '',
+            'EMPRESA_WEB'          => $this->empresa['web']      ?? '',
         ];
 
         if ($esAlbaran) {

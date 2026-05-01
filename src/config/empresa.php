@@ -4,18 +4,19 @@
  * Ajustar con los datos reales antes de usar en producción.
  */
 return [
-    'razon_social'   => 'Mi Empresa S.L.',
-    'nif'            => 'B12345678',
-    'telefono'       => '',
-    'email'          => 'facturas@miempresa.es',
+    'razon_social'   => 'Solventia Tecnología S.L.',
+    'nif'            => 'B74521983',
+    'telefono'       => '+34 91 847 3200',
+    'email'          => 'comercial@solventia.es',
+    'web'            => 'www.solventia.es',
     'timezone'       => 'Europe/Madrid',
-    'datos_bancarios'=> '',
+    'datos_bancarios'=> 'IBAN: ES45 2100 3062 1022 0135 8764  BIC: CAIXESBBXXX',
 
     'direccion' => [
-        'direccion'      => '',
-        'codigo_postal'  => '',
-        'poblacion'      => '',
-        'provincia'      => '',
+        'direccion'      => 'Calle Princesa, 31',
+        'codigo_postal'  => '28008',
+        'poblacion'      => 'Madrid',
+        'provincia'      => 'Madrid',
     ],
 
     // Configuración SMTP para envío de emails
@@ -25,7 +26,7 @@ return [
         'username'   => '',
         'password'   => '',
         'secure'     => 'tls',       // 'tls' o 'ssl'
-        'from_email' => 'facturas@miempresa.es',
-        'from_name'  => 'Mi Empresa S.L.',
+        'from_email' => 'comercial@solventia.es',
+        'from_name'  => 'Solventia Tecnología S.L.',
     ],
 ];

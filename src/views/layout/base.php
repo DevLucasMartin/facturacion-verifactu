@@ -163,8 +163,14 @@
         <div class="nav-section">Configuración</div>
         <li class="nav-item">
             <a class="nav-link <?= ($fact_active_menu ?? '') === 'tiposiva' ? 'active' : '' ?>"
-               href="/SistemaGestionFacturas/src/views/tiposiva/listado.php">
+               href="/SistemaGestionFacturas/src/views/Configuracion/tiposiva.php">
                 <i class="bi bi-percent"></i> Tipos IVA
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <?= ($fact_active_menu ?? '') === 'canales' ? 'active' : '' ?>"
+               href="/SistemaGestionFacturas/src/views/Configuracion/canales.php">
+                <i class="bi bi-diagram-3"></i> Canales
             </a>
         </li>
     </ul>
