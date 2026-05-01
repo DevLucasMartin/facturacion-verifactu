@@ -65,19 +65,18 @@ class PdfService
     private function resolverTemplatePath(string $tipo): string
     {
         return match ($tipo) {
-            'ALBARAN'      => __DIR__ . '/../templates/word/Albaran_template.docx',
-            'PROFORMA'     => __DIR__ . '/../templates/word/Proforma_template.docx',
-            'SIMPLIFICADA' => __DIR__ . '/../templates/word/Simplificada_template.docx',
-            default        => __DIR__ . '/../templates/word/Factura_template.docx',
+            'ALBARAN'      => __DIR__ . '/../templates/docs/Albaran_template.docx',
+            'PROFORMA'     => __DIR__ . '/../templates/docs/Proforma_template.docx',
+            'SIMPLIFICADA' => __DIR__ . '/../templates/docs/Simplificada_template.docx',
+            default        => __DIR__ . '/../templates/docs/factura_template.docx',
         };
     }
 
     private function prepararDatos(array $documento, array $cliente, array $lineas): array
     {
         $esAlbaran = $this->documentoTipo === 'ALBARAN';
-        $dtoTotal  = ($documento['Importe_Dto_Especial']  ?? 0)
-                   + ($documento['Importe_Dto_PP']         ?? 0)
-                   + ($documento['Importe_Dto_Comercial']  ?? 0);
+        $dtoTotal = ($documento['Importe_Bruto'] ?? 0) - ($documento['Base_Imponible'] ?? 0);
+        if ($dtoTotal < 0) $dtoTotal = 0;
 
         $empresaDir = $this->empresa['direccion'] ?? [];
 
@@ -127,14 +126,14 @@ class PdfService
             'CLIENTE_PROVINCIA'    => $cliente['Provincia']    ?? '',
         ];
 
+        $importeRE = array_sum(array_column($lineas, 'RE'));
+
         $totales = [
             'IMPORTE_BRUTO'   => $this->formatCurrency($documento['Importe_Bruto']   ?? 0),
             'IMPORTE_DTO'     => $dtoTotal > 0 ? $this->formatCurrency($dtoTotal)  : '0,00 €',
             'BASE_IMPONIBLE'  => $this->formatCurrency($documento['Base_Imponible'] ?? 0),
-            'IMPORTE_IVA'     => $this->formatCurrency($documento['Importe_IVA']    ?? 0),
-            'IMPORTE_RE'      => ($documento['Importe_RE'] ?? 0) > 0
-                                    ? $this->formatCurrency($documento['Importe_RE'])
-                                    : '0,00 €',
+            'IMPORTE_IVA'     => $this->formatCurrency($documento['Cuota_IVA']      ?? 0),
+            'IMPORTE_RE'      => $importeRE > 0 ? $this->formatCurrency($importeRE) : '0,00 €',
             'TOTAL'           => $this->formatCurrency($documento['Total'] ?? 0),
         ];
 

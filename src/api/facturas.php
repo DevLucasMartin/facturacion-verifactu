@@ -76,7 +76,7 @@ try {
     }
 
     // Acciones de la vista de detalle (ver.js): get, lineas, totales, cliente, pdf, xml
-    if ($method === 'GET' && in_array($qs_action, ['get', 'lineas', 'totales', 'cliente', 'pdf', 'xml'])) {
+    if ($method === 'GET' && in_array($qs_action, ['get', 'lineas', 'totales', 'cliente', 'pdf', 'ver_pdf', 'xml'])) {
         $qs_codigo = trim($_GET['codigo'] ?? '');
         if ($qs_codigo === '') {
             echo json_encode(['success' => false, 'message' => 'Código requerido'], JSON_UNESCAPED_UNICODE);
@@ -85,6 +85,11 @@ try {
 
         if ($qs_action === 'pdf') {
             $controller->descargarPdf($qs_codigo);
+            exit;
+        }
+
+        if ($qs_action === 'ver_pdf') {
+            $controller->verPdf($qs_codigo);
             exit;
         }
 

@@ -57,27 +57,28 @@ function buildQrFallbackImage(string $path, int $size = 300): string
     return $path;
 }
 
-function buildQrToTempFile(string $Id_Factura, int $size = 200, int $margin = 10): string
+function buildQrToTempFile(string $Id_Factura, int $size = 200, int $margin = 10): ?string
 {
     if ($Id_Factura === '') {
-        throw new InvalidArgumentException('Id_Factura no puede estar vacío.');
-    }
-    if (!preg_match('/^[A-Za-z0-9_-]+$/', $Id_Factura)) {
-        throw new InvalidArgumentException('Id_Factura contiene caracteres inválidos.');
+        return null;
     }
 
     $tmp = sys_get_temp_dir();
     if (!is_dir($tmp) || !is_writable($tmp)) {
-        throw new RuntimeException("Directorio temporal no disponible: {$tmp}");
+        return null;
     }
 
-    $base   = rtrim($tmp, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $Id_Factura;
+    $safeId = preg_replace('/[^A-Za-z0-9_-]/', '_', $Id_Factura);
+    $base   = rtrim($tmp, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $safeId;
     $qrPath = $base . '_QRVerfi.png';
     $fbPath = $base . '_QRVerfi_pendiente.png';
 
     $VerifiedLink = getVerifiedLink($Id_Factura);
 
     if ($VerifiedLink === null) {
+        if (!extension_loaded('gd')) {
+            return null;
+        }
         return buildQrFallbackImage($fbPath, $size);
     }
 
@@ -127,11 +128,12 @@ function buildQrToTempFile(string $Id_Factura, int $size = 200, int $margin = 10
         if (is_file($qrPath) && filesize($qrPath) === 0) {
             @unlink($qrPath);
         }
-        throw new RuntimeException('Error al generar QR: ' . $e->getMessage(), 0, $e);
+        error_log('Error al generar QR: ' . $e->getMessage());
+        return null;
     }
 
     if (!is_file($qrPath) || filesize($qrPath) === 0) {
-        throw new RuntimeException("Archivo QR no generado correctamente: {$qrPath}");
+        return null;
     }
 
     return $qrPath;

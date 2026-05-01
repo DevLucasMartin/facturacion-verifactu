@@ -449,11 +449,16 @@ CREATE TABLE `Verifactu_Registros` (
     `Reintentos`          TINYINT UNSIGNED NOT NULL DEFAULT 0,
     `Huella_Actual`       VARCHAR(64)      NULL,
     `Huella_Anterior`     VARCHAR(64)      NULL,
-    `Xml_Enviado`         LONGTEXT         NULL  COMMENT 'Payload XML firmado enviado a AEAT',
-    `Respuesta_Hacienda`  TEXT             NULL  COMMENT 'Respuesta XML de la AEAT',
-    `CSV_Hacienda`        VARCHAR(40)      NULL  COMMENT 'CSV asignado por la AEAT',
+    `Codigo_Seguridad`    VARCHAR(16)      NULL     COMMENT 'Primeros 16 chars de la huella (QR)',
+    `Cadena_Firma`        TEXT             NULL     COMMENT 'Cadena de firma tal como la spec AEAT',
+    `Xml_Enviado`         LONGTEXT         NULL     COMMENT 'Payload XML firmado enviado a AEAT',
+    `Respuesta_Hacienda`  TEXT             NULL     COMMENT 'Respuesta XML de la AEAT',
+    `CSV_Hacienda`        VARCHAR(40)      NULL     COMMENT 'CSV asignado por la AEAT',
     `Ultimo_Error`        VARCHAR(500)     NULL,
     `URL_Verificacion`    VARCHAR(500)     NULL,
+    `Anulado`             CHAR(1)          NOT NULL DEFAULT 'N',
+    `Fecha_Anulacion`     DATETIME         NULL,
+    `Motivo_Anulacion`    VARCHAR(500)     NULL,
     PRIMARY KEY (`Id`),
     INDEX `idx_vr_documento` (`Id_Documento`),
     INDEX `idx_vr_estado`    (`Estado_Envio`),
@@ -522,10 +527,10 @@ LEFT JOIN `Verifactu_Registros` vr ON vr.`Id` = (
 -- =============================================================
 
 INSERT INTO `Clientes` (`Codigo`, `NIF`, `Archivar_Como`, `Id_Tipo_IVA`, `Id_Forma_Pago`, `Tarifa`, `Activo`, `Fecha_Alta`, `Usuario_Alta`) VALUES
-    ('CLI001', 'B12345678', 'Construcciones Valdemar S.L.', '01', 'TRF', 1, 'S', NOW(), 'sistema'),
-    ('CLI002', 'A87654321', 'Servicios Digitales Norte S.A.', '01', 'TAR', 1, 'S', NOW(), 'sistema'),
-    ('CLI003', '12345678A', 'García López, Juan', '01', 'EFE', 1, 'S', NOW(), 'sistema'),
-    ('CLI004', 'B99887766', 'Distribuciones Sur S.L.', '02', 'DOM', 2, 'S', NOW(), 'sistema');
+    ('CLI001', 'B12345674', 'Construcciones Valdemar S.L.', '01', 'TRF', 1, 'S', NOW(), 'sistema'),
+    ('CLI002', 'A87654323', 'Servicios Digitales Norte S.A.', '01', 'TAR', 1, 'S', NOW(), 'sistema'),
+    ('CLI003', '12345678Z', 'García López, Juan', '01', 'EFE', 1, 'S', NOW(), 'sistema'),
+    ('CLI004', 'B99887762', 'Distribuciones Sur S.L.', '02', 'DOM', 2, 'S', NOW(), 'sistema');
 
 INSERT INTO `Articulos` (`Codigo`, `Descripcion`, `Id_Tipo_IVA`, `Id_Familia`, `Precio_Venta_1`, `Precio_Venta_2`, `Activo`) VALUES
     ('ART001', 'Servicio de consultoría hora', '01', 'GEN', 75.0000, 70.0000, 'S'),

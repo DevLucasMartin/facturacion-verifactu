@@ -545,7 +545,7 @@
 
     window.verPdf = function() {
         window.open(
-            API + '/facturas.php?action=pdf&codigo=' + encodeURIComponent(CODIGO),
+            API + '/facturas.php?action=ver_pdf&codigo=' + encodeURIComponent(CODIGO),
             '_blank'
         );
     };

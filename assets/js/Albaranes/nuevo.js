@@ -1505,7 +1505,7 @@
                 verifactuPayload.nif_exportacion       = nifExportacionVacio ? '' : nifExportacion;
                 verifactuPayload.nif_exportacion_vacio = nifExportacionVacio;
             }
-            await apiSend('/verifactu.php/verifactu/enviar', verifactuPayload, 'POST');
+            await apiSend('/verifactu.php/enviar', verifactuPayload, 'POST');
 
             App.hideLoading?.();
             notify('Factura ' + factCodigo + ' creada y enviada a Hacienda.', 'success');
