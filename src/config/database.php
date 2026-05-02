@@ -8,7 +8,7 @@ class Database {
     private static ?Database $instance = null;
     private PDO $pdo;
 
-    private function __construct() {
+    protected function __construct() {
         $dsn = 'mysql:host=localhost;port=3307;dbname=Verifactu;charset=utf8mb4';
         $this->pdo = new PDO($dsn, 'root', '', [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,

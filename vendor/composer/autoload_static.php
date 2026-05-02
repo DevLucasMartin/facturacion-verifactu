@@ -20,6 +20,11 @@ class ComposerStaticInitbd2bad2b073343f3bdb06f80c4bbb861
         array (
             'josemmo\\Verifactu\\' => 18,
         ),
+        'a' =>
+        array (
+            'avadim\\FastExcelWriter\\' => 23,
+            'avadim\\FastExcelHelper\\' => 23,
+        ),
         'U' =>
         array (
             'UXML\\' => 5,
@@ -37,6 +42,7 @@ class ComposerStaticInitbd2bad2b073343f3bdb06f80c4bbb861
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Http\\Client\\' => 16,
             'PhpOffice\\PhpWord\\' => 18,
+            'PHPMailer\\PHPMailer\\' => 20,
         ),
         'L' =>
         array (
@@ -48,12 +54,32 @@ class ComposerStaticInitbd2bad2b073343f3bdb06f80c4bbb861
             'GuzzleHttp\\Promise\\' => 19,
             'GuzzleHttp\\' => 11,
         ),
+        'E' =>
+        array (
+            'Endroid\\QrCode\\' => 15,
+        ),
+        'D' =>
+        array (
+            'DASPRiD\\Enum\\' => 13,
+        ),
+        'B' =>
+        array (
+            'BaconQrCode\\' => 12,
+        ),
     );
 
     public static $prefixDirsPsr4 = array (
         'josemmo\\Verifactu\\' =>
         array (
             0 => __DIR__ . '/..' . '/josemmo/verifactu-php/src',
+        ),
+        'avadim\\FastExcelWriter\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/avadim/fast-excel-writer/src/FastExcelWriter',
+        ),
+        'avadim\\FastExcelHelper\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/avadim/fast-excel-helper/src/FastExcelHelper',
         ),
         'UXML\\' =>
         array (
@@ -92,6 +118,10 @@ class ComposerStaticInitbd2bad2b073343f3bdb06f80c4bbb861
         array (
             0 => __DIR__ . '/..' . '/phpoffice/phpword/src/PhpWord',
         ),
+        'PHPMailer\\PHPMailer\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
+        ),
         'Laminas\\Escaper\\' =>
         array (
             0 => __DIR__ . '/..' . '/laminas/laminas-escaper/src',
@@ -107,6 +137,18 @@ class ComposerStaticInitbd2bad2b073343f3bdb06f80c4bbb861
         'GuzzleHttp\\' =>
         array (
             0 => __DIR__ . '/..' . '/guzzlehttp/guzzle/src',
+        ),
+        'Endroid\\QrCode\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/endroid/qr-code/src',
+        ),
+        'DASPRiD\\Enum\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/dasprid/enum/src',
+        ),
+        'BaconQrCode\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/bacon/bacon-qr-code/src',
         ),
     );
 

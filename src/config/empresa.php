@@ -21,12 +21,12 @@ return [
 
     // Configuración SMTP para envío de emails
     'smtp' => [
-        'host'       => '',          // p.ej. 'smtp.gmail.com'
+        'host'       => 'smtp.gmail.com',
         'port'       => 587,
-        'username'   => '',
-        'password'   => '',
-        'secure'     => 'tls',       // 'tls' o 'ssl'
-        'from_email' => 'comercial@solventia.es',
+        'username'   => 'solventiasl@gmail.com',
+        'password'   => 'mkqfyvwrloerohpj',
+        'secure'     => 'tls',
+        'from_email' => 'solventiasl@gmail.com',
         'from_name'  => 'Solventia Tecnología S.L.',
     ],
 ];

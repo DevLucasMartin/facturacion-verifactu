@@ -115,119 +115,42 @@ class EmailService
 HTML;
     }
 
-    /** Enviar email con SMTP (sockets) o mail() como fallback. */
+    /** Enviar email con PHPMailer (SMTP) o mail() como fallback. */
     public function enviar(string $to, string $subject, string $body, ?string $attachment = null): array
     {
         $host     = $this->config['smtp_host'];
-        $port     = (int)$this->config['smtp_port'];
         $username = $this->config['smtp_user'];
-        $password = $this->config['smtp_pass'];
-        $secure   = $this->config['smtp_secure'];
-        $from     = $this->config['from_email'];
-        $fromName = $this->config['from_name'];
-        $subject  = str_replace(["\r", "\n"], '', $subject);
 
-        if (empty($host) || $host === 'localhost') {
+        if (empty($host) || $host === 'localhost' || empty($username)) {
             return $this->enviarMail($to, $subject, $body, $attachment);
         }
 
         try {
-            $sslContext = stream_context_create([
-                'ssl' => [
-                    'verify_peer'      => true,
-                    'verify_peer_name' => true,
-                    'peer_name'        => $host,
-                ],
-            ]);
+            require_once __DIR__ . '/../../vendor/autoload.php';
 
-            $remote = ($secure === 'ssl' ? 'ssl://' : '') . $host;
-            $sock   = stream_socket_client($remote . ':' . $port, $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $sslContext);
+            $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host       = $this->config['smtp_host'];
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $this->config['smtp_user'];
+            $mail->Password   = $this->config['smtp_pass'];
+            $mail->SMTPSecure = $this->config['smtp_secure'] === 'ssl'
+                ? \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
+                : \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = (int)$this->config['smtp_port'];
+            $mail->CharSet    = 'UTF-8';
 
-            if (!$sock) {
-                return ['ok' => false, 'error' => "No se pudo conectar al servidor SMTP: {$errstr} ({$errno})"];
-            }
-
-            $response = $this->readSmtpResponse($sock);
-            if (substr($response, 0, 3) !== '220') {
-                fclose($sock);
-                return ['ok' => false, 'error' => 'Error de conexión SMTP: ' . trim($response)];
-            }
-
-            fputs($sock, 'EHLO ' . gethostname() . "\r\n");
-            $this->readSmtpResponse($sock);
-
-            if ($secure === 'tls') {
-                fputs($sock, "STARTTLS\r\n");
-                $resp = $this->readSmtpResponse($sock);
-                if (substr($resp, 0, 3) !== '220') {
-                    fclose($sock);
-                    return ['ok' => false, 'error' => 'STARTTLS falló: ' . trim($resp)];
-                }
-                stream_socket_enable_crypto($sock, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
-                fputs($sock, 'EHLO ' . gethostname() . "\r\n");
-                $this->readSmtpResponse($sock);
-            }
-
-            if (!empty($username)) {
-                fputs($sock, "AUTH LOGIN\r\n");
-                $this->readSmtpResponse($sock);
-                fputs($sock, base64_encode($username) . "\r\n");
-                $this->readSmtpResponse($sock);
-                fputs($sock, base64_encode($password) . "\r\n");
-                $resp = $this->readSmtpResponse($sock);
-                if (substr($resp, 0, 3) !== '235') {
-                    fclose($sock);
-                    return ['ok' => false, 'error' => 'Error de autenticación SMTP: ' . trim($resp)];
-                }
-            }
-
-            fputs($sock, "MAIL FROM:<{$from}>\r\n");
-            $this->readSmtpResponse($sock);
-            fputs($sock, "RCPT TO:<{$to}>\r\n");
-            $this->readSmtpResponse($sock);
-            fputs($sock, "DATA\r\n");
-            $resp = $this->readSmtpResponse($sock);
-            if (substr($resp, 0, 3) !== '354') {
-                fclose($sock);
-                return ['ok' => false, 'error' => 'SMTP DATA no aceptado: ' . trim($resp)];
-            }
-
-            $boundary  = '=_Part_' . md5(uniqid((string)mt_rand(), true));
-            $messageId = '<' . md5(uniqid((string)mt_rand(), true)) . '@' . preg_replace('/\s+/', '', (string)gethostname()) . '>';
-
-            $message  = "From: {$fromName} <{$from}>\r\n";
-            $message .= "To: {$to}\r\n";
-            $message .= "Subject: {$subject}\r\n";
-            $message .= 'Date: ' . date('r') . "\r\n";
-            $message .= "Message-ID: {$messageId}\r\n";
-            $message .= "MIME-Version: 1.0\r\n";
-            $message .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n\r\n";
-
-            $message .= "--{$boundary}\r\n";
-            $message .= "Content-Type: text/html; charset=UTF-8\r\n";
-            $message .= "Content-Transfer-Encoding: 8bit\r\n\r\n";
-            $message .= $body . "\r\n\r\n";
+            $mail->setFrom($this->config['from_email'], $this->config['from_name']);
+            $mail->addAddress($to);
+            $mail->Subject = $subject;
+            $mail->isHTML(true);
+            $mail->Body    = $body;
 
             if ($attachment && is_file($attachment)) {
-                $filename = basename($attachment);
-                $content  = chunk_split(base64_encode(file_get_contents($attachment)));
-                $message .= "--{$boundary}\r\n";
-                $message .= "Content-Type: application/pdf; name=\"{$filename}\"\r\n";
-                $message .= "Content-Transfer-Encoding: base64\r\n";
-                $message .= "Content-Disposition: attachment; filename=\"{$filename}\"\r\n\r\n";
-                $message .= $content . "\r\n\r\n";
+                $mail->addAttachment($attachment);
             }
 
-            $message .= "--{$boundary}--\r\n";
-
-            fputs($sock, $message . "\r\n.\r\n");
-            $resp = $this->readSmtpResponse($sock);
-            fputs($sock, "QUIT\r\n");
-            fclose($sock);
-
-            if (substr($resp, 0, 3) !== '250') {
-                return ['ok' => false, 'error' => 'Error al enviar email: ' . trim($resp)];
-            }
+            $mail->send();
             return ['ok' => true, 'mensaje' => 'Email enviado correctamente'];
 
         } catch (\Exception $e) {
@@ -266,17 +189,6 @@ HTML;
         return mail($to, $subject, $message, $headers)
             ? ['ok' => true,  'mensaje' => 'Email enviado correctamente']
             : ['ok' => false, 'error'   => 'Error al enviar email'];
-    }
-
-    /** Leer respuesta SMTP línea a línea. */
-    private function readSmtpResponse($sock): string
-    {
-        $response = '';
-        while ($row = fgets($sock, 515)) {
-            $response .= $row;
-            if (strlen($row) >= 4 && $row[3] === ' ') break;
-        }
-        return $response;
     }
 
     /** Obtener email del cliente. */

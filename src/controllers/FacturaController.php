@@ -332,7 +332,7 @@ class FacturaController
 
             require_once __DIR__ . '/../core/DatabaseExport.php';
 
-            $dbExport          = new DatabaseExport();
+            $dbExport          = DatabaseExport::getInstance();
             $facturaModelExport = new Factura($dbExport);
 
             $filtros = array_filter([
@@ -416,8 +416,12 @@ class FacturaController
             $rutaTmp       = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $nombreArchivo;
             $excel->save($rutaTmp);
 
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['success' => true, 'archivo' => $nombreArchivo]);
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . $nombreArchivo . '"');
+            header('Content-Length: ' . filesize($rutaTmp));
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+            readfile($rutaTmp);
+            @unlink($rutaTmp);
         } catch (Exception $e) {
             Response::serverError('Error al exportar facturas', $e);
         }

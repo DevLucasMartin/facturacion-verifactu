@@ -561,9 +561,9 @@
         const email = prompt('Dirección de email:');
         if (!email) return;
         App.showLoading();
-        App.api(API + '/facturas.php', {
+        App.api(API + '/facturas.php/' + encodeURIComponent(CODIGO) + '/email', {
             method: 'POST',
-            data: JSON.stringify({ action: 'email', codigo: CODIGO, email }),
+            data: JSON.stringify({ email }),
             contentType: 'application/json'
         })
         .done(data => {

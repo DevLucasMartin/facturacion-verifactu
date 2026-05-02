@@ -1,6 +1,9 @@
 {
     "require": {
         "josemmo/verifactu-php": "^0.3.4",
-        "phpoffice/phpword": "^1.1"
+        "phpoffice/phpword": "^1.1",
+        "endroid/qr-code": "^6.0",
+        "phpmailer/phpmailer": "^7.0",
+        "avadim/fast-excel-writer": "^6.12"
     }
 }
