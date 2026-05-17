@@ -986,6 +986,8 @@
             const eDisp = document.getElementById('erroresPanel');
             if (dDisp) dDisp.style.display = 'none';
             if (rDisp) rDisp.style.display = 'none';
+            const rLbl = document.getElementById('reLabel');
+            if (rLbl) rLbl.style.display = 'none';
             if (eDisp) eDisp.style.display = 'none';
             return;
         }
@@ -1034,9 +1036,11 @@
         if (dVal && totalDescuentos > 0) dVal.textContent = '-' + formatCurrency(totalDescuentos);
 
         const importeREMostrar = aplicaREGlobal ? r.importeRE : 0;
-        const rDisp = document.getElementById('reDisplay');
-        const rVal  = document.getElementById('reValue');
-        if (rDisp) rDisp.style.display = importeREMostrar > 0 ? '' : 'none';
+        const rDisp  = document.getElementById('reDisplay');
+        const rLabel = document.getElementById('reLabel');
+        const rVal   = document.getElementById('reValue');
+        if (rDisp)  rDisp.style.display  = importeREMostrar > 0 ? '' : 'none';
+        if (rLabel) rLabel.style.display = importeREMostrar > 0 ? '' : 'none';
         if (rVal)  rVal.textContent    = formatCurrency(importeREMostrar);
 
         const eDisp = document.getElementById('erroresPanel');

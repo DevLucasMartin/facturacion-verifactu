@@ -695,6 +695,8 @@
             });
             const dd = document.getElementById('descuentosDisplay');
             if (dd) dd.style.display = 'none';
+            const rd = document.getElementById('reDisplay');
+            if (rd) rd.style.display = 'none';
             return;
         }
 

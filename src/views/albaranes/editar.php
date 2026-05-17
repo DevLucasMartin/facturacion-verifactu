@@ -203,7 +203,7 @@ ob_start();
                         <dt class="col-7">IVA:</dt>
                         <dd class="col-5 text-end" id="ivaDisplay">0,00 €</dd>
 
-                        <dt class="col-7" id="reLabel" style="display:none;">RE:</dt>
+                        <dt class="col-7" id="reLabel" style="display:none;">Rec. Equivalencia:</dt>
                         <dd class="col-5 text-end" id="reDisplay" style="display:none;">
                             <span id="reValue">0,00 €</span>
                         </dd>

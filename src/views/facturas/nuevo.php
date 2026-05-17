@@ -315,7 +315,7 @@ ob_start();
                         <span id="ivaDisplay">0,00 €</span>
                     </div>
                     <div class="d-flex justify-content-between mb-2" id="reDisplay" style="display:none;">
-                        <span class="text-muted">RE:</span>
+                        <span class="text-muted">Rec. Equivalencia:</span>
                         <span id="reValue">0,00 €</span>
                     </div>
                     <hr>
