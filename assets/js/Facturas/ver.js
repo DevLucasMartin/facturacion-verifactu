@@ -359,6 +359,7 @@
                     <label class="form-label form-label-sm mb-1">Importe a pagar</label>
                     <input type="number" id="pagoImporte" class="form-control form-control-sm"
                            min="0.01" max="${pendiente}" step="0.01"
+                           value="${pendiente}"
                            placeholder="${App.formatCurrency(pendiente)}">
                 </div>
                 <div class="col-sm-2">
