@@ -9,7 +9,7 @@ class Database {
     private PDO $pdo;
 
     protected function __construct() {
-        $dsn = 'mysql:host=localhost;port=3307;dbname=Verifactu;charset=utf8mb4';
+        $dsn = 'mysql:host=localhost;port=3307;dbname=verifactu;charset=utf8mb4';
         $this->pdo = new PDO($dsn, 'root', '', [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

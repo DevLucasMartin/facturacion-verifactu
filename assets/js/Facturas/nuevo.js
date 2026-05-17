@@ -708,7 +708,7 @@
                 tipoIVA: sinIVA ? null : {
                     codigo: l.tipoIVA,
                     iva:    l.calificacion === 'S2' ? 0 : Number(t.IVA ?? 0),
-                    re:     0,
+                    re:     Number(t.RE ?? 0),
                 },
             };
         });
@@ -727,6 +727,9 @@
         document.getElementById('ivaDisplay').textContent            = formatCurrency(r.importeIVA);
         document.getElementById('reValue').textContent               = formatCurrency(r.importeRE);
         document.getElementById('totalDisplay').textContent          = formatCurrency(r.total);
+
+        const reDisplay = document.getElementById('reDisplay');
+        if (reDisplay) reDisplay.style.display = r.reAplica ? '' : 'none';
 
         const totalDto = (r.descuentos?.importeDtoEspecial  || 0)
                        + (r.descuentos?.importeDtoComercial || 0)
