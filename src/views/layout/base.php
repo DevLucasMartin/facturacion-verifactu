@@ -127,8 +127,27 @@
 
         /* Toast notifications */
         #toast-container {
-            position: fixed; bottom: 1.5rem; right: 1.5rem;
-            z-index: 10000; display: flex; flex-direction: column; gap: .5rem;
+            position: fixed; top: 1.5rem; left: 50%; transform: translateX(-50%);
+            z-index: 10000; display: flex; flex-direction: column; gap: .6rem;
+            align-items: center; pointer-events: none;
+        }
+        #toast-container > div { pointer-events: auto; }
+        #toast-container .toast-danger {
+            background: #dc3545 !important;
+            border: 2px solid #8b1c26;
+            color: #fff !important;
+            font-weight: 600;
+            font-size: 1rem !important;
+            padding: .9rem 1.4rem !important;
+            min-width: 360px;
+            max-width: 560px !important;
+            box-shadow: 0 6px 22px rgba(220, 53, 69, .45) !important;
+            animation: toastShake .35s ease;
+        }
+        @keyframes toastShake {
+            0%, 100% { transform: translateX(0); }
+            25%      { transform: translateX(-6px); }
+            75%      { transform: translateX(6px); }
         }
     </style>
 </head>
@@ -156,7 +175,7 @@
         <div class="nav-section">Verifactu</div>
         <li class="nav-item">
             <a class="nav-link <?= ($fact_active_menu ?? '') === 'verifactu' ? 'active' : '' ?>"
-               href="/SistemaGestionFacturas/src/views/verifactu/listado.php">
+               href="/SistemaGestionFacturas/src/views/Verifactu/listado.php">
                 <i class="bi bi-shield-check"></i> Registros
             </a>
         </li>
