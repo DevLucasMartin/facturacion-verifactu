@@ -82,8 +82,13 @@ class Response {
             'ok'      => false,
             'message' => $message,
         ];
-        if ($e !== null && (defined('APP_DEBUG') && APP_DEBUG)) {
-            $body['debug'] = $e->getMessage();
+        if ($e !== null) {
+            error_log('[serverError] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            $body['error_detail'] = [
+                'message' => $e->getMessage(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+            ];
         }
         self::send(500, $body);
     }

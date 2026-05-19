@@ -60,24 +60,35 @@ const App = (() => {
         secondary:'#6c757d',
     };
 
-    function notify(message, type = 'info', duration = 4000) {
+    function notify(message, type = 'info', duration) {
         const container = document.getElementById('toast-container');
         if (!container) { console.warn('[notify]', message); return; }
 
+        if (duration === undefined) {
+            duration = (type === 'danger' || type === 'warning') ? 7000 : 4000;
+        }
+
         const el = document.createElement('div');
+        if (type === 'danger') el.className = 'toast-danger';
         el.style.cssText = [
             'background:'  + (COLOR[type] || '#333'),
             'color:#fff',
-            'padding:.65rem 1rem',
+            'padding:.7rem 1.1rem',
             'border-radius:6px',
-            'font-size:.86rem',
-            'max-width:340px',
-            'box-shadow:0 2px 10px rgba(0,0,0,.25)',
+            'font-size:.9rem',
+            'max-width:420px',
+            'box-shadow:0 4px 14px rgba(0,0,0,.3)',
             'word-break:break-word',
             'opacity:1',
             'transition:opacity .3s',
+            'cursor:pointer',
         ].join(';');
         el.textContent = message;
+        el.title = 'Clic para cerrar';
+        el.onclick = () => {
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 320);
+        };
         container.appendChild(el);
 
         setTimeout(() => {

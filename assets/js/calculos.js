@@ -187,7 +187,7 @@ const FacturacionCalculos = (function() {
             importeRE:  round2(totalRE),
             total,
             errores,
-            reAplica: Object.values(basesAgrupadas).some(g => g.reEfectivo > 0)
+            reAplica: totalRE > 0
         };
     }
 
