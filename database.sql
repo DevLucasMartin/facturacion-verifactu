@@ -114,21 +114,31 @@ INSERT INTO `Formas_Pago` VALUES
 -- 5. CANALES / SERIES DE FACTURACIÓN
 -- =============================================================
 CREATE TABLE `Canales` (
-    `Codigo`                  VARCHAR(10)  NOT NULL,
-    `Descripcion`             VARCHAR(100) NOT NULL,
-    `Id_Cliente_Facturacion`  VARCHAR(30)  NULL  COMMENT 'Cliente genérico para simplificadas',
-    `Facturacion_Defecto`     CHAR(1)      NOT NULL DEFAULT 'N',
-    `Ticket`                  CHAR(1)      NOT NULL DEFAULT 'N'  COMMENT 'S = emite tickets/simplificadas',
-    `Activo`                  CHAR(1)      NOT NULL DEFAULT 'S',
+    `Codigo`                   VARCHAR(10)   NOT NULL,
+    `Descripcion`              VARCHAR(100)  NOT NULL,
+    `Color`                    INT           NULL,
+    `Id_Cliente_Facturacion`   VARCHAR(30)   NULL  COMMENT 'Cliente genérico para simplificadas',
+    `Direccion_Facturacion`    VARCHAR(100)  NULL,
+    `Facturacion_Defecto`      CHAR(1)       NOT NULL DEFAULT 'N',
+    `Ticket`                   CHAR(1)       NOT NULL DEFAULT 'N'  COMMENT 'S = emite tickets/simplificadas',
+    `Porcentaje_Antieconomico` INT           NULL,
+    `Prioridad`                INT           NULL,
+    `Tipo_Prioridad`           VARCHAR(20)   NULL,
+    `Departamento`             VARCHAR(50)   NULL,
+    `Cobrar_Franquicia`        TINYINT(1)    NOT NULL DEFAULT 0,
+    `Computable`               TINYINT(1)    NOT NULL DEFAULT 0,
+    `Activo`                   CHAR(1)       NOT NULL DEFAULT 'S',
     PRIMARY KEY (`Codigo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Series de numeración / canales de venta';
 
-INSERT INTO `Canales` VALUES
-    ('A',    'Serie General',       NULL, 'S', 'N', 'S'),
-    ('RECT', 'Rectificativas',      NULL, 'N', 'N', 'S'),
-    ('REC',  'Recapitulativas',     NULL, 'N', 'N', 'S'),
-    ('S',    'Simplificadas',       NULL, 'N', 'S', 'S');
+INSERT INTO `Canales` (`Codigo`, `Descripcion`, `Id_Cliente_Facturacion`, `Facturacion_Defecto`, `Ticket`) VALUES
+    ('TEKN',  'Teknia Group S.A.',     NULL, 'S', 'N'),
+    ('INDRA', 'Indra Sistemas S.A.',   NULL, 'N', 'N'),
+    ('CAP',   'Capgemini España S.L.', NULL, 'N', 'N'),
+    ('ACCI',  'Accenture Spain S.L.',  NULL, 'N', 'N'),
+    ('IBER',  'Ibermática S.A.',       NULL, 'N', 'N'),
+    ('EVER',  'Everis Spain S.L.',     NULL, 'N', 'N');
 
 -- =============================================================
 -- 6. CLIENTES

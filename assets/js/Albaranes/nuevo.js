@@ -385,7 +385,6 @@
         recalcular();
     };
 
-    // Fix: la API devuelve id_canal/nombre (aliases), no Codigo/Descripcion
     async function cargarCanales() {
         const json = await apiGet('/canales.php');
         const select = document.getElementById('selectCanal');
@@ -393,8 +392,8 @@
         select.innerHTML = '';
         (json.data || []).forEach(c => {
             const opt = document.createElement('option');
-            opt.value = c.id_canal;
-            opt.textContent = c.nombre;
+            opt.value = c.Codigo;
+            opt.textContent = c.Descripcion ? `${c.Codigo} – ${c.Descripcion}` : c.Codigo;
             select.appendChild(opt);
         });
     }
@@ -802,7 +801,7 @@
         if (lineas.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="10" class="text-center text-muted py-4">
+                    <td colspan="10" class="text-center text-muted py-4" onclick="agregarLinea()" style="cursor:pointer;">
                         <i class="bi bi-cart-plus fs-1 d-block mb-2"></i>
                         Añada líneas al albarán
                     </td>
@@ -864,28 +863,28 @@
                         <strong>${escapeHtml(linea.idArticulo)}</strong><br>
                         <small class="text-muted">${escapeHtml((linea.descripcion || '').substring(0, 40))}</small>
                     </td>
-                    <td>
+                    <td style="min-width:90px;">
                         <input type="number" class="form-control form-control-sm fact-form-control"
                             name="lineas[${index}][Cantidad]"
                             value="${Number(linea.cantidad) == 0 ? '' : Number(linea.cantidad)}"
                             placeholder="0" min="1" step="1"
                             oninput="actualizarLinea(${index}, 'cantidad', this.value)">
                     </td>
-                    <td>
+                    <td style="min-width:110px;">
                         <input type="number" class="form-control form-control-sm fact-form-control"
                             name="lineas[${index}][Precio]"
                             value="${Number(linea.precio).toFixed(2) == 0 ? '' : Number(linea.precio).toFixed(2)}"
                             placeholder="0.00" step="0.01"
                             oninput="actualizarLinea(${index}, 'precio', this.value)">
                     </td>
-                    <td>
+                    <td style="min-width:85px;">
                         <input type="number" class="form-control form-control-sm fact-form-control"
                             name="lineas[${index}][Descuento]"
                             value="${Number(linea.descuento) == 0 ? '' : Number(linea.descuento)}"
                             placeholder="0.00" min="0" max="100" step="0.25"
                             oninput="actualizarLinea(${index}, 'descuento', this.value)">
                     </td>
-                    <td class="${esExentoONoSujeto(linea.calificacion) ? 'iva-exento-cell' : ''}">
+                    <td style="min-width:140px;" class="${esExentoONoSujeto(linea.calificacion) ? 'iva-exento-cell' : ''}">
                         <select class="form-control form-control-sm fact-form-control"
                             id="iva-select-${index}" name="lineas[${index}][Id_Tipo_IVA]"
                             onchange="actualizarLinea(${index}, 'tipoIVA', this.value)"
@@ -901,6 +900,7 @@
                     ${califTd}
                     <td class="text-end"><strong id="base-linea-${index}">${formatCurrency(base)}</strong></td>
                     <td class="text-end"><strong id="iva-linea-${index}">${esExentoONoSujeto(linea.calificacion) ? textoIvaExento(linea.calificacion) : formatCurrency(IVACalc)}</strong></td>
+                    <td class="text-end"><strong id="total-linea-${index}">${formatCurrency(base + IVACalc)}</strong></td>
                     <td>
                         <button type="button" class="btn btn-sm btn-outline-danger fact-btn"
                             onclick="eliminarLinea(${index})" title="Eliminar">
@@ -965,6 +965,8 @@
 
             if (baseImp)    baseImp.textContent    = formatCurrency(base_imponible);
             if (lineaTotal) lineaTotal.textContent = esExentoONoSujeto(califActual) ? textoIvaExento(califActual) : formatCurrency(IVA_calculado);
+            const totalLinea = document.getElementById(`total-linea-${index}`);
+            if (totalLinea) totalLinea.textContent = formatCurrency(base_imponible + IVA_calculado);
         }
 
         recalcular();

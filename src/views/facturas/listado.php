@@ -45,7 +45,7 @@ ob_start();
                 </div>
                 <!-- FILA 2 -->
                 <div class="row g-3 mt-0">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label fact-form-label">Tipo</label>
                         <select name="tipo_documento" id="filtroTipo" class="form-select form-select-sm fact-form-select">
                             <option value="">Todos</option>
@@ -55,11 +55,19 @@ ob_start();
                             <option value="RECAPITULATIVA">Recapitulativa</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label fact-form-label">Cobrado</label>
+                        <select name="cobrado" id="filtroCobrado" class="form-select form-select-sm fact-form-select">
+                            <option value="">Todos</option>
+                            <option value="S">Cobrado</option>
+                            <option value="N">Pendiente</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label fact-form-label">Desde</label>
                         <input type="date" name="fecha_desde" class="form-control form-control-sm fact-form-control">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label fact-form-label">Hasta</label>
                         <input type="date" name="fecha_hasta" class="form-control form-control-sm fact-form-control">
                     </div>

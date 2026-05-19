@@ -285,6 +285,11 @@ class Factura
             $params[]     = $filtros['fecha_hasta'];
         }
 
+        if (isset($filtros['cobrado']) && $filtros['cobrado'] !== '') {
+            $whereParts[] = "F.`Cobrada` = ?";
+            $params[]     = $filtros['cobrado'];
+        }
+
         $where = implode(' AND ', $whereParts);
 
         $sql = "SELECT
@@ -356,6 +361,11 @@ class Factura
             $params[]     = $filtros['id_canal'];
         }
 
+        if (isset($filtros['cobrado']) && $filtros['cobrado'] !== '') {
+            $whereParts[] = "F.`Cobrada` = ?";
+            $params[]     = $filtros['cobrado'];
+        }
+
         $where = implode(' AND ', $whereParts);
 
         $total = (int)$this->db->fetchCell(
@@ -374,6 +384,7 @@ class Factura
                     F.`Total`          AS total,
                     F.`Id_Cliente`     AS id_cliente,
                     C.`Archivar_Como`  AS nombre_cliente,
+                    F.`Cobrada`        AS cobrada,
                     CASE
                         WHEN F.`Abono`   = 'S' THEN 'ANULADA'
                         WHEN F.`Cobrada` = 'S' THEN 'PAGADA'

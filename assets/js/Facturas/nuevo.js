@@ -78,8 +78,8 @@
         select.innerHTML = '';
         (json.data || []).forEach(c => {
             const opt = document.createElement('option');
-            opt.value       = c.id_canal;
-            opt.textContent = c.nombre || c.id_canal;
+            opt.value       = c.Codigo;
+            opt.textContent = c.Descripcion ? `${c.Codigo} – ${c.Descripcion}` : c.Codigo;
             select.appendChild(opt);
         });
     }

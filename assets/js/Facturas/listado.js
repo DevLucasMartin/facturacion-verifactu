@@ -30,6 +30,13 @@ $(document).ready(function() {
         width:       '100%'
     });
 
+    // ====== Select2: Cobrado ======
+    $('#filtroCobrado').select2({
+        placeholder: 'Todos',
+        allowClear:  true,
+        width:       '100%'
+    });
+
     // ====== Select2: Canales ======
     $('#filtroCanal').select2({
         ajax: {
@@ -43,7 +50,7 @@ $(document).ready(function() {
                 const rows = (data && data.data) ? data.data : [];
                 return {
                     results: rows.map(function(c) {
-                        return { id: c.id_canal, text: c.nombre };
+                        return { id: c.Codigo, text: c.Descripcion ? `${c.Codigo} – ${c.Descripcion}` : c.Codigo };
                     })
                 };
             },
@@ -172,20 +179,15 @@ $(document).ready(function() {
             'RECAPITULATIVA':{ label: 'Recap.',    class: 'bg-secondary' }
         };
 
-        const fact_etiquetaEstado = {
-            'PAGADA': { label: 'Cobrado',   class: 'bg-success' }
-        };
-
         fact_cuerpoTabla.html(fact_listadoFacturas.map(function(facturaActual) {
             const fact_tipo = fact_etiquetaTipo[facturaActual.tipo_documento] || {
                 label: facturaActual.tipo_documento || '-',
                 class: 'bg-secondary'
             };
 
-            const fact_estado = fact_etiquetaEstado[facturaActual.estado] || {
-                label: 'Pendiente',
-                class: 'bg-warning text-dark'
-            };
+            const fact_estado = facturaActual.cobrada === 'S'
+                ? { label: 'Cobrado',   class: 'bg-success' }
+                : { label: 'Pendiente', class: 'bg-warning text-dark' };
 
             const totalFormatted = (typeof App !== 'undefined' && typeof App.formatCurrency === 'function')
                 ? App.formatCurrency(facturaActual.total)
@@ -324,7 +326,7 @@ $(document).ready(function() {
         restaurarTabla();
     });
 
-    const selectoresSelect2 = '#filtroCodigo, #filtroCanal, #filtroCliente, #filtroTipo';
+    const selectoresSelect2 = '#filtroCodigo, #filtroCanal, #filtroCliente, #filtroTipo, #filtroCobrado';
 
     $(selectoresSelect2).on('select2:open', function() {
         $('#mensaje-buscando, .table-responsive, .card-footer').stop(true, true);

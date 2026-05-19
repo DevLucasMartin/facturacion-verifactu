@@ -29,6 +29,13 @@ $(document).ready(function() {
         width:       '100%'
     });
 
+    // ====== Select2: Cobrado ======
+    $('#filtroCobrado').select2({
+        placeholder: 'Todos',
+        allowClear:  true,
+        width:       '100%'
+    });
+
     // ====== Select2: Canales ======
     $('#filtroCanal').select2({
         ajax: {
@@ -336,7 +343,7 @@ $(document).ready(function() {
     $('#filtrosForm').find('select').on('focus', mostrarBuscando);
     $('#filtrosForm').find('input').on('blur', restaurarTabla);
 
-    const selectoresSelect2 = '#filtroCanal, #filtroCliente, #filtroCodigo, #filtroEstado';
+    const selectoresSelect2 = '#filtroCanal, #filtroCliente, #filtroCodigo, #filtroEstado, #filtroCobrado';
     $(selectoresSelect2).on('select2:open', function() {
         $('#mensaje-buscando, .table-responsive, .card-footer').stop(true, true);
         mostrarBuscando();

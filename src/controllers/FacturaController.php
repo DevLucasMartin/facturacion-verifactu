@@ -53,6 +53,7 @@ class FacturaController
             $fechaHasta    = $_GET['fecha_hasta']    ?? null;
             $idCanal       = $_GET['id_canal']       ?? null;
             $codigo        = $_GET['codigo']         ?? null;
+            $cobrado       = $_GET['cobrado']        ?? null;
 
             $filtros = array_filter([
                 'tipo_documento' => $tipoDocumento,
@@ -61,6 +62,7 @@ class FacturaController
                 'fecha_hasta'    => $fechaHasta,
                 'id_canal'       => $idCanal,
                 'codigo'         => $codigo,
+                'cobrado'        => $cobrado,
             ]);
 
             $result = $this->facturaModel->paginate($page, $perPage, $filtros);
@@ -922,6 +924,15 @@ class FacturaController
             }
 
             $idFormaPago = trim($data['Id_Forma_Pago'] ?? '');
+            if (empty($idFormaPago) && !empty($data['Id_Cliente'])) {
+                // Intentar usar la forma de pago del cliente como fallback
+                $clienteModel = new Cliente();
+                $cliente      = $clienteModel->find(trim($data['Id_Cliente']));
+                $idFormaPago  = trim($cliente['Id_Forma_Pago'] ?? '');
+                if (!empty($idFormaPago)) {
+                    $data['Id_Forma_Pago'] = $idFormaPago;
+                }
+            }
             if (empty($idFormaPago)) {
                 Response::error('Debe seleccionar una forma de pago antes de crear la factura.', 422);
                 return;

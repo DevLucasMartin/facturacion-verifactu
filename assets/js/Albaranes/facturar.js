@@ -83,11 +83,17 @@ function cargarFormasPago() {
             const lista = resp?.data ?? [];
             const sel   = $('#selectFormaPago');
             sel.empty();
-            sel.append(new Option('Elige la forma de pago...', ' '));
+            sel.append(new Option('Elige la forma de pago...', ''));
             lista.forEach(function(fp) {
                 const label = fp.Descripcion ? `${fp.Id_Forma_Pago} – ${fp.Descripcion}` : fp.Id_Forma_Pago;
                 sel.append(new Option(label, fp.Id_Forma_Pago));
             });
+            // Aplicar valor pendiente si el cliente ya fue cargado antes que las opciones
+            const pending = sel[0]?.dataset?.pendingValue;
+            if (pending) {
+                sel.val(pending);
+                delete sel[0].dataset.pendingValue;
+            }
         })
         .fail(function() {
             console.warn('No se pudieron cargar las formas de pago.');
@@ -118,6 +124,20 @@ function mostrarCliente(c) {
     document.getElementById('clienteNIF').textContent       = c.NIF || '';
     document.getElementById('clienteVacio').style.display   = 'none';
     document.getElementById('clienteInfo').style.display    = '';
+
+    // Pre-seleccionar la forma de pago del cliente
+    const fp = (c.Id_Forma_Pago || '').toUpperCase().trim();
+    if (fp) {
+        const sel = document.getElementById('selectFormaPago');
+        if (sel) {
+            sel.value = fp;
+            // Si aún no están cargadas las opciones, reintentar tras cargarFormasPago
+            if (!sel.value || sel.value.trim() === '') {
+                sel.dataset.pendingValue = fp;
+            }
+        }
+    }
+
     const inputNif = document.getElementById('inputNifExportacion');
     if (inputNif) { inputNif.value = ''; nifExportacion = ''; }
     actualizarVistaNifExportacion();

@@ -258,11 +258,11 @@ ob_start();
 
         <!-- Columna Lateral -->
         <div class="col-lg-4">
-            <div class="card fact-card mb-4 sticky-top" style="top:100px;z-index:100;">
+            <div class="card fact-card mb-4 sticky-top" style="top:80px;z-index:100;max-height:calc(100vh - 100px);display:flex;flex-direction:column;">
                 <div class="card-header fact-card-header">
                     <span><i class="bi bi-calculator me-2"></i>Totales</span>
                 </div>
-                <div class="card-body fact-card-body">
+                <div class="card-body fact-card-body" style="overflow-y:auto;">
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label fact-form-label" for="selectTarifa">Tarifa</label>

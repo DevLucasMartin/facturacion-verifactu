@@ -102,12 +102,20 @@ ob_start();
             <div class="card mb-4 fact-card" id="clienteCard">
                 <div class="card-header fact-card-header d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-person me-2"></i>Cliente</span>
-                    <button type="button" class="btn btn-sm btn-primary fact-btn" onclick="seleccionarCliente()">
-                        <i class="bi bi-arrow-repeat me-1"></i>Cambiar
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-primary fact-btn" onclick="seleccionarCliente()">
+                            <i class="bi bi-search me-1"></i>Buscar Cliente
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary fact-btn" onclick="seleccionarCliente()">
+                            <i class="bi bi-arrow-repeat me-1"></i>Cambiar
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger fact-btn" id="btnBorrarCliente" onclick="borrarCliente()" style="display:none;">
+                            <i class="bi bi-x-lg me-1"></i>Quitar
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body fact-card-body">
-                    <div id="clienteEmpty" class="text-muted text-center py-3">
+                    <div id="clienteEmpty" class="text-muted text-center py-3" onclick="seleccionarCliente()" style="cursor:pointer;">
                         <i class="bi bi-person-plus fs-1 d-block mb-2"></i>
                         Pulse "Buscar cliente" para seleccionar
                     </div>
@@ -180,16 +188,17 @@ ob_start();
                         <table class="table table-hover mb-0 fact-table" id="lineasTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width:50px;">#</th>
-                                    <th>Artículo</th>
-                                    <th style="width:100px;">Cantidad</th>
-                                    <th style="width:100px;">Precio (€)</th>
-                                    <th style="width:95px;">Dto.%</th>
-                                    <th style="width:80px;">IVA</th>
-                                    <th id="thRE" class="d-none" style="width:80px;">RE</th>
+                                    <th style="width:40px;">#</th>
+                                    <th style="min-width:130px;">Artículo</th>
+                                    <th style="width:90px;">Cantidad</th>
+                                    <th style="width:150px;">Precio (€)</th>
+                                    <th style="width:130px;">Dto.%</th>
+                                    <th style="width:140px;">IVA</th>
+                                    <th id="thRE" class="d-none" style="width:100px;">RE</th>
                                     <th id="thCalif" style="width:120px;">Cal. Operación</th>
                                     <th style="width:90px;">Base Imp.</th>
                                     <th style="width:90px;">IVA calc.</th>
+                                    <th style="width:90px;">Total</th>
                                     <th style="width:60px;"></th>
                                 </tr>
                             </thead>
@@ -214,6 +223,7 @@ ob_start();
 
         <!-- Columna Lateral -->
         <div class="col-lg-4">
+            <div style="position: sticky; top: 80px;">
             <!-- Totales -->
             <div class="card mb-4 fact-card">
                 <div class="card-header fact-card-header">
@@ -266,6 +276,7 @@ ob_start();
                     </a>
                 </div>
             </div>
+            </div><!-- /sticky -->
         </div>
     </div>
 </form>
