@@ -6,6 +6,9 @@ if (!isset($_SESSION['usuario'])) {
     header('Location: /SistemaGestionFacturas/src/views/login.php');
     exit;
 }
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -195,6 +198,14 @@ if (!isset($_SESSION['usuario'])) {
                 <i class="bi bi-people"></i> Clientes
             </a>
         </li>
+        <?php if (($_SESSION['usuario'] ?? '') === 'admin'): ?>
+        <li class="nav-item">
+            <a class="nav-link <?= ($fact_active_menu ?? '') === 'usuarios' ? 'active' : '' ?>"
+               href="/SistemaGestionFacturas/src/views/Gestion/usuarios.php">
+                <i class="bi bi-person-gear"></i> Usuarios
+            </a>
+        </li>
+        <?php endif; ?>
         <div class="nav-section">Configuración</div>
         <li class="nav-item">
             <a class="nav-link <?= ($fact_active_menu ?? '') === 'tiposiva' ? 'active' : '' ?>"
@@ -262,6 +273,13 @@ if (!isset($_SESSION['usuario'])) {
      background:#232323; color:#fff; padding:.6rem 1.2rem; border-radius:6px; z-index:9998; font-size:.85rem;">
     <span class="spinner-border spinner-border-sm me-2"></span>Generando Excel...
 </div>
+
+<!-- Evita que el navegador restaure la página desde bfcache tras cerrar sesión -->
+<script>
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) window.location.reload();
+    });
+</script>
 
 <!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
