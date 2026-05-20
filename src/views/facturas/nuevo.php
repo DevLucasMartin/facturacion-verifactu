@@ -126,9 +126,6 @@ ob_start();
                         <button type="button" class="btn btn-primary fact-cli-btn" onclick="seleccionarCliente()">
                             <i class="bi bi-arrow-repeat me-1"></i>Seleccionar
                         </button>
-                        <button type="button" class="btn btn-primary fact-cli-btn" onclick="abrirNuevoCliente()">
-                            <i class="bi bi-person-plus me-1"></i>Nuevo
-                        </button>
                     </div>
                 </div>
                 <div class="card-body fact-card-body" id="clientePanel">

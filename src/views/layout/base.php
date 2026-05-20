@@ -179,6 +179,13 @@
                 <i class="bi bi-shield-check"></i> Registros
             </a>
         </li>
+        <div class="nav-section">Gestión</div>
+        <li class="nav-item">
+            <a class="nav-link <?= ($fact_active_menu ?? '') === 'clientes' ? 'active' : '' ?>"
+               href="/SistemaGestionFacturas/src/views/Gestion/clientes.php">
+                <i class="bi bi-people"></i> Clientes
+            </a>
+        </li>
         <div class="nav-section">Configuración</div>
         <li class="nav-item">
             <a class="nav-link <?= ($fact_active_menu ?? '') === 'tiposiva' ? 'active' : '' ?>"

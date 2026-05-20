@@ -165,6 +165,41 @@ try {
         Response::success($cliente);
     }
 
+    if ($fact_method === 'PUT' && $fact_recurso === 'clientes') {
+        $idCliente = $fact_parts[1] ?? '';
+        if ($idCliente === '') {
+            http_response_code(422);
+            Response::error('Se requiere el código del cliente');
+        }
+        if (!$clienteModel->find($idCliente)) {
+            Response::notFound('Cliente no encontrado');
+        }
+
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        $data = [];
+        if (array_key_exists('Apellidos',         $body)) $data['Apellidos']         = trim($body['Apellidos']         ?? '');
+        if (array_key_exists('Archivar_Como',      $body)) $data['Archivar_Como']     = trim($body['Archivar_Como']     ?? '');
+        if (array_key_exists('NIF',                $body)) $data['NIF']               = strtoupper(trim($body['NIF']   ?? ''));
+        if (array_key_exists('Id_Forma_Pago',      $body)) $data['Id_Forma_Pago']     = strtoupper(trim($body['Id_Forma_Pago'] ?? '')) ?: null;
+        if (array_key_exists('Tarifa',             $body)) $data['Tarifa']            = (int)($body['Tarifa'] ?? 1);
+        if (array_key_exists('RE_Porcentaje',      $body)) $data['RE_Porcentaje']     = (float)($body['RE_Porcentaje'] ?? 0);
+        if (array_key_exists('RE_Porcentaje',      $body)) $data['Aplica_RE']         = ($data['RE_Porcentaje'] > 0) ? 'S' : 'N';
+        if (array_key_exists('Email_Facturacion',  $body)) $data['Email_Facturacion'] = trim($body['Email_Facturacion'] ?? '') ?: null;
+
+        if (empty($data)) {
+            http_response_code(422);
+            Response::error('No se han enviado campos a actualizar');
+        }
+        if (isset($data['Archivar_Como']) && $data['Archivar_Como'] === '') {
+            http_response_code(422);
+            Response::error('El campo "Archivar como" no puede estar vacío');
+        }
+
+        $clienteModel->update($idCliente, $data);
+        Response::success($clienteModel->findWithDetails($idCliente), 'Cliente actualizado correctamente');
+    }
+
     if ($fact_method === 'PATCH' && $fact_recurso === 'clientes') {
         $idCliente = $fact_parts[1] ?? '';
         $accion    = $fact_parts[2] ?? '';

@@ -106,10 +106,7 @@ ob_start();
                         <button type="button" class="btn btn-sm btn-primary fact-btn" onclick="seleccionarCliente()">
                             <i class="bi bi-search me-1"></i>Buscar Cliente
                         </button>
-                        <button type="button" class="btn btn-sm btn-success fact-btn" onclick="abrirNuevoCliente()">
-                            <i class="bi bi-person-plus me-1"></i>Nuevo cliente
-                        </button>
-                        <button type="button" class="btn btn-sm btn-danger fact-btn" id="btnBorrarCliente" onclick="borrarCliente()" style="display:none;">
+<button type="button" class="btn btn-sm btn-danger fact-btn" id="btnBorrarCliente" onclick="borrarCliente()" style="display:none;">
                             <i class="bi bi-x-lg me-1"></i>Quitar
                         </button>
                     </div>

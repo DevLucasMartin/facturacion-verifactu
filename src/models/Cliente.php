@@ -35,6 +35,17 @@ class Cliente {
     }
 
     /**
+     * Actualizar campos generales de un cliente.
+     */
+    public function update(string $codigo, array $data): void
+    {
+        $data['Ultima_Modificacion']         = date('Y-m-d H:i:s');
+        $data['Usuario_Ultima_Modificacion'] = $_SESSION['usuario'] ?? 'sistema';
+
+        $this->fact_conexionBBDD->update('Clientes', $data, '`Codigo` = ?', [$codigo]);
+    }
+
+    /**
      * Actualizar el NIF de un cliente.
      */
     public function updateNif(string $codigo, string $nif): void
