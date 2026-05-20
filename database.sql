@@ -138,7 +138,11 @@ INSERT INTO `Canales` (`Codigo`, `Descripcion`, `Id_Cliente_Facturacion`, `Factu
     ('CAP',   'Capgemini España S.L.', NULL, 'N', 'N'),
     ('ACCI',  'Accenture Spain S.L.',  NULL, 'N', 'N'),
     ('IBER',  'Ibermática S.A.',       NULL, 'N', 'N'),
-    ('EVER',  'Everis Spain S.L.',     NULL, 'N', 'N');
+    ('EVER',  'Everis Spain S.L.',     NULL, 'N', 'N'),
+    ('A',     'Facturas completas',    NULL, 'N', 'N'),
+    ('S',     'Simplificadas / Tickets', NULL, 'N', 'S'),
+    ('RECT',  'Rectificativas',        NULL, 'N', 'N'),
+    ('REC',   'Recapitulativas',       NULL, 'N', 'N');
 
 -- =============================================================
 -- 6. CLIENTES
