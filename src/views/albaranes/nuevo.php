@@ -106,8 +106,8 @@ ob_start();
                         <button type="button" class="btn btn-sm btn-primary fact-btn" onclick="seleccionarCliente()">
                             <i class="bi bi-search me-1"></i>Buscar Cliente
                         </button>
-                        <button type="button" class="btn btn-sm btn-secondary fact-btn" onclick="seleccionarCliente()">
-                            <i class="bi bi-arrow-repeat me-1"></i>Cambiar
+                        <button type="button" class="btn btn-sm btn-success fact-btn" onclick="abrirNuevoCliente()">
+                            <i class="bi bi-person-plus me-1"></i>Nuevo cliente
                         </button>
                         <button type="button" class="btn btn-sm btn-danger fact-btn" id="btnBorrarCliente" onclick="borrarCliente()" style="display:none;">
                             <i class="bi bi-x-lg me-1"></i>Quitar
@@ -382,6 +382,67 @@ ob_start();
                 <button type="button" class="btn btn-success" id="btnConfirmarTipoFactura">
                     <i class="bi bi-receipt me-1"></i>Confirmar y facturar
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Cliente -->
+<div class="modal fade" id="nuevoClienteModal" tabindex="-1" aria-modal="true" aria-labelledby="nuevoClienteModalTitleAlb">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="nuevoClienteModalTitleAlb">Nuevo Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="nuevoClienteMsg" class="alert alert-info d-none mb-3"></div>
+                <form id="nuevoClienteForm">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fact-form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control fact-form-control" id="ncCodigo" name="ncCodigo"
+                                   placeholder="CLI001" maxlength="12"
+                                   oninput="validarCodigoCliente(this)">
+                            <div class="invalid-feedback" id="ncCodigoError"></div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fact-form-label">Apellidos</label>
+                            <input type="text" class="form-control fact-form-control" id="ncApellidos" name="ncApellidos">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fact-form-label">Archivar como <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control fact-form-control" id="ncArchivar" name="ncArchivar"
+                                   placeholder="Nombre o razón social">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fact-form-label">NIF <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control fact-form-control" id="ncNif" name="ncNif"
+                                   placeholder="12345678A" oninput="validarNIF(this)">
+                            <div class="invalid-feedback" id="ncNifError"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fact-form-label">Forma de pago</label>
+                            <select class="form-select fact-form-select select-forma-pago" id="selectFormaPagoNuevo" name="ncFormaPago"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fact-form-label">Tarifa</label>
+                            <select class="form-select fact-form-select select-tarifa" id="selectTarifaNuevo" name="ncTarifa"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fact-form-label">RE %</label>
+                            <input type="number" class="form-control fact-form-control" id="ncRE" name="ncRE"
+                                   min="0" max="100" step="0.01" value="0">
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary fact-btn" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary fact-btn">
+                            <i class="bi bi-check-lg me-1"></i>Guardar cliente
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

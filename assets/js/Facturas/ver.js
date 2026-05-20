@@ -101,12 +101,31 @@
             <dt class="col-sm-4">Cobrado:</dt>
             <dd class="col-sm-8">${cobradoHtml}</dd>
 
+            ${f.rectificada_por ? `
+            <dd class="col-sm-12 mt-2">
+                <div class="alert alert-warning py-2 px-3 mb-0">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    Aviso: esta factura ha sido rectificada en la factura
+                    <a href="${BASE}/src/views/facturas/ver.php?codigo=${encodeURIComponent(f.rectificada_por)}" class="alert-link fw-semibold">
+                        ${App.escapeHtml(f.rectificada_por)}
+                    </a>
+                </div>
+            </dd>` : ''}
+
             ${f.tipo_documento === 'SIMPLIFICADA' ? `
             <dt class="col-sm-4">Recapitulada:</dt>
             <dd class="col-sm-8">
                 ${f.recapitulada
                     ? '<span class="badge bg-success">Sí</span>'
                     : '<span class="badge bg-secondary">No</span>'}
+            </dd>` : ''}
+
+            ${f.tipo_documento === 'RECTIFICATIVA' && f.factura_rectificada_id ? `
+            <dt class="col-sm-4">Factura original:</dt>
+            <dd class="col-sm-8">
+                <a href="${BASE}/src/views/facturas/ver.php?codigo=${encodeURIComponent(f.factura_rectificada_id)}">
+                    ${App.escapeHtml(f.factura_rectificada_id)}
+                </a>
             </dd>` : ''}`;
 
         panel.innerHTML = `<dl class="row mb-0">${filas}</dl>` +

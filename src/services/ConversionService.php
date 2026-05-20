@@ -154,10 +154,11 @@ class ConversionService
                     $descripcion = (string)($articulo['Descripcion'] ?? '');
                 }
 
-                $lineaOrigen   = (int)$la['Linea'];
-                $aplicaRELinea = isset($lineasAplicaRE[$lineaOrigen])
+                $lineaOrigen      = (int)$la['Linea'];
+                $aplicaREAlbaran  = strtoupper((string)($la['Aplica_RE'] ?? 'N')) === 'S' ? 1 : 0;
+                $aplicaRELinea    = isset($lineasAplicaRE[$lineaOrigen])
                     ? (int)$lineasAplicaRE[$lineaOrigen]
-                    : $aplicaRECliente;
+                    : ($aplicaREAlbaran ?: $aplicaRECliente);
 
                 $lineasFactura[] = [
                     'Linea'         => $lineaNum++,

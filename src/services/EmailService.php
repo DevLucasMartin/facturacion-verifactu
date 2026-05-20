@@ -47,7 +47,9 @@ class EmailService
                 $rutaAdjunto = $resultado['ruta'] ?? null;
             }
 
-            $asunto = 'Factura ' . ($factura['Serie'] ?? '') . ($factura['Numero'] ?? '');
+            $tipoDoc = strtoupper($factura['Tipo_Documento'] ?? 'FACTURA');
+            $prefijo = $tipoDoc === 'ALBARAN' ? 'Albarán' : 'Factura';
+            $asunto  = $prefijo . ' ' . ($factura['Serie'] ?? '') . ($factura['Numero'] ?? '');
             $cuerpo = $this->generarCuerpo($factura, $cliente);
 
             return $this->enviar($emailDestino, $asunto, $cuerpo, $rutaAdjunto);
@@ -82,7 +84,11 @@ class EmailService
             $tipoDocumento === 'PROFORMA'  => 'FACTURA PROFORMA',
             default                        => 'FACTURA',
         };
-        $textoDocumento = $esProforma ? 'la factura proforma' : 'la factura';
+        $textoDocumento = match (true) {
+            $esProforma                   => 'la factura proforma',
+            $tipoDocumento === 'ALBARAN'  => 'el albarán',
+            default                       => 'la factura',
+        };
 
         return <<<HTML
 <!DOCTYPE html>

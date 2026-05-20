@@ -111,7 +111,8 @@ ob_start();
                 <span><i class="bi bi-gear me-2"></i>Acciones</span>
             </div>
             <div class="card-body fact-card-body d-flex flex-wrap gap-2">
-                <a href="/SistemaGestionFacturas/src/views/albaranes/editar.php?codigo=<?= htmlspecialchars($codigo, ENT_QUOTES, 'UTF-8') ?>"
+                <a id="btnEditar"
+                   href="/SistemaGestionFacturas/src/views/albaranes/editar.php?codigo=<?= htmlspecialchars($codigo, ENT_QUOTES, 'UTF-8') ?>"
                    class="btn btn-sm btn-outline-primary fact-btn">
                     <i class="bi bi-pencil me-1"></i>Editar
                 </a>

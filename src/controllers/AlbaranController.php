@@ -84,7 +84,7 @@ class AlbaranController
             ]);
 
             require_once __DIR__ . '/../core/DatabaseExport.php';
-            $dbExport          = new DatabaseExport();
+            $dbExport          = DatabaseExport::getInstance();
             $albaranModelExport = new Albaran($dbExport);
 
             $albaranes = $albaranModelExport->getAll($filtros);
@@ -301,6 +301,7 @@ class AlbaranController
             require_once __DIR__ . '/../services/EmailService.php';
             require_once __DIR__ . '/../services/PdfService.php';
 
+            $albaran['Tipo_Documento'] = 'ALBARAN';
             if ($proforma) {
                 $albaran['_proforma'] = true;
             }

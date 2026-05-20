@@ -622,6 +622,16 @@
             return;
         }
 
+        const archivarVal = ($('#ncArchivar').val() || '').trim();
+        if (!archivarVal) {
+            $('#nuevoClienteMsg')
+                .removeClass('d-none alert-info alert-success alert-warning')
+                .addClass('alert-danger')
+                .text('El campo "Archivar como" es obligatorio.');
+            submitBtn.prop('disabled', false);
+            return;
+        }
+
         if (!window.validarNIF(document.getElementById('ncNif'))) {
             submitBtn.prop('disabled', false);
             return;
@@ -819,7 +829,7 @@
             const reLinea      = linea.aplicaRE ? '1' : '0';
 
             const reTd = aplicaREGlobal ? `
-                <td>
+                <td style="min-width:90px;">
                     <select class="form-control form-control-sm fact-form-control"
                         id="re-select-${index}"
                         onchange="actualizarLinea(${index}, 're', this.value)">

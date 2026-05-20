@@ -130,3 +130,90 @@ const App = (() => {
     // ─── API pública ──────────────────────────────────────────────────────────
     return { api, notify, showLoading, hideLoading, escapeHtml, formatCurrency };
 })();
+
+// ─── Excel Background Export via Service Worker ──────────────────────────────
+const ExcelExport = (() => {
+    'use strict';
+
+    const CACHE_NAME = 'excel-exports-v1';
+    const LS_KEY     = 'excelExportPending';
+    const SW_PATH    = '/SistemaGestionFacturas/excel-sw.js';
+    const SW_SCOPE   = '/SistemaGestionFacturas/';
+
+    function showIndicator() {
+        const el = document.getElementById('exportIndicator');
+        if (el) el.style.display = 'block';
+    }
+
+    function hideIndicator() {
+        const el = document.getElementById('exportIndicator');
+        if (el) el.style.display = 'none';
+    }
+
+    async function triggerDownload(filename) {
+        try {
+            const cache    = await caches.open(CACHE_NAME);
+            const response = await cache.match('pending-export');
+            if (!response) return; // otra pestaña ya lo recogió
+            const blob = await response.blob();
+            await cache.delete('pending-export');
+            const url = URL.createObjectURL(blob);
+            const a   = document.createElement('a');
+            a.href     = url;
+            a.download = filename || 'export.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        } catch (e) {
+            console.error('[ExcelExport] Error al recuperar el archivo:', e);
+        }
+    }
+
+    function init() {
+        if (!('serviceWorker' in navigator)) return;
+
+        // Mostrar indicador si había una exportación en curso al navegar
+        if (localStorage.getItem(LS_KEY)) showIndicator();
+
+        navigator.serviceWorker.register(SW_PATH, { scope: SW_SCOPE })
+            .catch(err => console.error('[ExcelExport] SW no registrado:', err));
+
+        navigator.serviceWorker.addEventListener('message', async event => {
+            const { type, filename, error } = event.data || {};
+
+            if (type === 'EXPORT_STARTED') {
+                localStorage.setItem(LS_KEY, filename || '1');
+                showIndicator();
+            } else if (type === 'EXPORT_DONE') {
+                localStorage.removeItem(LS_KEY);
+                hideIndicator();
+                await triggerDownload(filename);
+                App.notify('Excel generado y descargado correctamente', 'success');
+            } else if (type === 'EXPORT_ERROR') {
+                localStorage.removeItem(LS_KEY);
+                hideIndicator();
+                App.notify('Error al generar el Excel: ' + (error || 'Error desconocido'), 'danger');
+            }
+        });
+    }
+
+    function start(url, filename) {
+        const ctrl = navigator.serviceWorker?.controller;
+        if (!ctrl) {
+            // SW aún no controla la página (primera carga) — descarga directa
+            const a   = document.createElement('a');
+            a.href     = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            return;
+        }
+        ctrl.postMessage({ type: 'START_EXPORT', url, filename });
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+
+    return { start };
+})();

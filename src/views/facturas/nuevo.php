@@ -196,10 +196,18 @@ ob_start();
                     <span><i class="bi bi-file-earmark-text me-2"></i>Factura Origen</span>
                 </div>
                 <div class="card-body fact-card-body">
-                    <label class="form-label fact-form-label">Seleccionar factura que se rectifica *</label>
-                    <select id="selectFacturaOrigen" class="form-select fact-form-select">
-                        <option value="">Seleccione un cliente primero</option>
-                    </select>
+                    <?php if ($es_rectifica): ?>
+                        <input type="hidden" id="hiddenFacturaOrigen" value="<?= htmlspecialchars($_GET['rectifica'], ENT_QUOTES, 'UTF-8') ?>">
+                        <p class="mb-0">
+                            <span class="text-muted me-2">Factura Origen:</span>
+                            <strong><?= htmlspecialchars($_GET['rectifica'], ENT_QUOTES, 'UTF-8') ?></strong>
+                        </p>
+                    <?php else: ?>
+                        <label class="form-label fact-form-label">Seleccionar factura que se rectifica *</label>
+                        <select id="selectFacturaOrigen" class="form-select fact-form-select">
+                            <option value="">Seleccione un cliente primero</option>
+                        </select>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -229,13 +237,14 @@ ob_start();
                                     <th style="width:50px;">#</th>
                                     <th>Artículo</th>
                                     <th style="width:100px;">Cantidad</th>
-                                    <th style="width:100px;">Precio (€)</th>
+                                    <th style="width:120px;">Precio (€)</th>
                                     <th style="width:95px;">Dto.%</th>
-                                    <th style="width:110px;">Impuestos</th>
+                                    <th style="width:150px;">Impuestos</th>
                                     <th style="width:160px;">Calificación</th>
                                     <th style="width:90px;">Base imp.</th>
                                     <th style="width:90px;">IVA calc.</th>
-                                    <th style="width:60px;"></th>
+                                    <th style="width:90px;">Total</th>
+                                    <th style="width:60px;">Acción</th>
                                 </tr>
                             </thead>
                             <tbody id="lineasBody"></tbody>
@@ -258,11 +267,11 @@ ob_start();
 
         <!-- Columna Lateral -->
         <div class="col-lg-4">
-            <div class="card fact-card mb-4 sticky-top" style="top:80px;z-index:100;max-height:calc(100vh - 100px);display:flex;flex-direction:column;">
+            <div class="card fact-card mb-4 sticky-top" style="top:80px;z-index:100;">
                 <div class="card-header fact-card-header">
                     <span><i class="bi bi-calculator me-2"></i>Totales</span>
                 </div>
-                <div class="card-body fact-card-body" style="overflow-y:auto;">
+                <div class="card-body fact-card-body">
                     <div class="row mb-3">
                         <div class="col-6">
                             <label class="form-label fact-form-label" for="selectTarifa">Tarifa</label>
@@ -342,10 +351,6 @@ ob_start();
                         <strong>Límite factura simplificada superado.</strong><br>
                         <span id="avisoSimplificadaTexto"></span>
                     </div>
-                    <!-- Errores -->
-                    <div id="erroresPanel" class="alert alert-danger mt-3" style="display:none;">
-                        <ul class="mb-0 small" id="erroresList"></ul>
-                    </div>
                 </div>
                 <div class="card-footer d-grid gap-2">
                     <button type="button" class="btn btn-success btn-lg fact-btn" id="btnGuardarEnviar"
@@ -356,6 +361,9 @@ ob_start();
                        class="btn btn-outline-secondary">
                         <i class="bi bi-x-lg me-1"></i>Cancelar
                     </a>
+                    <div id="erroresPanel" class="alert alert-danger mb-0" style="display:none;">
+                        <ul class="mb-0 small" id="erroresList"></ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -401,42 +409,32 @@ ob_start();
                 <form id="nuevoClienteForm">
                     <div class="row g-3">
                         <div class="col-md-3">
-                            <label class="form-label fact-form-label">Nombre/Razón social</label>
-                            <input type="text" class="form-control fact-form-control" id="ncNombre" name="ncNombre">
+                            <label class="form-label fact-form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control fact-form-control" id="ncCodigo" name="ncCodigo"
+                                   placeholder="CLI001" maxlength="12" style="text-transform:uppercase">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fact-form-label">Apellidos</label>
                             <input type="text" class="form-control fact-form-control" id="ncApellidos" name="ncApellidos">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fact-form-label">Organización</label>
-                            <input type="text" class="form-control fact-form-control" id="ncOrganizacion" name="ncOrganizacion">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fact-form-label">Archivar como...</label>
-                            <input type="text" class="form-control fact-form-control" id="ncArchivar" name="ncArchivar">
+                        <div class="col-md-6">
+                            <label class="form-label fact-form-label">Archivar como <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control fact-form-control" id="ncArchivar" name="ncArchivar"
+                                   placeholder="Nombre o razón social">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label fact-form-label">NIF</label>
+                            <label class="form-label fact-form-label">NIF <span class="text-danger">*</span></label>
                             <input type="text" class="form-control fact-form-control" id="ncNif" name="ncNif" placeholder="12345678A">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Dirección</label>
-                            <input type="text" class="form-control fact-form-control" id="ncDireccion" name="ncDireccion">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Población</label>
-                            <input type="text" class="form-control fact-form-control" id="ncPoblacion" name="ncPoblacion">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fact-form-label">Forma de pago</label>
                             <select class="form-select fact-form-select select-forma-pago" id="selectFormaPagoNuevo" name="ncFormaPago"></select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-2">
                             <label class="form-label fact-form-label">Tarifa</label>
                             <select class="form-select fact-form-select select-tarifa" id="selectTarifaNuevo" name="ncTarifa"></select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-2">
                             <label class="form-label fact-form-label">RE %</label>
                             <input type="number" class="form-control fact-form-control" id="ncRE" name="ncRE"
                                    min="0" max="100" step="0.01" value="0">

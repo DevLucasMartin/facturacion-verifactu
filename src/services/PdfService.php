@@ -116,14 +116,19 @@ class PdfService
             ];
         }
 
+        $nombreCompleto = trim($cliente['Archivar_Como'] ?? '');
+        if ($nombreCompleto === '') {
+            $nombreCompleto = $cliente['NIF'] ?? '';
+        }
+
         $clienteData = [
-            'CLIENTE_NOMBRE'       => $cliente['Nombre']       ?? '',
-            'CLIENTE_ORGANIZACION' => $cliente['Organizacion'] ?? '',
-            'CLIENTE_NIF'          => $cliente['NIF']          ?? '',
-            'CLIENTE_DIRECCION'    => $cliente['Direccion']    ?? '',
-            'CLIENTE_CP'           => $cliente['CP']           ?? '',
-            'CLIENTE_LOCALIDAD'    => $cliente['Poblacion']    ?? '',
-            'CLIENTE_PROVINCIA'    => $cliente['Provincia']    ?? '',
+            'CLIENTE_NOMBRE'       => $nombreCompleto,
+            'CLIENTE_ORGANIZACION' => '',
+            'CLIENTE_NIF'          => $cliente['NIF']           ?? '',
+            'CLIENTE_DIRECCION'    => $cliente['Direccion']     ?? '',
+            'CLIENTE_CP'           => $cliente['CP']            ?? '',
+            'CLIENTE_LOCALIDAD'    => $cliente['Poblacion']     ?? '',
+            'CLIENTE_PROVINCIA'    => $cliente['Provincia']     ?? '',
         ];
 
         $importeRE = array_sum(array_column($lineas, 'RE'));

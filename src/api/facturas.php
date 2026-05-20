@@ -110,6 +110,10 @@ try {
                     exit;
                 }
                 $estado = ($f['Cerrada'] ?? 'N') === 'S' ? 'EMITIDA' : 'BORRADOR';
+                $rectificativa = $db->fetch(
+                    "SELECT `Codigo` FROM `Facturas_Clientes` WHERE `Factura_Rectificada_Id` = ? AND `Tipo_Documento` = 'RECTIFICATIVA' LIMIT 1",
+                    [$qs_codigo]
+                );
                 echo json_encode(['success' => true, 'data' => [
                     'codigo'           => $f['Codigo']          ?? '',
                     'fecha'            => $f['Fecha']           ?? null,
@@ -123,9 +127,11 @@ try {
                     'observaciones'    => $f['Observaciones']   ?? '',
                     'total'            => (float)($f['Total']            ?? 0),
                     'importe_cobrado'  => (float)($f['Importe_Cobrado']  ?? 0),
-                    'dto_especial'     => (float)($f['Descuento_Especial']  ?? 0),
-                    'dto_comercial'    => (float)($f['Descuento_Comercial'] ?? 0),
-                    'dto_pp'           => (float)($f['Descuento_PP']        ?? 0),
+                    'dto_especial'          => (float)($f['Descuento_Especial']  ?? 0),
+                    'dto_comercial'         => (float)($f['Descuento_Comercial'] ?? 0),
+                    'dto_pp'                => (float)($f['Descuento_PP']        ?? 0),
+                    'factura_rectificada_id'  => $f['Factura_Rectificada_Id'] ?? null,
+                    'rectificada_por'         => $rectificativa['Codigo'] ?? null,
                 ]], JSON_UNESCAPED_UNICODE);
                 exit;
 

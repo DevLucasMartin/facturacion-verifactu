@@ -230,7 +230,7 @@
             lineas = lResp.data.map(l => ({
                 idArticulo:   l.referencia        || '',
                 descripcion:  l.descripcion       || '',
-                cantidad:     l.cantidad          || 0,
+                cantidad:     -(l.cantidad          || 0),
                 precio:       l.precio_unitario   || 0,
                 descuento:    l.descuento         || 0,
                 tipoIVA:      l.tipo_iva          || '',
@@ -403,24 +403,24 @@
     };
 
     async function guardarNuevoCliente() {
-        const nombre = document.getElementById('ncNombre')?.value?.trim();
-        const nif    = document.getElementById('ncNif')?.value?.trim();
-        const msg    = document.getElementById('nuevoClienteMsg');
+        const codigo   = document.getElementById('ncCodigo')?.value?.trim().toUpperCase();
+        const archivar = document.getElementById('ncArchivar')?.value?.trim();
+        const nif      = document.getElementById('ncNif')?.value?.trim();
+        const msg      = document.getElementById('nuevoClienteMsg');
 
-        if (!nombre) { notify('El nombre es obligatorio', 'warning'); return; }
-        if (!nif)    { notify('El NIF es obligatorio',    'warning'); return; }
+        if (!codigo)   { notify('El código de cliente es obligatorio', 'warning'); return; }
+        if (!/^[A-Z0-9]{1,12}$/.test(codigo)) { notify('El código solo puede contener letras y números (máx. 12 caracteres)', 'warning'); return; }
+        if (!archivar) { notify('El campo "Archivar como" es obligatorio', 'warning'); return; }
+        if (!nif)      { notify('El NIF es obligatorio', 'warning'); return; }
 
         const payload = {
-            Nombre:      nombre,
-            Apellidos:   document.getElementById('ncApellidos')?.value?.trim()   || '',
-            Organizacion:document.getElementById('ncOrganizacion')?.value?.trim() || '',
-            Archivar_Como:document.getElementById('ncArchivar')?.value?.trim()   || '',
-            NIF:         nif,
-            Direccion:   document.getElementById('ncDireccion')?.value?.trim()   || '',
-            Poblacion:   document.getElementById('ncPoblacion')?.value?.trim()   || '',
-            Id_Forma_Pago: document.getElementById('selectFormaPagoNuevo')?.value || '',
-            Tarifa:      parseInt(document.getElementById('selectTarifaNuevo')?.value) || 1,
-            RE_Porcentaje: parseFloat(document.getElementById('ncRE')?.value)    || 0,
+            Codigo:       codigo,
+            Apellidos:    document.getElementById('ncApellidos')?.value?.trim() || '',
+            Archivar_Como:archivar,
+            NIF:          nif,
+            Id_Forma_Pago:document.getElementById('selectFormaPagoNuevo')?.value || '',
+            Tarifa:       parseInt(document.getElementById('selectTarifaNuevo')?.value) || 1,
+            RE_Porcentaje:parseFloat(document.getElementById('ncRE')?.value)     || 0,
         };
 
         try {
@@ -526,7 +526,7 @@
         if (!lineas.length) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="10" class="text-center text-muted py-4">
+                    <td colspan="11" class="text-center text-muted py-4">
                         <i class="bi bi-cart-plus fs-1 d-block mb-2"></i>
                         Añada líneas a la factura
                     </td>
@@ -558,21 +558,21 @@
                         placeholder="0" min="1" step="1"
                         oninput="actualizarLinea(${index}, 'cantidad', this.value)">
                 </td>
-                <td>
+                <td style="min-width:110px;">
                     <input type="number" class="form-control form-control-sm fact-form-control"
                         name="lineas[${index}][Precio]"
                         value="${Number(linea.precio).toFixed(2) == 0 ? '' : Number(linea.precio).toFixed(2)}"
                         placeholder="0.00" step="0.01"
                         oninput="actualizarLinea(${index}, 'precio', this.value)">
                 </td>
-                <td>
+                <td style="min-width:85px;">
                     <input type="number" class="form-control form-control-sm fact-form-control"
                         name="lineas[${index}][Descuento]"
                         value="${Number(linea.descuento) === 0 ? '' : Number(linea.descuento)}"
                         placeholder="0.00" min="0" max="100" step="0.25"
                         oninput="actualizarLinea(${index}, 'descuento', this.value)">
                 </td>
-                <td class="${esExentoONoSujeto(linea.calificacion) ? 'iva-exento-cell' : ''}">
+                <td style="min-width:140px;" class="${esExentoONoSujeto(linea.calificacion) ? 'iva-exento-cell' : ''}">
                     <select class="form-control form-control-sm fact-form-control"
                         id="iva-select-${index}" name="lineas[${index}][Id_Tipo_IVA]"
                         onchange="actualizarLinea(${index}, 'tipoIVA', this.value)"
@@ -614,11 +614,12 @@
                 </td>
                 <td class="text-end"><strong id="base-linea-${index}">${formatCurrency(base)}</strong></td>
                 <td class="text-end"><strong id="iva-linea-${index}">${sinIVA ? textoIvaExento(linea.calificacion) : formatCurrency(IVACalc)}</strong></td>
+                <td class="text-end"><strong id="total-linea-${index}">${formatCurrency(base + IVACalc)}</strong></td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-warning me-1"
+                    ${!RECTIFICA_CODE ? `<button type="button" class="btn btn-sm btn-outline-warning me-1"
                         onclick="editarLinea(${index})" title="Cambiar artículo">
                         <i class="bi bi-arrow-repeat"></i>
-                    </button>
+                    </button>` : ''}
                     <button type="button" class="btn btn-sm btn-outline-danger"
                         onclick="eliminarLinea(${index})" title="Eliminar">
                         <i class="bi bi-trash"></i>
@@ -663,10 +664,12 @@
         const sinIVA          = esExentoONoSujeto(linea.calificacion);
         const IVA_calculado   = (linea.calificacion === 'S2' || sinIVA) ? 0 : base_imponible * (ivaPct / 100);
 
-        const baseEl = document.getElementById(`base-linea-${index}`);
-        const ivaEl  = document.getElementById(`iva-linea-${index}`);
-        if (baseEl) baseEl.textContent = formatCurrency(base_imponible);
-        if (ivaEl)  ivaEl.textContent  = sinIVA ? textoIvaExento(linea.calificacion) : formatCurrency(IVA_calculado);
+        const baseEl  = document.getElementById(`base-linea-${index}`);
+        const ivaEl   = document.getElementById(`iva-linea-${index}`);
+        const totalEl = document.getElementById(`total-linea-${index}`);
+        if (baseEl)  baseEl.textContent  = formatCurrency(base_imponible);
+        if (ivaEl)   ivaEl.textContent   = sinIVA ? textoIvaExento(linea.calificacion) : formatCurrency(IVA_calculado);
+        if (totalEl) totalEl.textContent = formatCurrency(base_imponible + IVA_calculado);
 
         recalcular();
     };
@@ -798,8 +801,11 @@
             payload.Tipo_Rectificativa_Verifactu = document.getElementById('selectTipoRectificativa')?.value;
             payload.Subtipo_Rectificativa        = document.getElementById('selectSubtipoRectificativa')?.value;
 
-            if (!payload.Id_Factura_Origen || !payload.Motivo_Rectificacion) {
-                notify('Selecciona factura origen y motivo de rectificación', 'warning'); return null;
+            if (!payload.Motivo_Rectificacion) {
+                notify('Debes seleccionar el motivo de rectificación antes de guardar la factura.', 'warning'); return null;
+            }
+            if (!payload.Id_Factura_Origen) {
+                notify('No se ha podido determinar la factura origen. Vuelve atrás y selecciona la factura a rectificar.', 'warning'); return null;
             }
         }
 

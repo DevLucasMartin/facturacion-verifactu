@@ -1131,7 +1131,7 @@ class FacturaController
                 'Clave_Regimen'     => (string)($l['Clave_Regimen'] ?? '01'),
             ];
 
-            if ($row['Linea'] <= 0 || $row['Id_Articulo'] === '' || $row['Cantidad'] <= 0) {
+            if ($row['Linea'] <= 0 || $row['Id_Articulo'] === '' || $row['Cantidad'] == 0) {
                 continue;
             }
 

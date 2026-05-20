@@ -100,10 +100,6 @@ ob_start();
         <i class="bi bi-file-earmark-check me-1"></i>Facturar
         (<span id="numSeleccionados">0</span>)
     </button>
-    <div id="exportIndicator" style="display:none;" class="align-self-center">
-        <span class="spinner-border spinner-border-sm text-success me-1"></span>
-        <small class="text-muted">Generando Excel...</small>
-    </div>
 </div>
 
 <!-- LISTADO -->

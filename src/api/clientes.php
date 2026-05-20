@@ -117,7 +117,7 @@ try {
         $dtoEspecial  = (float)($body['Descuento_Especial']    ?? 0);
         $dtoComercial = (float)($body['Descuento_Comercial']   ?? 0);
         $dtoPP        = (float)($body['Descuento_Pronto_Pago'] ?? 0);
-        $activo       = in_array($body['Activo'] ?? 'S', ['S', 'N']) ? $body['Activo'] : 'S';
+        $activo       = in_array($body['Activo'] ?? 'S', ['S', 'N']) ? ($body['Activo'] ?? 'S') : 'S';
 
         if ($codigo === '') {
             http_response_code(422);
@@ -136,24 +136,28 @@ try {
             Response::error('Código de cliente ya existente');
         }
 
-        $data = ['Codigo' => $codigo];
-        if ($nombre       !== '') $data['Nombre']              = $nombre;
-        if ($apellidos    !== '') $data['Apellidos']           = $apellidos;
-        if ($organizacion !== '') $data['Organizacion']        = $organizacion;
-        if ($archivar     !== '') $data['Archivar_Como']       = $archivar;
-        if ($nif          !== '') $data['NIF']                 = $nif;
-        if ($direccion    !== '') $data['Direccion']           = $direccion;
-        if ($poblacion    !== '') $data['Poblacion']           = $poblacion;
-        if ($provincia    !== '') $data['Provincia']           = $provincia;
-        if ($idPais       !== '') $data['Id_Pais']             = $idPais;
-        if ($tipoCliente  !== '') $data['Id_Tipo_Cliente']     = $tipoCliente;
-        if ($formaPago    !== '') $data['Id_Forma_Pago']       = $formaPago;
-        $data['Tarifa']                = $tarifa;
-        $data['RE_Porcentaje']         = $aplicaRE ? 5.20 : 0.00;
-        $data['Descuento_Especial']    = $dtoEspecial;
-        $data['Descuento_Comercial']   = $dtoComercial;
-        $data['Descuento_Pronto_Pago'] = $dtoPP;
-        $data['Activo']                = $activo;
+        // Archivar_Como es NOT NULL: si no se envía, se auto-calcula del nombre
+        if ($archivar === '') {
+            $archivar = $organizacion !== '' ? $organizacion
+                      : ($nombre . ($apellidos !== '' ? ', ' . $apellidos : ''));
+        }
+
+        $rePorc = (float)($body['RE_Porcentaje'] ?? ($aplicaRE ? 5.20 : 0.00));
+
+        $data = [
+            'Codigo'       => $codigo,
+            'NIF'          => $nif,
+            'Archivar_Como'=> $archivar,
+            'Tarifa'       => $tarifa,
+            'RE_Porcentaje'=> $rePorc,
+            'Aplica_RE'    => $rePorc > 0 ? 'S' : 'N',
+            'Activo'       => $activo,
+        ];
+        if ($apellidos !== '') $data['Apellidos']    = $apellidos;
+        if ($formaPago !== '') $data['Id_Forma_Pago']= $formaPago;
+        $data['Descuento_Especial']  = $dtoEspecial;
+        $data['Descuento_Comercial'] = $dtoComercial;
+        $data['Descuento_PP']        = $dtoPP;
 
         $nuevoCodigo = $clienteModel->create($data);
         $cliente     = $clienteModel->findWithDetails($nuevoCodigo);

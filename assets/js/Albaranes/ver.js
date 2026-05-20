@@ -115,9 +115,10 @@ function renderAlbaranData(a) {
 
     $('#albaranData').html(html);
 
-    // Ocultar botón Facturar si ya está completamente facturado
+    // Ocultar botones de edición y facturación si ya está facturado
     if (facturado) {
         $('#btnFacturar').hide();
+        $('#btnEditar').hide();
     }
 }
 
