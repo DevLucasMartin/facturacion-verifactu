@@ -847,3 +847,17 @@ VALUES
      NULL,
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0002',
       NULL, NULL);
+
+-- =============================================================
+-- USUARIOS
+-- =============================================================
+DROP TABLE IF EXISTS `Usuarios`;
+
+CREATE TABLE `Usuarios` (
+    `Usuario`    VARCHAR(50)  NOT NULL,
+    `Contrasena` VARCHAR(255) NOT NULL,
+    PRIMARY KEY (`Usuario`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `Usuarios` (`Usuario`, `Contrasena`)
+VALUES ('admin', SHA2('admin', 256));

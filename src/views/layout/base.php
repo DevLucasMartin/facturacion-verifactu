@@ -1,3 +1,12 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (!isset($_SESSION['usuario'])) {
+    header('Location: /SistemaGestionFacturas/src/views/login.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -179,7 +188,7 @@
                 <i class="bi bi-shield-check"></i> Registros
             </a>
         </li>
-        <div class="nav-section">Gestión</div>
+            <div class="nav-section">Gestión</div>
         <li class="nav-item">
             <a class="nav-link <?= ($fact_active_menu ?? '') === 'clientes' ? 'active' : '' ?>"
                href="/SistemaGestionFacturas/src/views/Gestion/clientes.php">
@@ -212,8 +221,20 @@
                 <small><?= htmlspecialchars($fact_page_subtitle, ENT_QUOTES, 'UTF-8') ?></small>
             <?php endif; ?>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-3">
             <span class="text-muted small"><?= date('d/m/Y') ?></span>
+            <div class="d-flex align-items-center gap-2 ps-3" style="border-left:1px solid #e0e0e0;">
+                <i class="bi bi-person-circle" style="font-size:1.1rem; color:#97b06b;"></i>
+                <span style="font-size:.85rem; font-weight:600; color:#333;">
+                    Bienvenido, <?= htmlspecialchars(ucfirst($_SESSION['usuario']), ENT_QUOTES, 'UTF-8') ?>
+                </span>
+                <a href="/SistemaGestionFacturas/src/views/logout.php"
+                   class="btn btn-sm btn-outline-secondary ms-1"
+                   style="font-size:.78rem; padding:.2rem .6rem;"
+                   title="Cerrar sesión">
+                    <i class="bi bi-box-arrow-right"></i> Salir
+                </a>
+            </div>
         </div>
     </div>
 
