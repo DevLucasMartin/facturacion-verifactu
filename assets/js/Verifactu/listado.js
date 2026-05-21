@@ -245,7 +245,7 @@ function enviar(codigo) {
 
     const partes = codigo.split('/');
     App.showLoading();
-    App.api(FACT_API_BASE + '/verifactu.php/verifactu/enviar', {
+    App.api(FACT_API_BASE + '/verifactu.php/enviar', {
         method:      'POST',
         data:        JSON.stringify({ tipo_origen: partes[0], id_documento: partes[1] }),
         contentType: 'application/json'

@@ -8,6 +8,7 @@ require_once __DIR__ . '/../models/VerifactuRegistro.php';
 require_once __DIR__ . '/../models/Factura.php';
 require_once __DIR__ . '/../config/empresa.php';
 require_once __DIR__ . '/../core/Validator.php';
+require_once __DIR__ . '/../core/NifInvalidoException.php';
 
 class VerifactuService
 {
@@ -40,7 +41,7 @@ class VerifactuService
     /**
      * Firmar un documento (factura o ticket).
      */
-    public function firmar(string $tipoOrigen, string $idDocumento, ?bool $autoEnvio = null, ?string $nifExportacion = null, bool $nifExportacionVacio = false): array
+    public function firmar(string $tipoOrigen, string $idDocumento, ?bool $autoEnvio = null, ?string $nifExportacion = null, bool $nifExportacionVacio = false, ?string $paisExportacion = null): array
     {
         $doc = $this->obtenerDatosDocumento($tipoOrigen, $idDocumento);
         if (!$doc) {
@@ -93,7 +94,7 @@ class VerifactuService
         ];
 
         if ($autoEnvio) {
-            $resultado['envio'] = $this->enviarAHacienda($tipoOrigen, $idDocumento, $nifExportacion, $nifExportacionVacio);
+            $resultado['envio'] = $this->enviarAHacienda($tipoOrigen, $idDocumento, $nifExportacion, $nifExportacionVacio, $paisExportacion);
         }
 
         return $resultado;
@@ -102,7 +103,7 @@ class VerifactuService
     /**
      * Enviar un documento ya firmado a la AEAT.
      */
-    public function enviarAHacienda(string $tipoOrigen, string $idDocumento, ?string $nifExportacion = null, bool $nifExportacionVacio = false): array
+    public function enviarAHacienda(string $tipoOrigen, string $idDocumento, ?string $nifExportacion = null, bool $nifExportacionVacio = false, ?string $paisExportacion = null): array
     {
         $registro = $this->registroModel->findByDocumento($tipoOrigen, $idDocumento);
         if (!$registro) {
@@ -122,7 +123,7 @@ class VerifactuService
         $this->validarNifCliente($doc);
 
         try {
-            $xml = $this->generarXmlConWrapper($tipoOrigen, $idDocumento, $doc, $registro, $nifExportacion, $nifExportacionVacio);
+            $xml = $this->generarXmlConWrapper($tipoOrigen, $idDocumento, $doc, $registro, $nifExportacion, $nifExportacionVacio, $paisExportacion);
             $this->guardarXmlEnvio($tipoOrigen, $idDocumento, $xml);
             $respuesta = $this->enviarXML($xml, $doc);
 
@@ -484,7 +485,7 @@ class VerifactuService
         return new \DateTimeImmutable('now', new \DateTimeZone($tz));
     }
 
-    private function generarXmlConWrapper(string $tipoOrigen, string $idDocumento, array $doc, array $registro, ?string $nifExportacion = null, bool $nifExportacionVacio = false): string
+    private function generarXmlConWrapper(string $tipoOrigen, string $idDocumento, array $doc, array $registro, ?string $nifExportacion = null, bool $nifExportacionVacio = false, ?string $paisExportacion = null): string
     {
         require_once __DIR__ . '/../libs/VerifactuWrapper.php';
         require_once __DIR__ . '/../models/Cliente.php';
@@ -515,6 +516,40 @@ class VerifactuService
         $clienteModel = new Cliente();
         $cliente = !empty($idClienteFact) ? $clienteModel->find($idClienteFact) : null;
 
+        // Construir líneas sintéticas pre-agregadas por grupo IVA usando los MISMOS
+        // números que calcularGruposIVA() / generarCadenaFirma(). Si pasáramos líneas
+        // individuales al wrapper, el redondeo por línea puede diferir del redondeo
+        // sobre la suma, provocando que el portal AEAT devuelva "factura no encontrada".
+        $lineasWrapper = array_map(function ($grupo) {
+            $base       = round((float)$grupo['base'], 2);
+            $tipoIvaPct = (float)$grupo['tipo_iva'];
+            $tipoRePct  = (float)($grupo['tipo_re'] ?? 0);
+            $cuotaIva   = ($grupo['calificacion'] === 'S1')
+                ? round($base * $tipoIvaPct / 100, 2) : 0.0;
+            $cuotaRE    = ($grupo['calificacion'] === 'S1' && $tipoRePct > 0)
+                ? round($base * $tipoRePct / 100, 2) : 0.0;
+            $territorio = match ($grupo['impuesto']) {
+                '03'    => 'CANARIAS',
+                '02'    => 'CEUTA_MELILLA',
+                default => '',
+            };
+            return [
+                'descripcion'      => 'Desglose',
+                'cantidad'         => 1,
+                'precio'           => $base,
+                'iva_porcentaje'   => $tipoIvaPct,
+                'iva_cuota'        => $cuotaIva,
+                'base_imponible'   => $base,
+                're_cuota'         => $cuotaRE,
+                're_porcentaje'    => $tipoRePct,
+                'codigo_verifactu' => '',
+                'tipo_territorio'  => $territorio,
+                'id_tipo_iva'      => '',
+                'clave_regimen'    => (string)($grupo['clave_regimen'] ?? '01'),
+                'Calificacion'     => (string)$grupo['calificacion'],
+            ];
+        }, $this->calcularGruposIVA($doc));
+
         $datos = [
             'codigo'         => $codigoDb,
             'fecha'          => $fechaFactura,
@@ -523,51 +558,7 @@ class VerifactuService
             'base_imponible' => (float)($doc['Base_Imponible'] ?? 0),
             'importe_iva'    => (float)($doc['Importe_IVA']    ?? 0),
             'total'          => (float)($doc['Total']          ?? 0),
-            'lineas'         => array_map(function ($linea) {
-                $descripcion = (string)(
-                    $linea['Descripcion']  ??
-                    $linea['Concepto']     ??
-                    $linea['Articulo']     ??
-                    $linea['descripcion']  ??
-                    'Línea'
-                );
-                $cantidad  = (float)($linea['Cantidad'] ?? 1);
-                $precio    = (float)($linea['Precio']   ?? $linea['Precio_Unitario'] ?? $linea['precio'] ?? 0);
-                $baseLinea = (float)($linea['Base_Imponible'] ?? $linea['base_imponible'] ?? ($cantidad * $precio));
-
-                $codigoTipoIva = (string)($linea['Id_Tipo_IVA'] ?? '');
-                $datosTipo     = $this->obtenerDatosTipoIva($codigoTipoIva);
-
-                $aplicaRELinea = !empty($linea['Aplica_RE']);
-                $tipoRePct     = (float)($linea['tipo_re_pct'] ?? 0);
-                $cuotaRE       = (float)($linea['RE'] ?? 0);
-
-                if ($aplicaRELinea && $tipoRePct <= 0 && $cuotaRE > 0) {
-                    $tipoRePct = $baseLinea > 0 ? round($cuotaRE / $baseLinea * 100, 2) : 0;
-                }
-                if ($aplicaRELinea && $tipoRePct > 0 && $cuotaRE == 0.0) {
-                    $cuotaRE = round($baseLinea * $tipoRePct / 100, 2);
-                }
-                $claveRegimen = ($aplicaRELinea && $tipoRePct > 0) ? '18' : '01';
-                $storedCR     = trim((string)($linea['Clave_Regimen'] ?? ''));
-                if ($storedCR !== '' && $claveRegimen === '01') $claveRegimen = $storedCR;
-
-                return [
-                    'descripcion'      => $descripcion,
-                    'cantidad'         => $cantidad,
-                    'precio'           => $precio,
-                    'iva_porcentaje'   => (float)($linea['tipo_iva_pct'] ?? $datosTipo['iva']),
-                    'iva_cuota'        => (float)($linea['IVA_Cuota'] ?? $linea['Cuota_IVA'] ?? $linea['iva_cuota'] ?? 0),
-                    'base_imponible'   => $baseLinea,
-                    're_cuota'         => $cuotaRE,
-                    're_porcentaje'    => $tipoRePct,
-                    'codigo_verifactu' => (string)($linea['codigo_verifactu'] ?? ''),
-                    'tipo_territorio'  => (string)($linea['tipo_territorio']  ?? ''),
-                    'id_tipo_iva'      => $codigoTipoIva,
-                    'clave_regimen'    => $claveRegimen,
-                    'Calificacion'     => (string)($linea['Calificacion'] ?? 'S1'),
-                ];
-            }, $lineas),
+            'lineas'         => $lineasWrapper,
         ];
 
         // Factura rectificada
@@ -616,7 +607,10 @@ class VerifactuService
             $datos['cliente'] = [
                 'nif'                   => $nif,
                 'razon_social'          => ($nombre !== '' ? $nombre : 'Cliente'),
-                'id_cliente'            => trim((string)($cliente['Codigo'] ?? '')),
+                'id_cliente'            => trim((string)($cliente['Codigo']          ?? '')),
+                'id_pais'               => (string)($cliente['Id_Pais']              ?? ''),
+                'id_tipo_cliente'       => (string)($cliente['Id_Tipo_Cliente']      ?? ''),
+                'pais_exportacion'      => $paisExportacion,
                 'nif_exportacion'       => $nifExportacion,
                 'nif_exportacion_vacio' => $nifExportacionVacio,
             ];

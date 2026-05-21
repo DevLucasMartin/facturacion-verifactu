@@ -270,7 +270,7 @@
                 return;
             }
 
-            App.api(RECAP_API_BASE + '/verifactu.php/verifactu/enviar', {
+            App.api(RECAP_API_BASE + '/verifactu.php/enviar', {
                 method:      'POST',
                 contentType: 'application/json',
                 data:        JSON.stringify({ tipo_origen: 'FACTURA', id_documento: codigo }),

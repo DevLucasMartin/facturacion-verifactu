@@ -478,7 +478,7 @@ class FacturaController
                     if ($errorNif !== null) {
                         Response::json([
                             'success'    => false,
-                            'message'    => "NIF del cliente inválido: {$errorNif}",
+                            'message'    => "NIF del cliente {$data['Id_Cliente']} ({$nifCliente}) no es válido: {$errorNif}. Edite el cliente para corregirlo antes de facturar.",
                             'nif_error'  => true,
                             'id_cliente' => $data['Id_Cliente'],
                             'nif_actual' => $nifCliente,

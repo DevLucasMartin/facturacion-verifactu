@@ -72,9 +72,14 @@ ob_start();
                     </div>
 
                     <div class="row g-3 mt-2">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label class="form-label fact-form-label">Tarifa</label>
+                            <select id="selectTarifa" class="form-select fact-form-select select-tarifa">
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label fact-form-label">Forma de Pago</label>
-                            <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select">
+                            <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select select-forma-pago">
                             </select>
                         </div>
                         <div class="col-md-8">
@@ -110,11 +115,18 @@ ob_start();
                             <dd class="col-sm-9" id="clienteDireccion"></dd>
                             <dt class="col-sm-3">Forma Pago:</dt>
                             <dd class="col-sm-9" id="clienteFormaPago"></dd>
+                            <dt class="col-sm-3">Tarifa:</dt>
+                            <dd class="col-sm-9"><span id="clienteTarifa"></span></dd>
                             <dt class="col-sm-3">Tipo IVA:</dt>
                             <dd class="col-sm-9" id="clienteTipoIVA"></dd>
                             <dt class="col-sm-3">Aplica RE:</dt>
                             <dd class="col-sm-9" id="clienteAplicaRE"></dd>
                         </dl>
+                        <div class="mt-2">
+                            <button type="button" id="btnBorrarCliente" class="btn btn-sm btn-outline-danger" onclick="borrarCliente()" style="display:none;">
+                                <i class="bi bi-x-circle me-1"></i>Quitar cliente
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -131,8 +143,22 @@ ob_start();
                             <option value="PENINSULAR" selected>Península e Islas Baleares (IVA)</option>
                             <option value="CANARIAS">Islas Canarias (IGIC)</option>
                             <option value="CEUTA_MELILLA">Ceuta y Melilla (IPSI)</option>
+                            <option value="FUERA_ESPANA">Fuera de España (exportación / intracomunitario)</option>
                         </select>
                         <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Al elegir territorio, los impuestos de las líneas se filtran automáticamente.</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 flex-wrap mt-3">
+                        <label id="labelPaisExportacion" class="form-label mb-0 d-none" for="inputPaisExportacion"><strong>País destino:</strong></label>
+                        <select id="inputPaisExportacion" class="form-select form-select-sm d-none" style="width:260px;" onchange="cambiarPaisExportacion(this.value)">
+                        </select>
+                        <label id="labelRE" class="form-label mb-0" for="selectRE"><strong>Rec. Equivalencia:</strong></label>
+                        <select id="selectRE" class="form-select form-select-sm" style="width:auto;">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                        <label id="labelClaveRegimen" class="form-label mb-0 d-none" for="selectClaveRegimen"><strong>Clave Régimen:</strong></label>
+                        <select id="selectClaveRegimen" class="form-select form-select-sm d-none" style="width:auto;" onchange="cambiarClaveRegimenGlobal(this.value)">
+                        </select>
                     </div>
                 </div>
             </div>
@@ -156,6 +182,8 @@ ob_start();
                                     <th style="width:100px;">Precio (€)</th>
                                     <th style="width:95px;">Dto.%</th>
                                     <th style="width:80px;">IVA</th>
+                                    <th id="thRE" class="d-none" style="width:80px;">RE</th>
+                                    <th id="thCalif" style="width:160px;">Calificación</th>
                                     <th style="width:90px;">Base imp.</th>
                                     <th style="width:90px;">IVA calc.</th>
                                     <th style="width:60px;"></th>
@@ -172,6 +200,44 @@ ob_start();
                         </table>
                     </div>
                 </div>
+            </div>
+
+            <!-- NIF exportación (visible solo para S2/N2/E2/E5) -->
+            <div id="nifExportacionSection" class="card mb-4 fact-card d-none">
+                <div class="card-header fact-card-header">
+                    <span><i class="bi bi-globe me-2"></i>Identificador fiscal del destinatario</span>
+                </div>
+                <div class="card-body fact-card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label fact-form-label">NIF / VAT del destinatario</label>
+                            <input type="text" id="inputNifExportacion" class="form-control fact-form-control text-uppercase"
+                                placeholder="Ej: ESA12345674 o FR12345678901"
+                                oninput="cambiarNifExportacion(this.value)">
+                            <div id="vatFormatoError" class="d-none mt-1">
+                                <small class="text-danger" id="vatFormatoErrorTexto"></small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="chkNifVacio"
+                                    onchange="cambiarNifExportacionVacio(this.checked)">
+                                <label class="form-check-label" for="chkNifVacio">
+                                    Enviar sin identificador fiscal (operación sin NIF)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="viesDisplay" class="alert alert-info mt-2 d-none py-2">
+                        <small><strong>Identificador VIES que se enviará a AEAT:</strong> <span id="viesValue" class="fw-bold"></span></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aviso cliente N2/E5 -->
+            <div id="avisoClienteN2" class="alert alert-warning mt-2" style="display:none;">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                <span id="avisoClienteN2Texto"></span>
             </div>
 
             <!-- Panel de errores -->
@@ -224,8 +290,11 @@ ob_start();
                     <button type="submit" class="btn btn-primary fact-btn w-100 mb-2" id="btnGuardar">
                         <i class="bi bi-floppy me-1"></i>Guardar cambios
                     </button>
+                    <button type="button" class="btn btn-success fact-btn w-100 mb-2" onclick="guardarYFacturar()">
+                        <i class="bi bi-receipt me-1"></i>Guardar y Facturar
+                    </button>
                     <a href="/SistemaGestionFacturas/src/views/albaranes/ver.php?codigo=<?= htmlspecialchars($codigo, ENT_QUOTES, 'UTF-8') ?>"
-                       class="btn btn-outline-secondary w-100">
+                       class="btn btn-outline-secondary w-100 fact-btn">
                         <i class="bi bi-x-lg me-1"></i>Cancelar
                     </a>
                 </div>
@@ -233,6 +302,24 @@ ob_start();
         </div>
     </div>
 </form>
+
+<!-- Modal error N2 -->
+<div class="modal fade" id="errorN2Modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Validación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="errorN2Texto"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Modal Cliente -->
 <div class="modal fade" id="clienteModal" tabindex="-1" aria-labelledby="clienteModalLabel">
@@ -296,12 +383,117 @@ ob_start();
     </div>
 </div>
 
+<!-- Modal Tipo de Factura -->
+<div class="modal fade" id="tipoFacturaModal" tabindex="-1" aria-labelledby="tipoFacturaModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tipoFacturaModalLabel">Tipo de factura</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="modalTipoDoc" id="modalTipoDocFactura" value="FACTURA" checked>
+                        <label class="form-check-label" for="modalTipoDocFactura">Factura</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="modalTipoDoc" id="modalTipoDocSimplificada" value="SIMPLIFICADA">
+                        <label class="form-check-label" for="modalTipoDocSimplificada">Simplificada</label>
+                    </div>
+                </div>
+                <div id="modalDestinatarioSimplificada" style="display:none;">
+                    <label class="form-label fw-semibold">Tipo de destinatario</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="modalDestinatarioTipo" id="modalDestParticular" value="particular" checked>
+                        <label class="form-check-label" for="modalDestParticular">Particular (límite 400 €)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="modalDestinatarioTipo" id="modalDestEmpresa" value="empresa">
+                        <label class="form-check-label" for="modalDestEmpresa">Empresa o profesional (límite 3.000 €)</label>
+                    </div>
+                    <div id="modalAvisoSimplificada" class="alert alert-warning mt-2 mb-0" style="display:none;">
+                        <span id="modalAvisoSimplificadaTexto"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnConfirmarTipoFactura">
+                    <i class="bi bi-receipt me-1"></i>Confirmar y facturar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Cliente -->
+<div class="modal fade" id="nuevoClienteModal" tabindex="-1" aria-modal="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuevo Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="nuevoClienteMsg" class="alert alert-info d-none mb-3"></div>
+                <form id="nuevoClienteForm">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fact-form-label">Código <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control fact-form-control" id="ncCodigo" name="ncCodigo"
+                                   placeholder="CLI001" maxlength="12"
+                                   oninput="validarCodigoCliente(this)">
+                            <div class="invalid-feedback" id="ncCodigoError"></div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fact-form-label">Apellidos</label>
+                            <input type="text" class="form-control fact-form-control" id="ncApellidos" name="ncApellidos">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fact-form-label">Archivar como <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control fact-form-control" id="ncArchivar" name="ncArchivar"
+                                   placeholder="Nombre o razón social">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fact-form-label">NIF <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control fact-form-control" id="ncNif" name="ncNif"
+                                   placeholder="12345678A" oninput="validarNIF(this)">
+                            <div class="invalid-feedback" id="ncNifError"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fact-form-label">Forma de pago</label>
+                            <select class="form-select fact-form-select select-forma-pago" id="selectFormaPagoNuevo" name="ncFormaPago"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fact-form-label">Tarifa</label>
+                            <select class="form-select fact-form-select select-tarifa" id="selectTarifaNuevo" name="ncTarifa"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fact-form-label">RE %</label>
+                            <input type="number" class="form-control fact-form-control" id="ncRE" name="ncRE"
+                                   min="0" max="100" step="0.01" value="0">
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-outline-secondary fact-btn" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary fact-btn">
+                            <i class="bi bi-check-lg me-1"></i>Guardar cliente
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php
 $content = ob_get_clean();
 
 ob_start();
 ?>
-<script src="/SistemaGestionFacturas/assets/js/Albaranes/editar.js" defer></script>
+<script src="/SistemaGestionFacturas/assets/js/Albaranes/nuevo.js" defer></script>
 <?php
 $extra_js = ob_get_clean();
 

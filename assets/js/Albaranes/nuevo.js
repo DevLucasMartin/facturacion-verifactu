@@ -43,6 +43,7 @@
                 cargarTiposCliente(),
             ]);
             inicializarEventos();
+            inicializarPaisExportacionSelect2();
 
             const codigo = document.querySelector('input[name="codigo"]')?.value?.trim();
             if (codigo) await cargarAlbaran(codigo);
@@ -193,26 +194,56 @@
         if (!aviso || !textoEl) return;
         if (!clienteActual) { aviso.style.display = 'none'; return; }
 
+        const hayE5 = lineas.some(l => l.calificacion === 'E5');
         let mensaje = null;
-        if (lineas.some(l => l.calificacion === 'E5') && !clienteEsUE() && !clienteEsEspanol()) {
-            mensaje = 'Si la Operación Exenta elegida es E5, debe escoger un cliente de la UE.';
+
+        if (hayE5) {
+            if (territorioActual === 'FUERA_ESPANA') {
+                if (paisExportacion.length === 2 && !PAISES_UE.has(paisExportacion)) {
+                    mensaje = 'Si la Operación Exenta elegida es E5, el código de país debe ser de la UE.';
+                }
+            } else if (!clienteEsUE() && !clienteEsEspanol()) {
+                mensaje = 'Si la Operación Exenta elegida es E5, debe escoger un cliente de la UE.';
+            }
         }
+
         if (mensaje) { textoEl.textContent = mensaje; aviso.style.display = ''; }
         else          { aviso.style.display = 'none'; }
     }
 
     function validarClienteN2() {
         if (!clienteActual) return true;
-        if (lineas.some(l => l.calificacion === 'E5') && !clienteEsUE() && !clienteEsEspanol()) return false;
+        const hayE5 = lineas.some(l => l.calificacion === 'E5');
+        if (hayE5) {
+            if (territorioActual === 'FUERA_ESPANA') {
+                if (!PAISES_UE.has(paisExportacion)) return false;
+            } else {
+                if (!clienteEsUE() && !clienteEsEspanol()) return false;
+            }
+        }
+        if (territorioActual === 'FUERA_ESPANA') {
+            if (paisExportacion.length !== 2) return false;
+            if (paisExportacion === 'ES') return false;
+        }
         return true;
     }
 
     function mostrarPopupN2() {
         const textoEl = document.getElementById('errorN2Texto');
         if (textoEl) {
-            textoEl.textContent = lineas.some(l => l.calificacion === 'E5') && !clienteEsUE() && !clienteEsEspanol()
-                ? 'No puede crear una factura con Operación Exenta E5 sin un cliente de la UE.'
-                : 'El cliente seleccionado no es válido para la calificación de operación elegida.';
+            const hayE5 = lineas.some(l => l.calificacion === 'E5');
+            const inputPaisVal = (document.getElementById('inputPaisExportacion')?.value || '').toUpperCase().trim();
+            if (territorioActual === 'FUERA_ESPANA' && inputPaisVal === 'ES') {
+                textoEl.textContent = 'El código de país debe ser distinto de España.';
+            } else if (territorioActual === 'FUERA_ESPANA' && hayE5 && paisExportacion.length === 2 && !PAISES_UE.has(paisExportacion)) {
+                textoEl.textContent = 'No puede crear una factura con Operación Exenta E5 con un país no perteneciente a la UE.';
+            } else if (territorioActual === 'FUERA_ESPANA' && paisExportacion.length !== 2) {
+                textoEl.textContent = 'El código de país debe constar de dos letras.';
+            } else if (hayE5 && !clienteEsUE() && !clienteEsEspanol()) {
+                textoEl.textContent = 'No puede crear una factura con Operación Exenta E5 sin un cliente de la UE.';
+            } else {
+                textoEl.textContent = 'El cliente seleccionado no es válido para la calificación de operación elegida.';
+            }
         }
         const modalEl = document.getElementById('errorN2Modal');
         if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
@@ -238,10 +269,11 @@
     }
 
     const CLAVE_REGIMEN_E456       = ['E4', 'E5', 'E6'];
-    const CALIFICACION_EXPORTACION = ['S2', 'E2', 'E5'];
+    const CALIFICACION_EXPORTACION = ['S2', 'E2', 'E5', 'N2'];
 
     let nifExportacion      = '';
     let nifExportacionVacio = false;
+    let paisExportacion     = '';
 
     const CLAVE_REGIMEN_LABELS = {
         '01': '01 – Régimen general',
@@ -333,28 +365,166 @@
     };
 
     function actualizarVistaNifExportacion() {
-        const hayExportacion = lineas.some(l => CALIFICACION_EXPORTACION.includes(l.calificacion));
+        const hayExportacion = lineas.some(l => CALIFICACION_EXPORTACION.includes(l.calificacion)) ||
+                               (territorioActual === 'FUERA_ESPANA' && !!clienteActual);
         const section = document.getElementById('nifExportacionSection');
         if (!section) return;
         section.classList.toggle('d-none', !hayExportacion);
+        if (!hayExportacion) {
+            nifExportacion = '';
+            nifExportacionVacio = false;
+            const inputNifReset = document.getElementById('inputNifExportacion');
+            if (inputNifReset) { inputNifReset.value = ''; inputNifReset.disabled = false; inputNifReset.classList.remove('is-valid', 'is-invalid'); }
+            const chkReset = document.getElementById('chkNifVacio');
+            if (chkReset) chkReset.checked = false;
+        }
         if (hayExportacion) {
             const inputEl = document.getElementById('inputNifExportacion');
             if (inputEl && inputEl.value === '') {
-                const defaultVal = clienteActual?.NIF || document.getElementById('inputIdCliente')?.value || '';
-                inputEl.value  = defaultVal.toUpperCase();
-                nifExportacion = inputEl.value;
+                const defaultVal = (clienteActual?.NIF || document.getElementById('inputIdCliente')?.value || '').toUpperCase();
+                inputEl.value  = defaultVal;
+                nifExportacion = defaultVal;
             }
+            const hayE5 = lineas.some(l => l.calificacion === 'E5');
+            const chkVacio = document.getElementById('chkNifVacio');
+            const chkVacioLabel = chkVacio?.closest('.form-check');
+            if (chkVacioLabel) chkVacioLabel.classList.toggle('d-none', hayE5);
+            if (hayE5 && chkVacio?.checked) {
+                chkVacio.checked = false;
+                nifExportacionVacio = false;
+                const inputNif = document.getElementById('inputNifExportacion');
+                if (inputNif) inputNif.disabled = false;
+            }
+        }
+        actualizarViesDisplay();
+    }
+
+    function actualizarViesDisplay() {
+        const display = document.getElementById('viesDisplay');
+        const valueEl = document.getElementById('viesValue');
+        if (display && valueEl) {
+            const hayE5 = lineas.some(l => l.calificacion === 'E5');
+            if (hayE5 && nifExportacion) {
+                const paisVal = (document.getElementById('inputPaisExportacion')?.value || '').trim().toUpperCase();
+                const yaPrefijado = nifExportacion.startsWith(paisVal);
+                valueEl.textContent = yaPrefijado ? nifExportacion : (paisVal + nifExportacion);
+                display.classList.remove('d-none');
+            } else {
+                display.classList.add('d-none');
+            }
+        }
+        validarFormatoVatExportacion();
+    }
+
+    function validarFormatoVatExportacion() {
+        const inputNif = document.getElementById('inputNifExportacion');
+        const errorBox = document.getElementById('vatFormatoError');
+        const errorTxt = document.getElementById('vatFormatoErrorTexto');
+        if (!inputNif || !errorBox || !errorTxt) return;
+        const hayE5 = lineas.some(l => l.calificacion === 'E5');
+        const paisVal = (document.getElementById('inputPaisExportacion')?.value || '').trim().toUpperCase();
+        if (!hayE5 || !nifExportacion || !/^[A-Z]{2}$/.test(paisVal)) {
+            inputNif.classList.remove('is-invalid');
+            errorBox.classList.add('d-none');
+            return;
+        }
+        const err = window.FormUtils?.validarVatUE?.(nifExportacion, paisVal);
+        if (err) {
+            inputNif.classList.add('is-invalid');
+            errorTxt.textContent = err;
+            errorBox.classList.remove('d-none');
+        } else {
+            inputNif.classList.remove('is-invalid');
+            errorBox.classList.add('d-none');
         }
     }
 
     window.cambiarNifExportacion = function (valor) {
         nifExportacion = valor.trim().toUpperCase();
+        const inputEl = document.getElementById('inputNifExportacion');
+        if (inputEl) {
+            const esValido = nifExportacion.length >= 2;
+            inputEl.classList.toggle('is-valid',   esValido);
+            inputEl.classList.toggle('is-invalid', !esValido && nifExportacion.length > 0);
+        }
+        actualizarViesDisplay();
     };
 
     window.cambiarNifExportacionVacio = function (checked) {
         nifExportacionVacio = checked;
         const inputEl = document.getElementById('inputNifExportacion');
-        if (inputEl) inputEl.disabled = checked;
+        if (!inputEl) return;
+        inputEl.disabled = checked;
+        inputEl.style.backgroundColor = checked ? '#e9ecef' : '';
+        inputEl.style.color           = checked ? '#6c757d' : '';
+        inputEl.style.cursor          = checked ? 'not-allowed' : '';
+        if (checked) {
+            inputEl.value  = '';
+            nifExportacion = '';
+            inputEl.classList.remove('is-valid', 'is-invalid');
+            inputEl.dataset.placeholder = inputEl.placeholder;
+            inputEl.placeholder = '';
+            actualizarViesDisplay();
+        } else {
+            if (inputEl.dataset.placeholder) inputEl.placeholder = inputEl.dataset.placeholder;
+        }
+    };
+
+    function normalizarPaisJS(codigo) {
+        codigo = (codigo || '').toUpperCase().trim();
+        if (/^[A-Z]{2}$/.test(codigo)) return codigo;
+        const m = {
+            ESP:'ES',DEU:'DE',FRA:'FR',ITA:'IT',PRT:'PT',NLD:'NL',BEL:'BE',AUT:'AT',
+            POL:'PL',SVK:'SK',SVN:'SI',HRV:'HR',HUN:'HU',CZE:'CZ',ROU:'RO',BGR:'BG',
+            GRC:'GR',FIN:'FI',SWE:'SE',DNK:'DK',EST:'EE',LVA:'LV',LTU:'LT',LUX:'LU',
+            MLT:'MT',CYP:'CY',NOR:'NO',CHE:'CH',GBR:'GB',IRL:'IE',ISL:'IS',LIE:'LI',
+            USA:'US',CAN:'CA',MEX:'MX',BRA:'BR',ARG:'AR',CHL:'CL',COL:'CO',PER:'PE',
+            JPN:'JP',CHN:'CN',IND:'IN',KOR:'KR',AUS:'AU',NZL:'NZ',ZAF:'ZA',RUS:'RU',
+            TUR:'TR',ISR:'IL',SAU:'SA',ARE:'AE',MAR:'MA',DZA:'DZ',EGY:'EG',TUN:'TN',
+        };
+        return m[codigo] || '';
+    }
+
+    function inicializarPaisExportacionSelect2() {
+        const $sel = $('#inputPaisExportacion');
+        if (!$sel.length || $sel.data('select2')) return;
+        $sel.select2({
+            placeholder: 'Selecciona país',
+            allowClear: true,
+            width: '260px',
+            language: {
+                noResults: () => 'Sin resultados',
+                searching: () => 'Buscando…',
+                inputTooShort: () => 'Escribe para buscar',
+            }
+        });
+        $sel.on('change.paisExp', function () { window.cambiarPaisExportacion(this.value); });
+        $sel.on('select2:clear.paisExp', function () {
+            $(this).on('select2:opening.cancelOpen', function (e) {
+                e.preventDefault();
+                $(this).off('select2:opening.cancelOpen');
+            });
+        });
+        $sel.next('.select2-container').toggleClass('d-none', $sel.hasClass('d-none'));
+    }
+
+    window.cambiarPaisExportacion = function (valor) {
+        const v = (valor || '').toUpperCase().replace(/[^A-Z]/g, '').substring(0, 2);
+        const inputEl = document.getElementById('inputPaisExportacion');
+        if (inputEl && inputEl.value !== v) {
+            inputEl.value = v;
+            if (window.jQuery && $(inputEl).data('select2')) $(inputEl).trigger('change.select2');
+        }
+        const hayE5 = lineas.some(l => l.calificacion === 'E5');
+        const esBasicamenteValido = v.length === 2 && v !== 'ES';
+        const esValido = esBasicamenteValido && (!hayE5 || PAISES_UE.has(v));
+        paisExportacion = esBasicamenteValido ? v : '';
+        if (inputEl) {
+            inputEl.classList.toggle('is-invalid', v.length > 0 && !esValido);
+            inputEl.classList.toggle('is-valid', esValido);
+        }
+        actualizarViesDisplay();
+        actualizarAvisoN2();
     };
 
     function defaultIvaTerritorio() {
@@ -365,24 +535,52 @@
     }
 
     window.cambiarTerritorio = function (valor) {
+        const anteriorFuera = territorioActual === 'FUERA_ESPANA';
         territorioActual = valor;
-        if (territorioActual === 'FUERA_ESPANA') {
+        const esFuera = valor === 'FUERA_ESPANA';
+
+        if (esFuera !== anteriorFuera) {
             lineas.forEach(linea => {
-                if (!CALIFS_FUERA_ESPANA.includes(linea.calificacion)) {
+                if (esFuera && !CALIFS_FUERA_ESPANA.includes(linea.calificacion)) {
                     linea.calificacion = 'N2';
+                } else if (!esFuera && CALIFS_FUERA_ESPANA.includes(linea.calificacion)) {
+                    linea.calificacion = 'S1';
                 }
             });
-        } else {
+        }
+
+        if (territorioActual && !esFuera) {
             lineas.forEach(linea => {
-                linea.calificacion = 'S1';
                 if (resolverTerritorio(tiposIVA[linea.tipoIVA] || {}) !== territorioActual) {
                     linea.tipoIVA = defaultIvaTerritorio() || linea.tipoIVA;
                 }
             });
         }
-        actualizarVistaRE();
+
+        const labelPais = document.getElementById('labelPaisExportacion');
+        const inputPais = document.getElementById('inputPaisExportacion');
+        if (labelPais) labelPais.classList.toggle('d-none', !esFuera);
+        if (inputPais) {
+            inputPais.classList.toggle('d-none', !esFuera);
+            const $cont = window.jQuery && $(inputPais).next('.select2-container');
+            if ($cont && $cont.length) $cont.toggleClass('d-none', !esFuera);
+        }
+        if (!esFuera) {
+            paisExportacion = '';
+            if (inputPais) {
+                inputPais.value = '';
+                inputPais.classList.remove('is-valid', 'is-invalid');
+                if (window.jQuery && $(inputPais).data('select2')) $(inputPais).trigger('change.select2');
+            }
+        } else if (clienteActual) {
+            const pais2 = normalizarPaisJS(clienteActual.Id_Pais || '');
+            if (pais2 && pais2 !== 'ES' && inputPais && inputPais.value === '') window.cambiarPaisExportacion(pais2);
+        }
+
+        actualizarVistaClaveRegimen();
         renderLineas();
         recalcular();
+        actualizarVistaNifExportacion();
     };
 
     async function cargarCanales() {
@@ -426,14 +624,29 @@
 
     async function cargarPaises() {
         const json = await apiGet('/catalogos.php?tabla=paises');
-        const select = document.getElementById('ncPais');
-        if (!select) return;
-        (json.data || []).forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.id;
-            opt.textContent = p.label;
-            select.appendChild(opt);
-        });
+        const paises = json.data || [];
+        const ncSelect = document.getElementById('ncPais');
+        if (ncSelect) {
+            paises.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.label;
+                ncSelect.appendChild(opt);
+            });
+        }
+        const paisExpSelect = document.getElementById('inputPaisExportacion');
+        if (paisExpSelect) {
+            const emptyOpt = document.createElement('option');
+            emptyOpt.value = '';
+            emptyOpt.textContent = '';
+            paisExpSelect.appendChild(emptyOpt);
+            paises.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.label;
+                paisExpSelect.appendChild(opt);
+            });
+        }
     }
 
     async function cargarTiposCliente() {
@@ -533,9 +746,20 @@
             recalcular();
             actualizarAvisoN2();
 
+            nifExportacion = '';
+            nifExportacionVacio = false;
             const inputNif = document.getElementById('inputNifExportacion');
-            if (inputNif) { inputNif.value = ''; nifExportacion = ''; }
+            if (inputNif) { inputNif.value = ''; inputNif.disabled = false; }
+            const chkVacioReset = document.getElementById('chkNifVacio');
+            if (chkVacioReset) chkVacioReset.checked = false;
             actualizarVistaNifExportacion();
+
+            if (territorioActual === 'FUERA_ESPANA') {
+                const pais2 = normalizarPaisJS(clienteActual.Id_Pais || '');
+                const inputPaisEl = document.getElementById('inputPaisExportacion');
+                if (inputPaisEl) { inputPaisEl.value = ''; paisExportacion = ''; inputPaisEl.classList.remove('is-valid', 'is-invalid'); }
+                if (pais2 && pais2 !== 'ES') window.cambiarPaisExportacion(pais2);
+            }
         } catch (e) {
             notify(e.message || 'Error seleccionando cliente', 'danger');
         }
@@ -1443,10 +1667,12 @@
                 if (albCodigo) factPayload.Id_Albaran = albCodigo;
 
                 const factJson   = await apiSend('/facturas.php', factPayload, 'POST');
+                if (factJson?.success === false) {
+                    throw new Error(factJson.message || 'Error al crear la factura.');
+                }
                 const factCodigo = factJson?.data?.codigo;
                 if (!factCodigo) {
-                    const detail = factJson?.message || factJson?.errors?.join(', ') || '';
-                    throw new Error('No se obtuvo el código de la factura.' + (detail ? ' ' + detail : ''));
+                    throw new Error('La factura se procesó pero no se obtuvo el código. Revisa el listado de facturas.');
                 }
 
                 App.hideLoading?.();
@@ -1513,13 +1739,56 @@
 
             // Fix: orden correcto apiSend(path, body, method)
             const factJson   = await apiSend('/facturas.php', factPayload, 'POST');
+            if (factJson?.success === false) {
+                throw new Error(factJson.message || 'Error al crear la factura.');
+            }
             const factCodigo = factJson?.data?.codigo;
-            if (!factCodigo) throw new Error('No se obtuvo el código de la factura.');
+            if (!factCodigo) throw new Error('La factura se procesó pero no se obtuvo el código. Revisa el listado de facturas.');
+
+            const chkNifVacioEl = document.getElementById('chkNifVacio');
+            const nifVacioFinal = chkNifVacioEl?.checked ?? false;
+            nifExportacionVacio = nifVacioFinal;
+            const inputNifEl = document.getElementById('inputNifExportacion');
+            if (inputNifEl && !nifVacioFinal) {
+                nifExportacion = inputNifEl.value.trim().toUpperCase();
+            }
 
             const verifactuPayload = { tipo_origen: 'FACTURA', id_documento: factCodigo };
+            const inputPaisEl = document.getElementById('inputPaisExportacion');
+            const paisInputVal = (inputPaisEl?.value || paisExportacion || '').trim().toUpperCase();
+            const hayE5envio = lineas.some(l => l.calificacion === 'E5');
+
             if (lineas.some(l => CALIFICACION_EXPORTACION.includes(l.calificacion))) {
-                verifactuPayload.nif_exportacion       = nifExportacionVacio ? '' : nifExportacion;
-                verifactuPayload.nif_exportacion_vacio = nifExportacionVacio;
+                if (hayE5envio) {
+                    const nifLimpio = (nifExportacion || '').trim().toUpperCase();
+                    if (!nifLimpio) {
+                        App.hideLoading?.();
+                        notify('Para una operación E5 (entrega intracomunitaria) debes indicar el VAT del destinatario.', 'danger');
+                        return;
+                    }
+                    const tienePais = /^[A-Z]{2}$/.test(paisInputVal);
+                    if (!tienePais) {
+                        App.hideLoading?.();
+                        notify('Selecciona el código de país del destinatario para una operación E5.', 'danger');
+                        return;
+                    }
+                    const errorVat = window.FormUtils?.validarVatUE?.(nifLimpio, paisInputVal);
+                    if (errorVat) {
+                        App.hideLoading?.();
+                        notify(errorVat + ' Revisa que el VAT corresponda al país seleccionado.', 'danger');
+                        return;
+                    }
+                    const yaPrefijado = nifLimpio.startsWith(paisInputVal);
+                    verifactuPayload.nif_exportacion       = yaPrefijado ? nifLimpio : (paisInputVal + nifLimpio);
+                    verifactuPayload.nif_exportacion_vacio = false;
+                } else {
+                    const nifFromInput = (inputNifEl?.value || '').trim().toUpperCase();
+                    verifactuPayload.nif_exportacion       = nifFromInput || (nifVacioFinal ? '' : nifExportacion);
+                    verifactuPayload.nif_exportacion_vacio = !nifFromInput && nifVacioFinal;
+                }
+            }
+            if (/^[A-Z]{2}$/.test(paisInputVal)) {
+                verifactuPayload.pais_exportacion = paisInputVal;
             }
             await apiSend('/verifactu.php/enviar', verifactuPayload, 'POST');
 

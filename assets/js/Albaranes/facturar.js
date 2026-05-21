@@ -16,9 +16,10 @@ const estadoAlbaranes = {};
 // Cliente seleccionado
 let clienteActual = null;
 
-const CALIFICACION_EXPORTACION = ['S2', 'E2', 'E5'];
+const CALIFICACION_EXPORTACION = ['S2', 'E2', 'E5', 'N2'];
 let nifExportacion = '';
 let nifExportacionVacio = false;
+let paisExportacion = '';
 
 function esEmpresaOProfesional() {
     return document.querySelector('input[name="destinatario_tipo"]:checked')?.value === 'empresa';
@@ -42,6 +43,7 @@ $(document).ready(function() {
     // Preparar modal de cliente y dropdown de albaranes
     initClienteModal();
     initClienteDisplayBox();
+    inicializarPaisExportacionSelect2();
 
     // Cargar cada albarán
     if (CODIGOS_ALBARANES.length === 0) {
@@ -254,18 +256,90 @@ function actualizarVistaNifExportacion() {
             inputEl.value    = defaultVal.toUpperCase();
             nifExportacion   = inputEl.value;
         }
+        const hayE5 = Object.values(estadoAlbaranes).some(function(estado) {
+            return (estado.albaran.lineas || []).some(function(l) {
+                return estado.lineasSeleccionadas.has(parseInt(l.Linea))
+                    && (l.Calificacion || '').toUpperCase() === 'E5';
+            });
+        });
+        const chkVacio = document.getElementById('chkNifVacio');
+        const chkVacioWrap = chkVacio?.closest('.form-check');
+        if (chkVacioWrap) chkVacioWrap.classList.toggle('d-none', hayE5);
+        if (hayE5 && chkVacio?.checked) {
+            chkVacio.checked = false;
+            nifExportacionVacio = false;
+            const inputNif = document.getElementById('inputNifExportacion');
+            if (inputNif) inputNif.disabled = false;
+        }
     }
 }
 
 window.cambiarNifExportacion = function(valor) {
     nifExportacion = valor.trim().toUpperCase();
+    validarFormatoVatExportacion();
 };
 
 window.cambiarNifExportacionVacio = function(checked) {
     nifExportacionVacio = checked;
     const inputEl = document.getElementById('inputNifExportacion');
     if (inputEl) inputEl.disabled = checked;
+    validarFormatoVatExportacion();
 };
+
+window.cambiarPaisExportacion = function(valor) {
+    paisExportacion = (valor || '').toUpperCase().trim();
+    validarFormatoVatExportacion();
+};
+
+function inicializarPaisExportacionSelect2() {
+    if (!window.jQuery || !$.fn || !$.fn.select2) return;
+    const $sel = $('#inputPaisExportacion');
+    if (!$sel.length || $sel.data('select2')) return;
+    $sel.select2({
+        placeholder: 'Selecciona país',
+        allowClear: true,
+        width: '260px',
+        language: {
+            noResults: () => 'Sin resultados',
+            searching: () => 'Buscando…',
+            inputTooShort: () => 'Escribe para buscar'
+        }
+    });
+    $sel.on('change.paisExp', function() { window.cambiarPaisExportacion(this.value); });
+    $sel.on('select2:clear.paisExp', function() {
+        $(this).on('select2:opening.cancelOpen', function(e) {
+            e.preventDefault();
+            $(this).off('select2:opening.cancelOpen');
+        });
+    });
+}
+
+function validarFormatoVatExportacion() {
+    const inputNif = document.getElementById('inputNifExportacion');
+    const errorBox = document.getElementById('vatFormatoError');
+    const errorTxt = document.getElementById('vatFormatoErrorTexto');
+    if (!inputNif || !errorBox || !errorTxt) return;
+    const hayE5 = Object.values(estadoAlbaranes).some(function(estado) {
+        return (estado.albaran.lineas || []).some(function(l) {
+            return estado.lineasSeleccionadas.has(parseInt(l.Linea))
+                && (l.Calificacion || '').toUpperCase() === 'E5';
+        });
+    });
+    if (!hayE5 || !nifExportacion || !/^[A-Z]{2}$/.test(paisExportacion)) {
+        inputNif.classList.remove('is-invalid');
+        errorBox.classList.add('d-none');
+        return;
+    }
+    const err = window.FormUtils?.validarVatUE?.(nifExportacion, paisExportacion);
+    if (err) {
+        inputNif.classList.add('is-invalid');
+        errorTxt.textContent = err;
+        errorBox.classList.remove('d-none');
+    } else {
+        inputNif.classList.remove('is-invalid');
+        errorBox.classList.add('d-none');
+    }
+}
 
 function initClienteModal() {
     let _timer = null;
@@ -555,6 +629,9 @@ async function facturar() {
     if (hayExportacionEnPayload) {
         payload.nif_exportacion       = nifExportacionVacio ? '' : nifExportacion;
         payload.nif_exportacion_vacio = nifExportacionVacio;
+        if (/^[A-Z]{2}$/.test(paisExportacion)) {
+            payload.pais_exportacion = paisExportacion;
+        }
     }
 
     const btn = document.getElementById('btnFacturar');
@@ -565,7 +642,6 @@ async function facturar() {
     try {
         const resp = await factApiSend('/facturas.php/from-albaranes', payload, 'POST');
 
-        // Comprobar si el servidor devolvió un error
         if (resp.ok === false || resp.success === false) {
             throw new Error(resp.message || 'Error al crear la factura.');
         }
@@ -575,8 +651,53 @@ async function facturar() {
             throw new Error('La factura se procesó pero no se obtuvo el código. Revisa el listado de facturas.');
         }
 
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando a VeriFactu...';
+
+        const verifactuPayload = { tipo_origen: 'FACTURA', id_documento: codigo };
+        if (hayExportacionEnPayload) {
+            const hayE5envio = albaranesPay.some(function(ab) {
+                const estado = estadoAlbaranes[ab.codigo];
+                return (estado?.albaran?.lineas || []).some(function(l) {
+                    return ab.lineas.includes(parseInt(l.Linea))
+                        && (l.Calificacion || '').toUpperCase() === 'E5';
+                });
+            });
+            if (hayE5envio) {
+                if (!nifExportacion) {
+                    App.hideLoading();
+                    App.notify('Para una operación E5 (entrega intracomunitaria) debes indicar el VAT del destinatario.', 'danger');
+                    return;
+                }
+                if (!/^[A-Z]{2}$/.test(paisExportacion)) {
+                    App.hideLoading();
+                    App.notify('Selecciona el código de país del destinatario para una operación E5.', 'danger');
+                    return;
+                }
+                const errVat = window.FormUtils?.validarVatUE?.(nifExportacion, paisExportacion);
+                if (errVat) {
+                    App.hideLoading();
+                    App.notify(errVat + ' Revisa que el VAT corresponda al país seleccionado.', 'danger');
+                    return;
+                }
+                const yaPrefijado = nifExportacion.startsWith(paisExportacion);
+                verifactuPayload.nif_exportacion       = yaPrefijado ? nifExportacion : (paisExportacion + nifExportacion);
+                verifactuPayload.nif_exportacion_vacio = false;
+            } else {
+                verifactuPayload.nif_exportacion       = nifExportacionVacio ? '' : nifExportacion;
+                verifactuPayload.nif_exportacion_vacio = nifExportacionVacio;
+            }
+            if (/^[A-Z]{2}$/.test(paisExportacion)) {
+                verifactuPayload.pais_exportacion = paisExportacion;
+            }
+        }
+
+        const verifResp = await factApiSend('/verifactu.php/enviar', verifactuPayload, 'POST');
+        if (verifResp?.ok === false || verifResp?.success === false) {
+            console.warn('VeriFactu warning:', verifResp?.message);
+        }
+
         App.hideLoading();
-        App.notify('Factura ' + codigo + ' creada correctamente.', 'success');
+        App.notify('Factura ' + codigo + ' creada y enviada a Hacienda.', 'success');
         setTimeout(function() {
             window.location = BASE + '/src/views/facturas/ver.php?codigo=' + encodeURIComponent(codigo);
         }, 1000);

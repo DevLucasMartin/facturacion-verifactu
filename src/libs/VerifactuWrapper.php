@@ -6,9 +6,11 @@
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../core/Validator.php';
+require_once __DIR__ . '/../core/NifInvalidoException.php';
 
 use josemmo\Verifactu\Models\ComputerSystem;
 use josemmo\Verifactu\Models\Records\BreakdownDetails;
+use josemmo\Verifactu\Models\Records\CancellationRecord;
 use josemmo\Verifactu\Models\Records\CorrectiveType;
 use josemmo\Verifactu\Models\Records\FiscalIdentifier;
 use josemmo\Verifactu\Models\Records\ForeignFiscalIdentifier;
@@ -187,12 +189,14 @@ class VerifactuWrapper
 
     /**
      * Construye la lista de destinatarios del registro.
+     * Bifurca entre NIF español (FiscalIdentifier) y extranjero (ForeignFiscalIdentifier)
+     * según las calificaciones de operación de las líneas (N2/E2/E5 = export siempre extranjero).
      *
      * @return array<FiscalIdentifier|ForeignFiscalIdentifier>
      */
     private function crearDestinatarios(array $datos, InvoiceType $invoiceType): array
     {
-        // Simplificadas y R5 no llevan destinatario (validación de la librería)
+        // Simplificadas y R5 no llevan destinatario
         if ($invoiceType === InvoiceType::Simplificada || $invoiceType === InvoiceType::R5) {
             return [];
         }
@@ -200,27 +204,86 @@ class VerifactuWrapper
         $cliente = $datos['cliente'] ?? null;
         if (empty($cliente)) return [];
 
-        $nif            = trim((string)($cliente['nif']             ?? ''));
-        $razonSocial    = trim((string)($cliente['razon_social']    ?? ''));
-        $nifExportacion = trim((string)($cliente['nif_exportacion'] ?? ''));
-        $nifVacio       = !empty($cliente['nif_exportacion_vacio']);
+        $lineas      = $datos['lineas'] ?? [];
+        $nifRaw      = trim((string)($cliente['nif'] ?? ''));
+        $idClienteWr = (string)($cliente['id_cliente'] ?? '');
+        $nombre      = substr(trim((string)($cliente['razon_social'] ?? '')) ?: 'Cliente', 0, 120);
 
-        if ($nif === '' && $nifExportacion === '' && !$nifVacio) return [];
+        // Detectar calificaciones de exportación en las líneas
+        $tieneN2 = !empty(array_filter($lineas, fn($l) => (string)($l['Calificacion'] ?? '') === 'N2'));
+        $tieneE2 = !empty(array_filter($lineas, fn($l) => (string)($l['Calificacion'] ?? '') === 'E2'));
+        $tieneE5 = !empty(array_filter($lineas, fn($l) => (string)($l['Calificacion'] ?? '') === 'E5'));
 
-        $nombre = substr($razonSocial !== '' ? $razonSocial : 'Cliente', 0, 120);
+        if ($tieneN2 || $tieneE2 || $tieneE5) {
+            // Operaciones de exportación/no localizadas: destinatario siempre extranjero.
+            $pais = $this->resolverPaisExportacion($cliente);
+            if ($pais === null) {
+                $calif = $tieneN2 ? 'N2' : ($tieneE2 ? 'E2' : 'E5');
+                throw new NifInvalidoException(
+                    "Operación {$calif}: falta el código de país del destinatario. Indícalo en la factura o asígnalo al cliente en su ficha.",
+                    $idClienteWr,
+                    $nifRaw
+                );
+            }
 
-        if ($nif !== '') {
-            return [new FiscalIdentifier($nombre, $nif)];
+            if ($tieneE5) {
+                // E5 (entrega intracomunitaria art. 25 LIVA): IDOtro con IDType VAT.
+                $clienteE5 = array_merge($cliente, ['nif_exportacion_vacio' => false]);
+                $nifExt    = $this->resolverNifExportacion($clienteE5);
+                // Si el NIF lleva prefijo de país, extraerlo como CodigoPais
+                if (strlen($nifExt) > 2 && preg_match('/^[A-Z]{2}/', $nifExt, $m)) {
+                    $pais = $m[0];
+                }
+                if ($nifExt !== '' && !str_starts_with($nifExt, $pais)) {
+                    $nifExt = $pais . $nifExt;
+                }
+                return [new ForeignFiscalIdentifier(
+                    $nombre, $pais, ForeignIdType::VAT, $nifExt !== '' ? $nifExt : '0'
+                )];
+            }
+
+            // N2 o E2: ForeignFiscalIdentifier con tipo según tipo de cliente
+            $nifExt = $this->resolverNifExportacion($cliente);
+            $tipoId = $this->tipoForeignIdPorTipoCliente($cliente);
+            return [new ForeignFiscalIdentifier(
+                $nombre, $pais, $tipoId, $nifExt !== '' ? $nifExt : '0'
+            )];
         }
 
-        if ($nifExportacion !== '') {
-            $pais   = $this->normalizarCodigoPais($cliente['codigo_pais'] ?? 'ES');
-            $idType = ForeignIdType::NationalId; // 04 = documento oficial del país de residencia
-            return [new ForeignFiscalIdentifier($nombre, $pais, $idType, $nifExportacion)];
+        if ($this->esClienteExtranjero($cliente)) {
+            // Cliente extranjero con calificación no-export (S2, E3, E4, E6, etc.)
+            $pais = $this->resolverPaisExportacion($cliente);
+            if ($pais === null) {
+                throw new NifInvalidoException(
+                    'El cliente extranjero no tiene código de país asignado. Es obligatorio para emitir una factura a un destinatario fuera de España.',
+                    $idClienteWr,
+                    $nifRaw
+                );
+            }
+            $nifExt = $this->resolverNifExportacion($cliente);
+            $tipoId = $this->tipoForeignIdPorTipoCliente($cliente);
+            return [new ForeignFiscalIdentifier(
+                $nombre, $pais, $tipoId, $nifExt !== '' ? $nifExt : '0'
+            )];
         }
 
-        // $nifVacio sin ID extranjero → exportación sin identificar, sin destinatario
-        return [];
+        // Cliente español: NIF obligatorio y validado
+        if ($nifRaw === '') {
+            throw new NifInvalidoException(
+                'El cliente no tiene NIF registrado. Es obligatorio para emitir una factura a Verifactu.',
+                $idClienteWr,
+                ''
+            );
+        }
+        $errorNif = Validator::validarFormatoNif($nifRaw);
+        if ($errorNif !== null) {
+            throw new NifInvalidoException(
+                "NIF del cliente inválido ('{$nifRaw}'): {$errorNif}",
+                $idClienteWr,
+                $nifRaw
+            );
+        }
+        return [new FiscalIdentifier($nombre, $nifRaw)];
     }
 
     /**
@@ -404,12 +467,210 @@ class VerifactuWrapper
     }
 
     /**
-     * Normaliza un código de país a ISO 3166-1 alpha-2 en mayúsculas.
-     * Devuelve 'ES' si el valor no es válido.
+     * Normaliza un código de país a ISO 3166-1 alpha-2 (2 letras mayúsculas).
+     * Acepta códigos de 2 letras directamente; convierte los alpha-3 más comunes.
+     * Devuelve '' si no se puede normalizar (el caller decide el fallback).
      */
-    private function normalizarCodigoPais(string $pais): string
+    private function normalizarCodigoPais(string $codigoRaw): string
     {
-        $pais = strtoupper(trim($pais));
-        return preg_match('/^[A-Z]{2}$/', $pais) ? $pais : 'ES';
+        $codigo = strtoupper(trim($codigoRaw));
+
+        if (preg_match('/^[A-Z]{2}$/', $codigo)) {
+            return $codigo;
+        }
+
+        $alpha3 = [
+            'AFG'=>'AF','ALB'=>'AL','DZA'=>'DZ','AND'=>'AD','AGO'=>'AO','ARG'=>'AR','ARM'=>'AM',
+            'AUS'=>'AU','AUT'=>'AT','AZE'=>'AZ','BHS'=>'BS','BHR'=>'BH','BGD'=>'BD','BLR'=>'BY',
+            'BEL'=>'BE','BLZ'=>'BZ','BGR'=>'BG','BRA'=>'BR','BRN'=>'BN','CAN'=>'CA','CHL'=>'CL',
+            'CHN'=>'CN','COL'=>'CO','CRI'=>'CR','HRV'=>'HR','CUB'=>'CU','CYP'=>'CY','CZE'=>'CZ',
+            'DNK'=>'DK','DOM'=>'DO','ECU'=>'EC','EGY'=>'EG','SLV'=>'SV','EST'=>'EE','ETH'=>'ET',
+            'FIN'=>'FI','FRA'=>'FR','DEU'=>'DE','GHA'=>'GH','GRC'=>'GR','GTM'=>'GT','HND'=>'HN',
+            'HUN'=>'HU','ISL'=>'IS','IND'=>'IN','IDN'=>'ID','IRN'=>'IR','IRQ'=>'IQ','IRL'=>'IE',
+            'ISR'=>'IL','ITA'=>'IT','JAM'=>'JM','JPN'=>'JP','JOR'=>'JO','KAZ'=>'KZ','KEN'=>'KE',
+            'KOR'=>'KR','KWT'=>'KW','LAO'=>'LA','LVA'=>'LV','LBN'=>'LB','LBY'=>'LY','LIE'=>'LI',
+            'LTU'=>'LT','LUX'=>'LU','MYS'=>'MY','MLT'=>'MT','MEX'=>'MX','MDA'=>'MD','MCO'=>'MC',
+            'MNG'=>'MN','MNE'=>'ME','MAR'=>'MA','MOZ'=>'MZ','MMR'=>'MM','NPL'=>'NP','NLD'=>'NL',
+            'NZL'=>'NZ','NGA'=>'NG','NOR'=>'NO','OMN'=>'OM','PAK'=>'PK','PAN'=>'PA','PRY'=>'PY',
+            'PER'=>'PE','PHL'=>'PH','POL'=>'PL','PRT'=>'PT','QAT'=>'QA','ROU'=>'RO','RUS'=>'RU',
+            'SAU'=>'SA','SEN'=>'SN','SRB'=>'RS','SGP'=>'SG','SVK'=>'SK','SVN'=>'SI','ZAF'=>'ZA',
+            'LKA'=>'LK','SDN'=>'SD','SWE'=>'SE','CHE'=>'CH','SYR'=>'SY','TJK'=>'TJ','TZA'=>'TZ',
+            'THA'=>'TH','TGO'=>'TG','TTO'=>'TT','TUN'=>'TN','TUR'=>'TR','UGA'=>'UG','UKR'=>'UA',
+            'ARE'=>'AE','GBR'=>'GB','USA'=>'US','URY'=>'UY','UZB'=>'UZ','VEN'=>'VE','VNM'=>'VN',
+            'YEM'=>'YE','ZMB'=>'ZM','ZWE'=>'ZW',
+        ];
+
+        return $alpha3[$codigo] ?? '';
+    }
+
+    /**
+     * Detecta si el cliente es extranjero (no establecido en España).
+     * Criterio: id_pais distinto de ES, o NIF presente que no valida como NIF español.
+     */
+    private function esClienteExtranjero(array $cliente): bool
+    {
+        $paisRaw = strtoupper(trim((string)($cliente['id_pais'] ?? '')));
+        if (in_array($paisRaw, ['ES', 'ESP'], true)) {
+            return false;
+        }
+        if ($paisRaw !== '') {
+            $paisNorm = $this->normalizarCodigoPais($paisRaw);
+            if ($paisNorm !== '' && $paisNorm !== 'ES') {
+                return true;
+            }
+        }
+        $nif = trim((string)($cliente['nif'] ?? ''));
+        if ($nif !== '' && Validator::validarFormatoNif($nif) !== null) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Resuelve el código de país (alpha-2) para operaciones N2/E2/E5.
+     * Prioridad: pais_exportacion (usuario) → id_pais del cliente en BD.
+     * Devuelve null si no hay ningún valor válido.
+     */
+    private function resolverPaisExportacion(array $cliente): ?string
+    {
+        $explicit = trim((string)($cliente['pais_exportacion'] ?? ''));
+        if ($explicit !== '') {
+            $norm = $this->normalizarCodigoPais($explicit);
+            if ($norm !== '') return $norm;
+        }
+        $paisBD = trim((string)($cliente['id_pais'] ?? ''));
+        if ($paisBD !== '') {
+            $norm = $this->normalizarCodigoPais($paisBD);
+            if ($norm !== '') return $norm;
+        }
+        return null;
+    }
+
+    /**
+     * Resuelve el NIF/identificador para operaciones de exportación (N2/E2/E5).
+     * Prioridad: nif_exportacion (UI) > nif_exportacion_vacio > nif del cliente en BD.
+     */
+    private function resolverNifExportacion(array $cliente): string
+    {
+        $override = isset($cliente['nif_exportacion']) ? trim((string)$cliente['nif_exportacion']) : null;
+        if ($override !== null && $override !== '') {
+            return strtoupper($override);
+        }
+        if (!empty($cliente['nif_exportacion_vacio'])) {
+            return '';
+        }
+        return strtoupper(trim((string)($cliente['nif'] ?? '')));
+    }
+
+    /**
+     * Resuelve el ForeignIdType según el tipo de cliente.
+     * EMP/TIEN (empresas) → NationalId (04). Resto → Other (06).
+     */
+    private function tipoForeignIdPorTipoCliente(array $cliente): ForeignIdType
+    {
+        $tipoCliente = strtoupper(trim((string)($cliente['id_tipo_cliente'] ?? '')));
+        return in_array($tipoCliente, ['EMP', 'TIEN'], true)
+            ? ForeignIdType::NationalId
+            : ForeignIdType::Other;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ANULACIÓN
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Anula una factura ya enviada a la AEAT.
+     */
+    public function anular(string $numeroFactura, string $serie, string $fecha, string $motivo, array $datos = []): array
+    {
+        try {
+            $tz = new \DateTimeZone($this->empresa['timezone'] ?? 'Europe/Madrid');
+
+            $record           = new CancellationRecord();
+            $record->invoiceId = new InvoiceIdentifier(
+                $this->empresa['nif'] ?? '',
+                $numeroFactura,
+                new \DateTimeImmutable($fecha, $tz)
+            );
+            $record->hashedAt = new \DateTimeImmutable('now', $tz);
+
+            if (!empty($datos['previous_hash']) && !empty($datos['previous_invoice'])) {
+                $prev = $datos['previous_invoice'];
+                $record->previousInvoiceId = new InvoiceIdentifier(
+                    $prev['issuerId'] ?? ($this->empresa['nif'] ?? ''),
+                    $prev['invoiceNumber'],
+                    new \DateTimeImmutable($prev['issueDate'], $tz)
+                );
+                $record->previousHash = $datos['previous_hash'];
+            } else {
+                $record->previousInvoiceId = null;
+                $record->previousHash      = null;
+            }
+
+            $record->hash = $record->calculateHash();
+            $record->validate();
+
+            $system   = $this->crearSistemaInformatico();
+            $taxpayer = new FiscalIdentifier(
+                $this->empresa['razon_social'] ?? '',
+                $this->empresa['nif']          ?? ''
+            );
+            $entorno = $this->config['entorno'] ?? 'pruebas';
+            $client  = new AeatClient($system, $taxpayer);
+            $client->setProduction($entorno === 'produccion');
+
+            $certPath = $this->config['certificado']['ruta']     ?? '';
+            $certPass = $this->config['certificado']['password']  ?? '';
+            if (!empty($certPath) && file_exists($certPath)) {
+                $client->setCertificate($certPath, $certPass);
+            }
+
+            $response = $client->send([$record])->wait();
+
+            if ($response->status !== \josemmo\Verifactu\Models\Responses\ResponseStatus::Correct) {
+                $errorDesc = '';
+                if (!empty($response->items)) {
+                    $errorDesc = $response->items[0]->errorDescription ?? '';
+                }
+                return ['ok' => false, 'error' => $errorDesc ?: 'Error en respuesta AEAT'];
+            }
+
+            return [
+                'ok'        => true,
+                'resultado' => $response->result ?? 'OK',
+                'hash'      => $record->hash,
+            ];
+        } catch (\Exception $e) {
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CERTIFICADO
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function tieneCertificado(): bool
+    {
+        $ruta = $this->config['certificado']['ruta'] ?? '';
+        return !empty($ruta) && file_exists($ruta);
+    }
+
+    public function getInfoCertificado(): ?array
+    {
+        if (!$this->tieneCertificado()) return null;
+
+        $data = file_get_contents($this->config['certificado']['ruta']);
+        if (!$data) return null;
+
+        $certInfo = openssl_x509_parse($data);
+        if (!$certInfo) return null;
+
+        return [
+            'sujeto'       => $certInfo['subject']      ?? [],
+            'emisor'       => $certInfo['issuer']        ?? [],
+            'valido_desde' => date('Y-m-d', $certInfo['validFrom_time_t']  ?? 0),
+            'valido_hasta' => date('Y-m-d', $certInfo['validTo_time_t']    ?? 0),
+            'serial'       => $certInfo['serialNumber']  ?? '',
+        ];
     }
 }

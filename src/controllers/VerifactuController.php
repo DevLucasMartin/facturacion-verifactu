@@ -7,6 +7,7 @@
 
 require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/../core/Response.php';
+require_once __DIR__ . '/../core/NifInvalidoException.php';
 require_once __DIR__ . '/../services/VerifactuService.php';
 require_once __DIR__ . '/../models/VerifactuRegistro.php';
 
@@ -133,10 +134,22 @@ class VerifactuController
             $idDocumento         = $cuerpoRequest['id_documento'];
             $nifExportacion      = isset($cuerpoRequest['nif_exportacion']) ? (string)$cuerpoRequest['nif_exportacion'] : null;
             $nifExportacionVacio = (bool)($cuerpoRequest['nif_exportacion_vacio'] ?? false);
+            $rawPais             = strtoupper(trim((string)($cuerpoRequest['pais_exportacion'] ?? '')));
+            $paisExportacion     = preg_match('/^[A-Z]{2}$/', $rawPais) ? $rawPais : null;
 
-            $resultado = $this->verifactuService->firmar($tipoOrigen, $idDocumento, true, $nifExportacion, $nifExportacionVacio);
+            $resultado = $this->verifactuService->firmar($tipoOrigen, $idDocumento, true, $nifExportacion, $nifExportacionVacio, $paisExportacion);
 
             Response::success($resultado, 'Documento firmado y enviado');
+        } catch (NifInvalidoException $e) {
+            http_response_code(422);
+            echo json_encode([
+                'success'    => false,
+                'message'    => $e->getMessage(),
+                'nif_error'  => true,
+                'id_cliente' => $e->idCliente,
+                'nif_actual' => $e->nifActual,
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
         } catch (Exception $e) {
             Response::serverError('Error al procesar', $e);
         }
@@ -357,16 +370,17 @@ class VerifactuController
                 }
             }
 
-            // Cliente (solo si tiene NIF)
+            // Cliente
             if (!empty($cliente)) {
                 $nif    = trim((string)($cliente['NIF']            ?? ''));
                 $nombre = trim((string)($cliente['Nombre']         ?? $cliente['Archivar_Como'] ?? ''));
-                if ($nif !== '') {
-                    $datos['cliente'] = [
-                        'nif'          => $nif,
-                        'razon_social' => $nombre !== '' ? $nombre : 'Cliente',
-                    ];
-                }
+                $datos['cliente'] = [
+                    'nif'             => $nif,
+                    'razon_social'    => $nombre !== '' ? $nombre : 'Cliente',
+                    'id_cliente'      => trim((string)($cliente['Codigo']         ?? '')),
+                    'id_pais'         => (string)($cliente['Id_Pais']             ?? ''),
+                    'id_tipo_cliente' => (string)($cliente['Id_Tipo_Cliente']     ?? ''),
+                ];
             }
 
             $firmar    = strtolower($firmar);
