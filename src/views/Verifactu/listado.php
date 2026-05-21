@@ -81,12 +81,7 @@ ob_start();
     </div>
     <div class="card-body fact-card-body">
         <div class="row g-3">
-            <div class="col-md-4">
-                <button class="btn fact-btn btn-primary w-100" onclick="procesarCola()">
-                    <i class="bi bi-play-fill me-2"></i>Procesar Cola
-                </button>
-            </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <select class="fact-form-select form-select form-select-sm" id="filtroEstado" onchange="aplicarFiltro()">
                     <option value="">Todos los estados</option>
                     <option value="PENDIENTE">Pendientes</option>
@@ -94,7 +89,7 @@ ob_start();
                     <option value="ERROR">Errores</option>
                 </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <select class="fact-form-select form-select form-select-sm" id="filtroTipo" onchange="aplicarFiltro()">
                     <option value="">Todos los tipos</option>
                     <option value="FACTURA">Facturas</option>
