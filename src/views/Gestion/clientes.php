@@ -105,10 +105,6 @@ ob_start();
                             <label class="form-label fact-form-label">Forma de pago</label>
                             <select class="form-select fact-form-select" id="ncFormaPago" name="ncFormaPago"></select>
                         </div>
-<div class="col-md-2">
-                            <label class="form-label fact-form-label">Tarifa</label>
-                            <select class="form-select fact-form-select" id="ncTarifa" name="ncTarifa"></select>
-                        </div>
                         <div class="col-md-2">
                             <label class="form-label fact-form-label">RE %</label>
                             <input type="number" class="form-control fact-form-control" id="ncRE" name="ncRE"

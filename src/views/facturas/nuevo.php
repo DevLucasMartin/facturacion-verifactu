@@ -57,10 +57,15 @@ ob_start();
                                    readonly placeholder="Se asignará al guardar">
                         </div>
                         <!-- Fecha -->
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label fact-form-label" for="inputFecha">Fecha</label>
                             <input type="date" name="Fecha" id="inputFecha" class="form-control fact-form-control"
                                    value="<?= date('Y-m-d') ?>" required>
+                        </div>
+                        <!-- Forma de pago -->
+                        <div class="col-md-3">
+                            <label class="form-label fact-form-label" for="selectFormaPago">Forma de pago</label>
+                            <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select select-forma-pago" required></select>
                         </div>
                     </div>
 
@@ -148,7 +153,6 @@ ob_start();
                             </div>
                             <div class="col-md-6">
                                 <p class="mb-1"><strong>Forma de pago:</strong> <span id="clienteFormaPago"></span></p>
-                                <p class="mb-1"><strong>Tarifa:</strong> <span id="clienteTarifa"></span></p>
                                 <p class="mb-1"><strong>Tipo IVA:</strong> <span id="clienteTipoIVA"></span></p>
                                 <p class="mb-1"><strong>Aplica RE:</strong> <span id="clienteAplicaRE"></span></p>
                                 <p class="mb-1" id="reRow" style="display: none;">
@@ -269,16 +273,6 @@ ob_start();
                     <span><i class="bi bi-calculator me-2"></i>Totales</span>
                 </div>
                 <div class="card-body fact-card-body">
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <label class="form-label fact-form-label" for="selectTarifa">Tarifa</label>
-                            <select name="Id_Tarifa" id="selectTarifa" class="form-select fact-form-select select-tarifa" required></select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label fact-form-label" for="selectFormaPago">Forma de pago</label>
-                            <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select select-forma-pago" required></select>
-                        </div>
-                    </div>
                     <!-- Descuentos -->
                     <div class="mb-3">
                         <label class="form-label small text-muted">Descuentos</label>
@@ -361,6 +355,7 @@ ob_start();
                     <div id="erroresPanel" class="alert alert-danger mb-0" style="display:none;">
                         <ul class="mb-0 small" id="erroresList"></ul>
                     </div>
+                    <div id="accionesMsg" style="display:none;"></div>
                 </div>
             </div>
         </div>
@@ -426,10 +421,6 @@ ob_start();
                         <div class="col-md-4">
                             <label class="form-label fact-form-label">Forma de pago</label>
                             <select class="form-select fact-form-select select-forma-pago" id="selectFormaPagoNuevo" name="ncFormaPago"></select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label fact-form-label">Tarifa</label>
-                            <select class="form-select fact-form-select select-tarifa" id="selectTarifaNuevo" name="ncTarifa"></select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fact-form-label">RE %</label>

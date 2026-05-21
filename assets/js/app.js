@@ -60,6 +60,14 @@ const App = (() => {
         secondary:'#6c757d',
     };
 
+    const ALERT_TYPE = {
+        success: 'success',
+        danger:  'danger',
+        warning: 'warning',
+        info:    'info',
+        primary: 'primary',
+    };
+
     function notify(message, type = 'info', duration) {
         const container = document.getElementById('toast-container');
         if (!container) { console.warn('[notify]', message); return; }
@@ -95,6 +103,14 @@ const App = (() => {
             el.style.opacity = '0';
             setTimeout(() => el.remove(), 320);
         }, duration);
+
+        const panel = document.getElementById('accionesMsg');
+        if (panel) {
+            const alertType = ALERT_TYPE[type] || 'secondary';
+            panel.className = 'alert alert-' + alertType + ' mt-2 mb-0 py-2 small';
+            panel.style.display = '';
+            panel.textContent = message;
+        }
     }
 
     // ─── Loading overlay ─────────────────────────────────────────────────────

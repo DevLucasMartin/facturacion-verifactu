@@ -73,11 +73,6 @@ ob_start();
 
                     <div class="row g-3 mt-2">
                         <div class="col-md-3">
-                            <label class="form-label fact-form-label">Tarifa</label>
-                            <select id="selectTarifa" class="form-select fact-form-select select-tarifa">
-                            </select>
-                        </div>
-                        <div class="col-md-3">
                             <label class="form-label fact-form-label">Forma de Pago</label>
                             <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select select-forma-pago">
                             </select>
@@ -115,8 +110,6 @@ ob_start();
                             <dd class="col-sm-9" id="clienteDireccion"></dd>
                             <dt class="col-sm-3">Forma Pago:</dt>
                             <dd class="col-sm-9" id="clienteFormaPago"></dd>
-                            <dt class="col-sm-3">Tarifa:</dt>
-                            <dd class="col-sm-9"><span id="clienteTarifa"></span></dd>
                             <dt class="col-sm-3">Tipo IVA:</dt>
                             <dd class="col-sm-9" id="clienteTipoIVA"></dd>
                             <dt class="col-sm-3">Aplica RE:</dt>
@@ -240,10 +233,6 @@ ob_start();
                 <span id="avisoClienteN2Texto"></span>
             </div>
 
-            <!-- Panel de errores -->
-            <div id="erroresPanel" class="alert alert-danger mt-3" style="display:none;">
-                <ul class="mb-0" id="erroresList"></ul>
-            </div>
         </div>
 
         <!-- Columna Lateral -->
@@ -297,6 +286,10 @@ ob_start();
                        class="btn btn-outline-secondary w-100 fact-btn">
                         <i class="bi bi-x-lg me-1"></i>Cancelar
                     </a>
+                    <div id="erroresPanel" class="alert alert-danger mt-2 mb-0" style="display:none;">
+                        <ul class="mb-0" id="erroresList"></ul>
+                    </div>
+                    <div id="accionesMsg" style="display:none;"></div>
                 </div>
             </div>
         </div>
@@ -464,10 +457,6 @@ ob_start();
                         <div class="col-md-4">
                             <label class="form-label fact-form-label">Forma de pago</label>
                             <select class="form-select fact-form-select select-forma-pago" id="selectFormaPagoNuevo" name="ncFormaPago"></select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label fact-form-label">Tarifa</label>
-                            <select class="form-select fact-form-select select-tarifa" id="selectTarifaNuevo" name="ncTarifa"></select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fact-form-label">RE %</label>

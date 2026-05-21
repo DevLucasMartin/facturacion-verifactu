@@ -38,9 +38,6 @@ register_shutdown_function(function() {
 
 require_once __DIR__ . '/../controllers/FacturaController.php';
 
-header('Content-Type: application/json; charset=utf-8');
-header('X-Content-Type-Options: nosniff');
-
 $method     = $_SERVER['REQUEST_METHOD'];
 $requestUri = $_SERVER['REQUEST_URI'];
 $path       = parse_url($requestUri, PHP_URL_PATH);
@@ -55,6 +52,13 @@ $path     = str_replace('.php', '', $path);
 $path     = trim($path, '/');
 $parts    = ($path === '') ? [] : array_map('rawurldecode', explode('/', $path));
 $resource = $parts[0] ?? '';
+
+// No enviar Content-Type JSON si es una descarga de archivo
+$esExportar = ($method === 'GET' && ($parts[1] ?? '') === 'exportar');
+if (!$esExportar) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('X-Content-Type-Options: nosniff');
+}
 
 try {
     $controller = new FacturaController();

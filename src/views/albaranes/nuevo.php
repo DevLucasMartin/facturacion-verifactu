@@ -12,6 +12,7 @@ ob_start();
 
 <form id="albaranForm" method="POST">
     <input type="hidden" name="codigo" value="">
+    <input type="hidden" id="inputIdCliente" name="Id_Cliente" value="">
 
     <div class="row">
         <!-- Columna Principal -->
@@ -39,46 +40,12 @@ ob_start();
                             <input type="date" class="form-control fact-form-control" id="inputFecha" name="Fecha"
                                 value="<?= htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8') ?>" required>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label fact-form-label">Cliente *</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control fact-form-control" id="inputIdCliente"
-                                    name="Id_Cliente" readonly required>
-                                <button type="button" class="btn btn-outline-secondary"
-                                    onclick="seleccionarCliente()" title="Buscar cliente">
-                                    <i class="bi bi-search"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mt-2">
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Dto. Especial %</label>
-                            <input type="number" class="form-control fact-form-control" id="inputDtoEspecial"
-                                value="0" min="0" max="100" step="any" placeholder="0.00%">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Dto. Comercial %</label>
-                            <input type="number" class="form-control fact-form-control" id="inputDtoComercial"
-                                value="0" min="0" max="100" step="any" placeholder="0.00%">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Dto. Pronto Pago %</label>
-                            <input type="number" class="form-control fact-form-control" id="inputDtoPP"
-                                value="0" min="0" max="100" step="any" placeholder="0.00%">
-                        </div>
                     </div>
 
                     <div class="row g-3 mt-2">
                         <div class="col-md-4">
                             <label class="form-label fact-form-label">Forma de Pago</label>
                             <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select select-forma-pago">
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Tarifa</label>
-                            <select id="selectTarifa" name="Tarifa" class="form-select fact-form-select select-tarifa">
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -132,8 +99,6 @@ ob_start();
                             <dd class="col-sm-9" id="clienteTipoIVA"></dd>
                             <dt class="col-sm-3">Aplica RE:</dt>
                             <dd class="col-sm-9" id="clienteAplicaRE"></dd>
-                            <dt class="col-sm-3">Tarifa:</dt>
-                            <dd class="col-sm-9" id="clienteTarifa"></dd>
                         </dl>
                     </div>
                 </div>
@@ -212,10 +177,6 @@ ob_start();
                 </div>
             </div>
 
-            <!-- Panel de errores -->
-            <div id="erroresPanel" class="alert alert-danger mt-3" style="display:none;">
-                <ul class="mb-0" id="erroresList"></ul>
-            </div>
         </div>
 
         <!-- Columna Lateral -->
@@ -227,6 +188,24 @@ ob_start();
                     <span><i class="bi bi-calculator me-2"></i>Totales</span>
                 </div>
                 <div class="card-body fact-card-body">
+                    <div class="row g-2 mb-2">
+                        <div class="col-4">
+                            <label class="form-label fact-form-label mb-1">Dto. Especial %</label>
+                            <input type="number" class="form-control form-control-sm fact-form-control" id="inputDtoEspecial"
+                                value="0" min="0" max="100" step="any" placeholder="0.00%">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fact-form-label mb-1">Dto. Comercial %</label>
+                            <input type="number" class="form-control form-control-sm fact-form-control" id="inputDtoComercial"
+                                value="0" min="0" max="100" step="any" placeholder="0.00%">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fact-form-label mb-1">Dto. Pronto Pago %</label>
+                            <input type="number" class="form-control form-control-sm fact-form-control" id="inputDtoPP"
+                                value="0" min="0" max="100" step="any" placeholder="0.00%">
+                        </div>
+                    </div>
+                    <hr>
                     <dl class="row mb-0">
                         <dt class="col-7">Subtotal:</dt>
                         <dd class="col-5 text-end" id="subtotalDisplay">0,00 €</dd>
@@ -271,6 +250,10 @@ ob_start();
                        class="btn btn-outline-secondary w-100 fact-btn">
                         <i class="bi bi-x-lg me-1"></i>Cancelar
                     </a>
+                    <div id="erroresPanel" class="alert alert-danger mt-2 mb-0" style="display:none;">
+                        <ul class="mb-0" id="erroresList"></ul>
+                    </div>
+                    <div id="accionesMsg" style="display:none;"></div>
                 </div>
             </div>
             </div><!-- /sticky -->
@@ -421,10 +404,6 @@ ob_start();
                         <div class="col-md-4">
                             <label class="form-label fact-form-label">Forma de pago</label>
                             <select class="form-select fact-form-select select-forma-pago" id="selectFormaPagoNuevo" name="ncFormaPago"></select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label fact-form-label">Tarifa</label>
-                            <select class="form-select fact-form-select select-tarifa" id="selectTarifaNuevo" name="ncTarifa"></select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fact-form-label">RE %</label>

@@ -737,7 +737,8 @@
             document.getElementById('clienteNIF').textContent       = clienteActual.NIF || '';
             document.getElementById('clienteDireccion').textContent = clienteActual.Direccion || '-';
             document.getElementById('clienteFormaPago').textContent = (clienteActual.Id_Forma_Pago || '-').toUpperCase();
-            document.getElementById('clienteTarifa').textContent    = tarifaActual;
+            const elTarifa = document.getElementById('clienteTarifa');
+            if (elTarifa) elTarifa.textContent = tarifaActual;
             document.getElementById('clienteTipoIVA').textContent   = clienteActual.Id_Tipo_IVA || '-';
             document.getElementById('clienteAplicaRE').textContent  = aplicaREGlobal ? 'Sí' : 'No';
 
@@ -934,7 +935,8 @@
         document.getElementById('clienteNIF').textContent       = '';
         document.getElementById('clienteDireccion').textContent = '';
         document.getElementById('clienteFormaPago').textContent = '';
-        document.getElementById('clienteTarifa').textContent    = '';
+        const elTarifaBorrar = document.getElementById('clienteTarifa');
+        if (elTarifaBorrar) elTarifaBorrar.textContent = '';
         document.getElementById('clienteTipoIVA').textContent   = '';
         document.getElementById('clienteAplicaRE').textContent  = '';
 

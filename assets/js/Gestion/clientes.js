@@ -113,19 +113,72 @@ function cli_validarNIF(input) {
         return true;
     }
 
-    const match = val.match(/^(\d{8})([A-Z])$/);
-    if (!match) {
-        input.classList.add('is-invalid');
-        input.classList.remove('is-valid');
-        errorEl.textContent = 'Formato incorrecto. Debe ser 8 dígitos y una letra (ej: 12345678Z).';
-        return false;
-    }
+    const matchDNI = val.match(/^(\d{8})([A-Z])$/);
+    const matchNIE = val.match(/^([XYZ])(\d{7})([A-Z])$/);
+    const matchCIF = val.match(/^([ABCDEFGHJNPQRSUVW])(\d{7})([0-9A-Z])$/);
 
-    const letraEsperada = NIF_LETRAS[parseInt(match[1], 10) % 23];
-    if (match[2] !== letraEsperada) {
+    if (matchDNI) {
+        const letraEsperada = NIF_LETRAS[parseInt(matchDNI[1], 10) % 23];
+        if (matchDNI[2] !== letraEsperada) {
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            errorEl.textContent = `La letra del NIF no es correcta (debería ser ${letraEsperada}).`;
+            return false;
+        }
+    } else if (matchNIE) {
+        const prefijos = { X: 0, Y: 1, Z: 2 };
+        const numero   = parseInt(String(prefijos[matchNIE[1]]) + matchNIE[2], 10);
+        const letraEsperada = NIF_LETRAS[numero % 23];
+        if (matchNIE[3] !== letraEsperada) {
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            errorEl.textContent = `La letra del NIE no es correcta (debería ser ${letraEsperada}).`;
+            return false;
+        }
+    } else if (matchCIF) {
+        const digitos  = matchCIF[2];
+        const control  = matchCIF[3];
+        const letra    = matchCIF[1];
+
+        // Suma dígitos en posiciones impares (1,3,5,7) multiplicados por 2
+        let suma = 0;
+        for (let i = 0; i < 7; i++) {
+            const d = parseInt(digitos[i], 10);
+            if ((i + 1) % 2 === 0) {
+                suma += d;
+            } else {
+                const doble = d * 2;
+                suma += doble < 10 ? doble : doble - 9;
+            }
+        }
+
+        const digitoControl = (10 - (suma % 10)) % 10;
+        const letrasControl = 'JABCDEFGHI';
+        const letraControl  = letrasControl[digitoControl];
+
+        // Algunos tipos de CIF solo admiten letra, otros solo dígito, otros ambos
+        const soloLetra  = /^[KLMNPQRS]$/.test(letra);
+        const soloDigito = /^[ABEH]$/.test(letra);
+
+        const controlEsperado = soloLetra ? letraControl : (soloDigito ? String(digitoControl) : null);
+
+        const esValido = soloLetra
+            ? control === letraControl
+            : soloDigito
+                ? control === String(digitoControl)
+                : (control === letraControl || control === String(digitoControl));
+
+        if (!esValido) {
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            const esperado = controlEsperado ?? `${digitoControl} o ${letraControl}`;
+            errorEl.textContent = `El dígito de control del CIF no es correcto (debería ser ${esperado}).`;
+            return false;
+        }
+    } else {
         input.classList.add('is-invalid');
         input.classList.remove('is-valid');
-        errorEl.textContent = 'La letra del NIF no es correcta.';
+        errorEl.textContent = 'Formato incorrecto. DNI: 12345678Z · NIE: X1234567L · CIF: A12345678.';
         return false;
     }
 

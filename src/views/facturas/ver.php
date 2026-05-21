@@ -124,44 +124,52 @@ ob_start();
             </div>
         </div>
 
-        <div class="d-flex flex-wrap gap-2">
-            <button id="btnVerifactu" onclick="firmarYEnviar()" class="btn btn-sm btn-outline-primary fact-btn">
-                <i class="bi bi-send me-1"></i>Enviar a Hacienda
-            </button>
-
-            <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle fact-btn"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-filetype-xml me-1"></i>XML
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="descargarXml('sin-firma'); return false;">
-                        <i class="bi bi-file-earmark me-2"></i>Sin firma</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="descargarXml('firmado'); return false;">
-                        <i class="bi bi-shield-check me-2"></i>Firmado (XAdES)</a></li>
-                </ul>
+        <div class="card mb-4 fact-card">
+            <div class="card-header fact-card-header">
+                <span><i class="bi bi-gear me-2"></i>Acciones</span>
             </div>
+            <div class="card-body fact-card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <button id="btnVerifactu" onclick="firmarYEnviar()" class="btn btn-sm btn-outline-primary fact-btn">
+                        <i class="bi bi-send me-1"></i>Enviar a Hacienda
+                    </button>
 
-            <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-outline-danger dropdown-toggle fact-btn"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-file-earmark-pdf me-1"></i>PDF
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#" onclick="verPdf(); return false;">
-                        <i class="bi bi-eye me-2"></i>Ver en pantalla</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="descargarPdf(); return false;">
-                        <i class="bi bi-download me-2"></i>Descargar</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" onclick="enviarEmail(); return false;">
-                        <i class="bi bi-envelope me-2"></i>Enviar por email</a></li>
-                </ul>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle fact-btn"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-filetype-xml me-1"></i>XML
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="descargarXml('sin-firma'); return false;">
+                                <i class="bi bi-file-earmark me-2"></i>Sin firma</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="descargarXml('firmado'); return false;">
+                                <i class="bi bi-shield-check me-2"></i>Firmado (XAdES)</a></li>
+                        </ul>
+                    </div>
+
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-danger dropdown-toggle fact-btn"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="verPdf(); return false;">
+                                <i class="bi bi-eye me-2"></i>Ver en pantalla</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="descargarPdf(); return false;">
+                                <i class="bi bi-download me-2"></i>Descargar</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="enviarEmail(); return false;">
+                                <i class="bi bi-envelope me-2"></i>Enviar por email</a></li>
+                        </ul>
+                    </div>
+
+                    <a href="/SistemaGestionFacturas/src/views/facturas/listado.php"
+                       class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Volver
+                    </a>
+                </div>
+                <div id="accionesMsg" style="display:none;"></div>
             </div>
-
-            <a href="/SistemaGestionFacturas/src/views/facturas/listado.php"
-               class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-arrow-left me-1"></i>Volver
-            </a>
         </div>
     </div>
 </div>
