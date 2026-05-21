@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/src/core/Auth.php';
+Auth::requireLogin();
+
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/src/core/DatabaseExport.php';
 require_once __DIR__ . '/src/models/Factura.php';

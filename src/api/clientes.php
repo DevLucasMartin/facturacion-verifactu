@@ -4,12 +4,17 @@
  * Módulo de Facturación
  *
  * Endpoints:
- * GET   /api/clientes          - Listar clientes
- * GET   /api/clientes/:codigo  - Ver cliente
- * GET   /api/clientes/search   - Buscar clientes
- * POST  /api/clientes          - Crear cliente
- * PATCH /api/clientes/:id/nif  - Corregir NIF
+ * GET    /api/clientes          - Listar clientes
+ * GET    /api/clientes/:codigo  - Ver cliente
+ * GET    /api/clientes/search   - Buscar clientes
+ * POST   /api/clientes          - Crear cliente
+ * PUT    /api/clientes/:codigo  - Modificar cliente
+ * DELETE /api/clientes/:codigo  - Eliminar cliente (si no tiene facturas)
+ * PATCH  /api/clientes/:id/nif  - Corregir NIF
  */
+
+require_once __DIR__ . '/../core/Auth.php';
+Auth::requireApi();
 
 require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/../core/Response.php';
@@ -198,6 +203,22 @@ try {
 
         $clienteModel->update($idCliente, $data);
         Response::success($clienteModel->findWithDetails($idCliente), 'Cliente actualizado correctamente');
+    }
+
+    if ($fact_method === 'DELETE' && $fact_recurso === 'clientes') {
+        $idCliente = $fact_parts[1] ?? '';
+        if ($idCliente === '') {
+            http_response_code(422);
+            Response::error('Se requiere el código del cliente');
+        }
+        if (!$clienteModel->find($idCliente)) {
+            Response::notFound('Cliente no encontrado');
+        }
+        if (!$clienteModel->delete($idCliente)) {
+            http_response_code(409);
+            Response::error('No se puede eliminar el cliente porque tiene facturas asociadas');
+        }
+        Response::success(null, 'Cliente eliminado correctamente');
     }
 
     if ($fact_method === 'PATCH' && $fact_recurso === 'clientes') {

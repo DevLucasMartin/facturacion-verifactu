@@ -15,6 +15,9 @@
  * POST /api/verifactu/cola      - Procesar cola
  */
 
+require_once __DIR__ . '/../core/Auth.php';
+Auth::requireApi();
+
 require_once __DIR__ . '/../controllers/VerifactuController.php';
 
 header('Content-Type: application/json; charset=utf-8');

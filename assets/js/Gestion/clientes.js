@@ -325,10 +325,15 @@ function renderClientes(clientes) {
                         : '<i class="bi bi-x-circle-fill text-danger"></i>'}
                 </td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary fact-btn"
+                    <button class="btn btn-sm btn-outline-primary fact-btn me-1"
                             title="Modificar"
                             onclick="abrirModificarCliente('${cli_esc(c.Codigo)}')">
                         <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger fact-btn"
+                            title="Eliminar"
+                            onclick="eliminarCliente('${cli_esc(c.Codigo)}', '${cli_esc(c.Archivar_Como)}')">
+                        <i class="bi bi-trash"></i>
                     </button>
                 </td>
             </tr>`;
@@ -373,6 +378,20 @@ function renderPaginacion(response) {
             cargarClientes();
         }
     });
+}
+
+function eliminarCliente(codigo, nombre) {
+    if (!confirm(`¿Eliminar el cliente "${nombre}" (${codigo})?\n\nEsta acción no se puede deshacer.`)) return;
+
+    App.api(`${FACT_API_BASE}/clientes.php/${encodeURIComponent(codigo)}`, { method: 'DELETE' })
+        .done(function () {
+            App.notify('Cliente eliminado correctamente', 'success');
+            cargarClientes();
+        })
+        .fail(function (xhr) {
+            const msg = xhr.responseJSON?.message || 'Error al eliminar el cliente.';
+            App.notify(msg, 'danger');
+        });
 }
 
 function cli_esc(text) {

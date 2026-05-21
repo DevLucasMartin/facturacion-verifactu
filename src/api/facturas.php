@@ -36,6 +36,9 @@ register_shutdown_function(function() {
     }
 });
 
+require_once __DIR__ . '/../core/Auth.php';
+Auth::requireApi();
+
 require_once __DIR__ . '/../controllers/FacturaController.php';
 
 $method     = $_SERVER['REQUEST_METHOD'];

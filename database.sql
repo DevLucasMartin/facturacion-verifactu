@@ -139,10 +139,8 @@ INSERT INTO `Canales` (`Codigo`, `Descripcion`, `Id_Cliente_Facturacion`, `Factu
     ('ACCI',  'Accenture Spain S.L.',  NULL, 'N', 'N'),
     ('IBER',  'Ibermática S.A.',       NULL, 'N', 'N'),
     ('EVER',  'Everis Spain S.L.',     NULL, 'N', 'N'),
-    ('A',     'Facturas completas',    NULL, 'N', 'N'),
-    ('S',     'Simplificadas / Tickets', NULL, 'N', 'S'),
-    ('RECT',  'Rectificativas',        NULL, 'N', 'N'),
-    ('REC',   'Recapitulativas',       NULL, 'N', 'N');
+    ('A',     'Facturas completas',      NULL, 'N', 'N'),
+    ('S',     'Simplificadas / Tickets', NULL, 'N', 'S');
 
 -- =============================================================
 -- 6. CLIENTES
@@ -639,15 +637,15 @@ INSERT INTO `Albaranes_Clientes`
      `Cerrado`, `Facturado`, `Cobrado`, `Fecha_Cierre`,
      `Fecha_Alta`, `Usuario_Alta`, `Ultima_Modificacion`, `Usuario_Ultima_Modificacion`)
 VALUES
-    -- Cerrados y facturados (vinculados a facturas 2026A0001 y 2026A0002)
-    ('2026A0001','A',1,'2026-01-15','CLI001','TRF',  525.0000,  525.0000,  635.2500,'S','S','S','2026-01-20', NOW(),'sistema',NOW(),'sistema'),
-    ('2026A0002','A',2,'2026-01-22','CLI002','TAR',  299.0000,  299.0000,  361.7900,'S','S','S','2026-01-25', NOW(),'sistema',NOW(),'sistema'),
+    -- Cerrados y facturados (vinculados a facturas AC001 y AC002)
+    ('2026AC0000000000001','ACCI',1,'2026-01-15','CLI001','TRF',  525.0000,  525.0000,  635.2500,'S','S','S','2026-01-20', NOW(),'sistema',NOW(),'sistema'),
+    ('2026AC0000000000002','ACCI',2,'2026-01-22','CLI002','TAR',  299.0000,  299.0000,  361.7900,'S','S','S','2026-01-25', NOW(),'sistema',NOW(),'sistema'),
     -- Cerrado, pendiente de facturar
-    ('2026A0003','A',3,'2026-02-05','CLI003','EFE',  450.0000,  450.0000,  544.5000,'S','N','N','2026-02-10', NOW(),'sistema',NOW(),'sistema'),
+    ('2026AC0000000000003','ACCI',3,'2026-02-05','CLI003','EFE',  450.0000,  450.0000,  544.5000,'S','N','N','2026-02-10', NOW(),'sistema',NOW(),'sistema'),
     -- Abiertos
-    ('2026A0004','A',4,'2026-02-18','CLI001','TRF',  600.0000,  600.0000,  726.0000,'N','N','N', NULL,        NOW(),'sistema',NOW(),'sistema'),
-    ('2026A0005','A',5,'2026-03-02','CLI004','DOM',  899.0000,  899.0000, 1087.7900,'N','N','N', NULL,        NOW(),'sistema',NOW(),'sistema'),
-    ('2026A0006','A',6,'2026-03-10','CLI006','DOM',  349.0000,  349.0000,  422.2900,'N','N','N', NULL,        NOW(),'sistema',NOW(),'sistema');
+    ('2026AC0000000000004','ACCI',4,'2026-02-18','CLI001','TRF',  600.0000,  600.0000,  726.0000,'N','N','N', NULL,        NOW(),'sistema',NOW(),'sistema'),
+    ('2026AC0000000000005','ACCI',5,'2026-03-02','CLI004','DOM',  899.0000,  899.0000, 1087.7900,'N','N','N', NULL,        NOW(),'sistema',NOW(),'sistema'),
+    ('2026AC0000000000006','ACCI',6,'2026-03-10','CLI006','DOM',  349.0000,  349.0000,  422.2900,'N','N','N', NULL,        NOW(),'sistema',NOW(),'sistema');
 
 -- -----------------------------------------------------------
 -- Líneas de albaranes
@@ -657,19 +655,19 @@ INSERT INTO `Lineas_Albaranes_Clientes`
      `Cantidad`, `Precio`, `Descuento`, `Id_Tipo_IVA`,
      `Importe_Bruto`, `Base_Imponible`, `RE`, `Aplica_RE`, `Total`)
 VALUES
-    -- Albarán 2026A0001: consultoría + soporte → base 525, total 635.25
-    ('2026A0001',1,'ART001','Servicio de consultoría hora', 5.0000, 75.0000,0.00,'01', 375.0000, 375.0000,0.0000,'N', 453.7500),
-    ('2026A0001',2,'ART003','Soporte técnico mensual',      1.0000,150.0000,0.00,'01', 150.0000, 150.0000,0.0000,'N', 181.5000),
-    -- Albarán 2026A0002: licencia → base 299, total 361.79
-    ('2026A0002',1,'ART002','Licencia software anual',      1.0000,299.0000,0.00,'01', 299.0000, 299.0000,0.0000,'N', 361.7900),
-    -- Albarán 2026A0003: auditoría → base 450, total 544.50
-    ('2026A0003',1,'ART005','Auditoría de sistemas',        1.0000,450.0000,0.00,'01', 450.0000, 450.0000,0.0000,'N', 544.5000),
-    -- Albarán 2026A0004: formación → base 600, total 726
-    ('2026A0004',1,'ART006','Formación presencial (día)',   1.0000,600.0000,0.00,'01', 600.0000, 600.0000,0.0000,'N', 726.0000),
-    -- Albarán 2026A0005: ordenador → base 899, total 1087.79
-    ('2026A0005',1,'ART009','Ordenador portátil 15"',       1.0000,899.0000,0.00,'01', 899.0000, 899.0000,0.0000,'N',1087.7900),
-    -- Albarán 2026A0006: impresora → base 349, total 422.29
-    ('2026A0006',1,'ART011','Impresora láser multifunción', 1.0000,349.0000,0.00,'01', 349.0000, 349.0000,0.0000,'N', 422.2900);
+    -- Albarán AC001: consultoría + soporte → base 525, total 635.25
+    ('2026AC0000000000001',1,'ART001','Servicio de consultoría hora', 5.0000, 75.0000,0.00,'01', 375.0000, 375.0000,0.0000,'N', 453.7500),
+    ('2026AC0000000000001',2,'ART003','Soporte técnico mensual',      1.0000,150.0000,0.00,'01', 150.0000, 150.0000,0.0000,'N', 181.5000),
+    -- Albarán AC002: licencia → base 299, total 361.79
+    ('2026AC0000000000002',1,'ART002','Licencia software anual',      1.0000,299.0000,0.00,'01', 299.0000, 299.0000,0.0000,'N', 361.7900),
+    -- Albarán AC003: auditoría → base 450, total 544.50
+    ('2026AC0000000000003',1,'ART005','Auditoría de sistemas',        1.0000,450.0000,0.00,'01', 450.0000, 450.0000,0.0000,'N', 544.5000),
+    -- Albarán AC004: formación → base 600, total 726
+    ('2026AC0000000000004',1,'ART006','Formación presencial (día)',   1.0000,600.0000,0.00,'01', 600.0000, 600.0000,0.0000,'N', 726.0000),
+    -- Albarán AC005: ordenador → base 899, total 1087.79
+    ('2026AC0000000000005',1,'ART009','Ordenador portátil 15"',       1.0000,899.0000,0.00,'01', 899.0000, 899.0000,0.0000,'N',1087.7900),
+    -- Albarán AC006: impresora → base 349, total 422.29
+    ('2026AC0000000000006',1,'ART011','Impresora láser multifunción', 1.0000,349.0000,0.00,'01', 349.0000, 349.0000,0.0000,'N', 422.2900);
 
 -- -----------------------------------------------------------
 -- Facturas de clientes (8)
@@ -685,50 +683,50 @@ INSERT INTO `Facturas_Clientes`
      `Fecha_Alta`, `Usuario_Alta`, `Ultima_Modificacion`, `Usuario_Ultima_Modificacion`)
 VALUES
     -- COMPLETA 1: CLI001 - consultoría + soporte - cobrada
-    ('2026A0001','A',1,'2026-01-20','CLI001','TRF','COMPLETA',
+    ('2026AC0000000000001','ACCI',1,'2026-01-20','CLI001','TRF','COMPLETA',
       525.0000, 525.0000, 110.2500,  635.2500,
       'S','S','N','N', NULL,NULL, NULL,NULL,
       '2026-01-20','2026-01-28', NOW(),'sistema',NOW(),'sistema'),
 
     -- COMPLETA 2: CLI002 - licencia - cerrada sin cobrar
-    ('2026A0002','A',2,'2026-01-25','CLI002','TAR','COMPLETA',
+    ('2026AC0000000000002','ACCI',2,'2026-01-25','CLI002','TAR','COMPLETA',
       299.0000, 299.0000,  62.7900,  361.7900,
       'S','N','N','N', NULL,NULL, NULL,NULL,
       '2026-01-25', NULL,        NOW(),'sistema',NOW(),'sistema'),
 
     -- COMPLETA 3: CLI004 - ordenador - pendiente
-    ('2026A0003','A',3,'2026-02-15','CLI004','DOM','COMPLETA',
+    ('2026AC0000000000003','ACCI',3,'2026-02-15','CLI004','DOM','COMPLETA',
       899.0000, 899.0000, 188.7900, 1087.7900,
       'N','N','N','N', NULL,NULL, NULL,NULL,
        NULL,NULL,                  NOW(),'sistema',NOW(),'sistema'),
 
     -- COMPLETA 4: CLI005 - soporte 2 meses - pendiente
-    ('2026A0004','A',4,'2026-03-01','CLI005','TRF','COMPLETA',
+    ('2026AC0000000000004','ACCI',4,'2026-03-01','CLI005','TRF','COMPLETA',
       300.0000, 300.0000,  63.0000,  363.0000,
       'N','N','N','N', NULL,NULL, NULL,NULL,
        NULL,NULL,                  NOW(),'sistema',NOW(),'sistema'),
 
     -- SIMPLIFICADA 1: material oficina - cobrada en caja
-    ('2026S0001','S',1,'2026-01-10', NULL,'EFE','SIMPLIFICADA',
+    ('2026AC0000000000005','ACCI',5,'2026-01-10', NULL,'EFE','SIMPLIFICADA',
       100.0000, 100.0000,  10.0000,  110.0000,
       'S','S','N','S', NULL,NULL, NULL,NULL,
       '2026-01-10','2026-01-10', NOW(),'sistema',NOW(),'sistema'),
 
     -- SIMPLIFICADA 2: antivirus - cobrada en caja
-    ('2026S0002','S',2,'2026-01-18', NULL,'EFE','SIMPLIFICADA',
+    ('2026AC0000000000006','ACCI',6,'2026-01-18', NULL,'EFE','SIMPLIFICADA',
        49.0000,  49.0000,  10.2900,   59.2900,
       'S','S','N','S', NULL,NULL, NULL,NULL,
       '2026-01-18','2026-01-18', NOW(),'sistema',NOW(),'sistema'),
 
-    -- RECTIFICATIVA: anula soporte de 2026A0001
-    ('2026R0001','RECT',1,'2026-02-01','CLI001','TRF','RECTIFICATIVA',
+    -- RECTIFICATIVA: anula soporte de AC001
+    ('2026AC0000000000007','ACCI',7,'2026-02-01','CLI001','TRF','RECTIFICATIVA',
      -150.0000,-150.0000, -31.5000, -181.5000,
-      'S','S','S','N', '2026A0001','Error en línea de soporte técnico: importe incorrecto',
+      'S','S','S','N', '2026AC0000000000001','Error en línea de soporte técnico: importe incorrecto',
       NULL,NULL,
       '2026-02-01','2026-02-05', NOW(),'sistema',NOW(),'sistema'),
 
-    -- RECAPITULATIVA: agrupa S0001 + S0002 (enero 2026)
-    ('2026C0001','REC',1,'2026-01-31', NULL,'EFE','RECAPITULATIVA',
+    -- RECAPITULATIVA: agrupa AC005 + AC006 (enero 2026)
+    ('2026AC0000000000008','ACCI',8,'2026-01-31', NULL,'EFE','RECAPITULATIVA',
       149.0000, 149.0000,  20.2900,  169.2900,
       'S','S','N','N', NULL,NULL,
       '2026-01-01','2026-01-31',
@@ -742,37 +740,37 @@ INSERT INTO `Lineas_Facturas_Clientes`
      `Cantidad`, `Precio`, `Descuento`, `Id_Tipo_IVA`,
      `Importe_Bruto`, `Importe_Descuento`, `Base_Imponible`, `Cuota_IVA`, `RE`, `Aplica_RE`, `Total`)
 VALUES
-    -- 2026A0001: consultoría 5h + soporte 1 mes
-    ('2026A0001',1,'ART001','Servicio de consultoría hora', 5.0000, 75.0000,0.00,'01', 375.0000,0.0000, 375.0000, 78.7500,0.0000,'N',  453.7500),
-    ('2026A0001',2,'ART003','Soporte técnico mensual',      1.0000,150.0000,0.00,'01', 150.0000,0.0000, 150.0000, 31.5000,0.0000,'N',  181.5000),
-    -- 2026A0002: licencia
-    ('2026A0002',1,'ART002','Licencia software anual',      1.0000,299.0000,0.00,'01', 299.0000,0.0000, 299.0000, 62.7900,0.0000,'N',  361.7900),
-    -- 2026A0003: ordenador
-    ('2026A0003',1,'ART009','Ordenador portátil 15"',       1.0000,899.0000,0.00,'01', 899.0000,0.0000, 899.0000,188.7900,0.0000,'N', 1087.7900),
-    -- 2026A0004: soporte 2 meses
-    ('2026A0004',1,'ART003','Soporte técnico mensual',      2.0000,150.0000,0.00,'01', 300.0000,0.0000, 300.0000, 63.0000,0.0000,'N',  363.0000),
-    -- 2026S0001: material oficina (IVA reducido 10%)
-    ('2026S0001',1,'ART004','Material de oficina',          4.0000, 25.0000,0.00,'02', 100.0000,0.0000, 100.0000, 10.0000,0.0000,'N',  110.0000),
-    -- 2026S0002: antivirus + papel
-    ('2026S0002',1,'ART008','Antivirus empresarial anual',  1.0000, 49.0000,0.00,'01',  49.0000,0.0000,  49.0000, 10.2900,0.0000,'N',   59.2900),
-    -- 2026R0001: rectificativa (cantidad negativa)
-    ('2026R0001',1,'ART003','Soporte técnico mensual (anulación)', -1.0000,150.0000,0.00,'01',-150.0000,0.0000,-150.0000,-31.5000,0.0000,'N',-181.5000),
-    -- 2026C0001: recapitulativa (línea resumen)
-    ('2026C0001',1, NULL,   'Resumen facturas simplificadas enero 2026', 1.0000,149.0000,0.00,'01', 149.0000,0.0000, 149.0000, 20.2900,0.0000,'N',  169.2900);
+    -- AC001: consultoría 5h + soporte 1 mes
+    ('2026AC0000000000001',1,'ART001','Servicio de consultoría hora', 5.0000, 75.0000,0.00,'01', 375.0000,0.0000, 375.0000, 78.7500,0.0000,'N',  453.7500),
+    ('2026AC0000000000001',2,'ART003','Soporte técnico mensual',      1.0000,150.0000,0.00,'01', 150.0000,0.0000, 150.0000, 31.5000,0.0000,'N',  181.5000),
+    -- AC002: licencia
+    ('2026AC0000000000002',1,'ART002','Licencia software anual',      1.0000,299.0000,0.00,'01', 299.0000,0.0000, 299.0000, 62.7900,0.0000,'N',  361.7900),
+    -- AC003: ordenador
+    ('2026AC0000000000003',1,'ART009','Ordenador portátil 15"',       1.0000,899.0000,0.00,'01', 899.0000,0.0000, 899.0000,188.7900,0.0000,'N', 1087.7900),
+    -- AC004: soporte 2 meses
+    ('2026AC0000000000004',1,'ART003','Soporte técnico mensual',      2.0000,150.0000,0.00,'01', 300.0000,0.0000, 300.0000, 63.0000,0.0000,'N',  363.0000),
+    -- AC005: material oficina (IVA reducido 10%)
+    ('2026AC0000000000005',1,'ART004','Material de oficina',          4.0000, 25.0000,0.00,'02', 100.0000,0.0000, 100.0000, 10.0000,0.0000,'N',  110.0000),
+    -- AC006: antivirus
+    ('2026AC0000000000006',1,'ART008','Antivirus empresarial anual',  1.0000, 49.0000,0.00,'01',  49.0000,0.0000,  49.0000, 10.2900,0.0000,'N',   59.2900),
+    -- AC007: rectificativa (cantidad negativa)
+    ('2026AC0000000000007',1,'ART003','Soporte técnico mensual (anulación)', -1.0000,150.0000,0.00,'01',-150.0000,0.0000,-150.0000,-31.5000,0.0000,'N',-181.5000),
+    -- AC008: recapitulativa (línea resumen)
+    ('2026AC0000000000008',1, NULL,   'Resumen facturas simplificadas enero 2026', 1.0000,149.0000,0.00,'01', 149.0000,0.0000, 149.0000, 20.2900,0.0000,'N',  169.2900);
 
 -- -----------------------------------------------------------
 -- Relación albarán ↔ factura
 -- -----------------------------------------------------------
 INSERT INTO `Albaran_Factura` (`Id_Albaran`, `Id_Factura`) VALUES
-    ('2026A0001', '2026A0001'),
-    ('2026A0002', '2026A0002');
+    ('2026AC0000000000001', '2026AC0000000000001'),
+    ('2026AC0000000000002', '2026AC0000000000002');
 
 -- -----------------------------------------------------------
 -- Facturas sustituidas por la recapitulativa
 -- -----------------------------------------------------------
 INSERT INTO `Facturas_Sustituidas` (`Id_Recapitulativa`, `Id_Simplificada`) VALUES
-    ('2026C0001', '2026S0001'),
-    ('2026C0001', '2026S0002');
+    ('2026AC0000000000008', '2026AC0000000000005'),
+    ('2026AC0000000000008', '2026AC0000000000006');
 
 -- -----------------------------------------------------------
 -- Registros Verifactu
@@ -785,64 +783,64 @@ INSERT INTO `Verifactu_Registros`
      `Huella_Actual`, `Huella_Anterior`,
      `CSV_Hacienda`, `URL_Verificacion`)
 VALUES
-    -- 2026A0001: ENVIADO (primer registro, sin anterior)
-    ('FACTURA','2026A0001','ENVIADO',
+    -- AC001: ENVIADO (primer registro, sin anterior)
+    ('FACTURA','2026AC0000000000001','ENVIADO',
      '2026-01-20 09:00:00','2026-01-20 09:02:15', 0,
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0001',
       NULL,
-     'CSVF2026A00010001', 'https://sede.agenciatributaria.gob.es/verifactu/0001'),
+     'CSVAC2026AC00000000001', 'https://sede.agenciatributaria.gob.es/verifactu/0001'),
 
-    -- 2026A0002: ENVIADO
-    ('FACTURA','2026A0002','ENVIADO',
+    -- AC002: ENVIADO
+    ('FACTURA','2026AC0000000000002','ENVIADO',
      '2026-01-25 10:15:00','2026-01-25 10:17:30', 0,
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0002',
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0001',
-     'CSVF2026A00020002', 'https://sede.agenciatributaria.gob.es/verifactu/0002'),
+     'CSVAC2026AC00000000002', 'https://sede.agenciatributaria.gob.es/verifactu/0002'),
 
-    -- 2026A0003: PENDIENTE (generado, no enviado aún)
-    ('FACTURA','2026A0003','PENDIENTE',
+    -- AC003: PENDIENTE (generado, no enviado aún)
+    ('FACTURA','2026AC0000000000003','PENDIENTE',
      '2026-02-15 08:30:00', NULL, 0,
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0003',
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0002',
       NULL, NULL),
 
-    -- 2026A0004: PENDIENTE
-    ('FACTURA','2026A0004','PENDIENTE',
+    -- AC004: PENDIENTE
+    ('FACTURA','2026AC0000000000004','PENDIENTE',
      '2026-03-01 11:00:00', NULL, 0,
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0004',
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0003',
       NULL, NULL),
 
-    -- 2026S0001: ENVIADO
-    ('FACTURA','2026S0001','ENVIADO',
+    -- AC005: ENVIADO (simplificada)
+    ('FACTURA','2026AC0000000000005','ENVIADO',
      '2026-01-10 12:00:00','2026-01-10 12:01:45', 0,
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0005',
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0004',
-     'CSVS2026S00010005', 'https://sede.agenciatributaria.gob.es/verifactu/0005'),
+     'CSVAC2026AC00000000005', 'https://sede.agenciatributaria.gob.es/verifactu/0005'),
 
-    -- 2026S0002: ENVIADO
-    ('FACTURA','2026S0002','ENVIADO',
+    -- AC006: ENVIADO (simplificada)
+    ('FACTURA','2026AC0000000000006','ENVIADO',
      '2026-01-18 14:30:00','2026-01-18 14:31:20', 0,
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0006',
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0005',
-     'CSVS2026S00020006', 'https://sede.agenciatributaria.gob.es/verifactu/0006'),
+     'CSVAC2026AC00000000006', 'https://sede.agenciatributaria.gob.es/verifactu/0006'),
 
-    -- 2026R0001: ENVIADO (rectificativa)
-    ('FACTURA','2026R0001','ENVIADO',
+    -- AC007: ENVIADO (rectificativa)
+    ('FACTURA','2026AC0000000000007','ENVIADO',
      '2026-02-01 09:45:00','2026-02-01 09:46:55', 0,
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0007',
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0006',
-     'CSVR2026R00010007', 'https://sede.agenciatributaria.gob.es/verifactu/0007'),
+     'CSVAC2026AC00000000007', 'https://sede.agenciatributaria.gob.es/verifactu/0007'),
 
-    -- 2026C0001: ENVIADO (recapitulativa, con un reintento previo)
-    ('FACTURA','2026C0001','ENVIADO',
+    -- AC008: ENVIADO (recapitulativa, con un reintento previo)
+    ('FACTURA','2026AC0000000000008','ENVIADO',
      '2026-01-31 16:00:00','2026-01-31 16:05:30', 1,
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0008',
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0007',
-     'CSVC2026C00010008', 'https://sede.agenciatributaria.gob.es/verifactu/0008'),
+     'CSVAC2026AC00000000008', 'https://sede.agenciatributaria.gob.es/verifactu/0008'),
 
-    -- 2026A0003: primer intento fallido (ERROR, antes del pendiente actual)
-    ('FACTURA','2026A0003','ERROR',
+    -- AC003: primer intento fallido (ERROR, antes del pendiente actual)
+    ('FACTURA','2026AC0000000000003','ERROR',
      '2026-02-15 08:00:00', NULL, 1,
      NULL,
      'aaaa1111bbbb2222cccc3333dddd4444eeee5555ffff6666aaaa7777bbbb0002',
@@ -860,4 +858,6 @@ CREATE TABLE `Usuarios` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `Usuarios` (`Usuario`, `Contrasena`)
-VALUES ('admin', SHA2('admin', 256));
+VALUES
+    ('admin', SHA2('Admin1', 256)),
+    ('user',  SHA2('User1',  256));

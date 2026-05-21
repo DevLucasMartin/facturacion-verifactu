@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/src/core/Auth.php';
+Auth::requireLogin();
+
 require_once __DIR__ . '/vendor/autoload.php';
 
 $tmp = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'test.xlsx';

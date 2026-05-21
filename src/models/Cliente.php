@@ -270,4 +270,20 @@ class Cliente {
         $fact_cliente = $this->find($fact_id_cliente);
         return $fact_cliente['Id_Zona'] ?? null;
     }
+
+    /**
+     * Eliminar un cliente. Devuelve false si tiene facturas asociadas.
+     */
+    public function delete(string $codigo): bool
+    {
+        $facturas = $this->fact_conexionBBDD->fetchCell(
+            "SELECT COUNT(*) FROM `Facturas_Clientes` WHERE `Id_Cliente` = ?",
+            [$codigo]
+        );
+        if ((int)$facturas > 0) {
+            return false;
+        }
+        $this->fact_conexionBBDD->delete('Clientes', '`Codigo` = ?', [$codigo]);
+        return true;
+    }
 }

@@ -3,6 +3,9 @@
  * Endpoint de descarga de archivos temporales
  */
 
+require_once __DIR__ . '/../core/Auth.php';
+Auth::requireApi();
+
 $archivo = $_GET['archivo'] ?? '';
 
 // Seguridad: solo nombre de archivo, sin rutas

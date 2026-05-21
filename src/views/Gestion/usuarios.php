@@ -56,7 +56,7 @@ ob_start();
     </div>
 </div>
 
-<!-- Modal crear / modificar -->
+<!-- Modal crear / editar -->
 <div class="modal fade" id="usuarioModal" tabindex="-1" aria-modal="true" aria-labelledby="usuarioModalTitle">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -67,13 +67,30 @@ ob_start();
             <div class="modal-body">
                 <div id="usuarioMsg" class="alert d-none mb-3"></div>
                 <form id="usuarioForm">
+
+                    <!-- Nombre de usuario (nuevo o a editar) -->
                     <div class="mb-3" id="wrapUsuarioNombre">
-                        <label class="form-label fact-form-label">Usuario <span class="text-danger">*</span></label>
+                        <label class="form-label fact-form-label" id="uUsuarioLabel">Usuario <span class="text-danger">*</span></label>
                         <input type="text" class="form-control fact-form-control" id="uUsuario" name="uUsuario"
                                placeholder="Ej: operador1" maxlength="50"
                                autocomplete="username">
                         <div class="invalid-feedback" id="uUsuarioError"></div>
                     </div>
+
+                    <!-- Contraseña actual (solo en modo edición, cuando se quiere cambiar la contraseña) -->
+                    <div class="mb-3 d-none" id="wrapPassActual">
+                        <label class="form-label fact-form-label">Contraseña actual <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="password" class="form-control fact-form-control" id="uContrasenaActual"
+                                   placeholder="Introduce tu contraseña actual" autocomplete="current-password">
+                            <button type="button" class="btn btn-outline-secondary" id="btnTogglePassActual" tabindex="-1">
+                                <i class="bi bi-eye" id="iconTogglePassActual"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback d-block text-danger" id="uPassActualError" style="display:none;font-size:.82rem;"></div>
+                    </div>
+
+                    <!-- Nueva contraseña -->
                     <div class="mb-3">
                         <label class="form-label fact-form-label" id="uPassLabel">Contraseña <span class="text-danger">*</span></label>
                         <div class="input-group">
@@ -83,11 +100,13 @@ ob_start();
                                 <i class="bi bi-eye" id="iconTogglePass"></i>
                             </button>
                         </div>
-                        <div class="form-text text-muted" style="font-size:.78rem;">
+                        <div class="form-text text-muted" style="font-size:.78rem;" id="uPassHint">
                             Mínimo 1 mayúscula y 1 número.
                         </div>
                         <div class="invalid-feedback d-block text-danger" id="uPassError" style="display:none;font-size:.82rem;"></div>
                     </div>
+
+                    <!-- Repetir contraseña -->
                     <div class="mb-3">
                         <label class="form-label fact-form-label">Repetir contraseña <span class="text-danger">*</span></label>
                         <div class="input-group">
@@ -99,6 +118,7 @@ ob_start();
                         </div>
                         <div class="invalid-feedback d-block text-danger" id="uPass2Error" style="display:none;font-size:.82rem;"></div>
                     </div>
+
                     <div class="d-flex justify-content-end gap-2 mt-4">
                         <button type="button" class="btn btn-outline-secondary fact-btn" data-bs-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn btn-primary fact-btn" id="uBtnGuardar">

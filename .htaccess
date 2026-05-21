@@ -1,0 +1,19 @@
+Options -Indexes
+
+# Bloquear acceso a archivos sensibles de configuración
+<FilesMatch "\.(sql|json|lock|md|log|sh|env|yml|yaml|xml|ini|dist)$">
+    Require all denied
+</FilesMatch>
+
+RewriteEngine On
+
+# Redirigir el raíz al index.php
+RewriteRule ^$ index.php [L]
+
+# Bloquear y redirigir acceso directo a directorios privados → login
+RewriteRule ^(vendor|tests|Front)(/.*)?$ /SistemaGestionFacturas/index.php [L,R=302]
+RewriteRule ^src/(config|core|models|controllers|services|libs|templates|storage)(/.*)?$ /SistemaGestionFacturas/index.php [L,R=302]
+
+# Redirigir navegación por directorios al login (cuando no se llega por un archivo real)
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ /SistemaGestionFacturas/index.php [L,R=302]

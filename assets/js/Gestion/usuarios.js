@@ -32,12 +32,26 @@ $(document).ready(function () {
         guardarUsuario();
     });
 
+    $('#btnTogglePassActual').on('click', function () {
+        usr_togglePass('uContrasenaActual', 'iconTogglePassActual');
+    });
     $('#btnTogglePass').on('click', function () {
         usr_togglePass('uContrasena', 'iconTogglePass');
     });
-
     $('#btnTogglePass2').on('click', function () {
         usr_togglePass('uContrasena2', 'iconTogglePass2');
+    });
+
+    // Mostrar/ocultar campo de contraseña actual según se rellene la nueva
+    $('#uContrasena').on('input', function () {
+        if (usr_modoEdicion) {
+            const tieneNueva = $(this).val().trim() !== '';
+            $('#wrapPassActual').toggleClass('d-none', !tieneNueva);
+            if (!tieneNueva) {
+                $('#uContrasenaActual').val('').removeClass('is-invalid');
+                $('#uPassActualError').hide().text('');
+            }
+        }
     });
 
     $('#btnConfirmarEliminar').on('click', function () {
@@ -54,10 +68,18 @@ function abrirNuevoUsuario() {
     $('#usuarioMsg').addClass('d-none').text('');
     $('#usuarioForm')[0].reset();
     usr_resetPassFields();
-    $('#uPassLabel').html('Contraseña <span class="text-danger">*</span>');
+
     $('#wrapUsuarioNombre').show();
-    $('#uUsuario').prop('readonly', false).removeClass('is-invalid is-valid').val('');
+    $('#uUsuarioLabel').html('Usuario <span class="text-danger">*</span>');
+    $('#uUsuario').prop('readonly', false).removeClass('is-invalid is-valid').val('').attr('placeholder', 'Ej: operador1');
     $('#uUsuarioError').text('');
+
+    $('#wrapPassActual').addClass('d-none');
+    $('#uPassLabel').html('Contraseña <span class="text-danger">*</span>');
+    $('#uPassHint').show();
+    $('#uContrasena').attr('placeholder', 'Contraseña');
+    $('#uContrasena2').attr('placeholder', 'Repite la contraseña').closest('.mb-3').show();
+
     usr_modal.show();
 }
 
@@ -65,12 +87,27 @@ function abrirModificarUsuario(usuario) {
     usr_modoEdicion    = true;
     usr_usuarioEdicion = usuario;
 
-    $('#usuarioModalTitle').text('Cambiar contraseña — ' + usr_esc(usuario));
+    $('#usuarioModalTitle').text('Editar usuario — ' + usr_esc(usuario));
     $('#usuarioMsg').addClass('d-none').text('');
     $('#usuarioForm')[0].reset();
     usr_resetPassFields();
-    $('#uPassLabel').html('Nueva contraseña <span class="text-danger">*</span>');
-    $('#wrapUsuarioNombre').hide();
+
+    // Campo nombre: pre-relleno y editable
+    $('#wrapUsuarioNombre').show();
+    $('#uUsuarioLabel').html('Nombre de usuario');
+    $('#uUsuario').prop('readonly', false).removeClass('is-invalid is-valid').val(usuario).attr('placeholder', 'Nombre de usuario');
+    $('#uUsuarioError').text('');
+
+    // Contraseña actual oculta hasta que se escriba nueva contraseña
+    $('#wrapPassActual').addClass('d-none');
+    $('#uContrasenaActual').val('').removeClass('is-invalid');
+    $('#uPassActualError').hide().text('');
+
+    $('#uPassLabel').html('Nueva contraseña <span class="text-muted fw-normal" style="font-size:.85em;">(opcional)</span>');
+    $('#uPassHint').show();
+    $('#uContrasena').attr('placeholder', 'Dejar vacío para no cambiarla');
+    $('#uContrasena2').attr('placeholder', 'Repite la nueva contraseña').closest('.mb-3').show();
+
     usr_modal.show();
 }
 
@@ -81,23 +118,29 @@ function abrirEliminarUsuario(usuario) {
 }
 
 function guardarUsuario() {
-    const pass  = $('#uContrasena').val();
-    const pass2 = $('#uContrasena2').val();
-
-    if (!usr_modoEdicion) {
-        const nombre = $('#uUsuario').val().trim();
-        if (nombre === '') {
-            $('#uUsuario').addClass('is-invalid');
-            $('#uUsuarioError').text('El nombre de usuario es obligatorio.');
-            return;
-        }
-        if (!/^[A-Za-z0-9_]{1,50}$/.test(nombre)) {
-            $('#uUsuario').addClass('is-invalid');
-            $('#uUsuarioError').text('Solo letras, números y guion bajo (máx. 50).');
-            return;
-        }
-        $('#uUsuario').removeClass('is-invalid');
+    if (usr_modoEdicion) {
+        guardarEdicion();
+    } else {
+        guardarNuevo();
     }
+}
+
+function guardarNuevo() {
+    const nombre = $('#uUsuario').val().trim();
+    const pass   = $('#uContrasena').val();
+    const pass2  = $('#uContrasena2').val();
+
+    if (nombre === '') {
+        $('#uUsuario').addClass('is-invalid');
+        $('#uUsuarioError').text('El nombre de usuario es obligatorio.');
+        return;
+    }
+    if (!/^[A-Za-z0-9_]{1,50}$/.test(nombre)) {
+        $('#uUsuario').addClass('is-invalid');
+        $('#uUsuarioError').text('Solo letras, números y guion bajo (máx. 50).');
+        return;
+    }
+    $('#uUsuario').removeClass('is-invalid');
 
     const errPass = usr_validarPassword(pass);
     if (errPass) {
@@ -118,42 +161,109 @@ function guardarUsuario() {
 
     $('#uBtnGuardar').prop('disabled', true);
 
-    if (usr_modoEdicion) {
-        App.api(`${USR_API}/${encodeURIComponent(usr_usuarioEdicion)}`, {
-            method: 'PUT',
-            data: JSON.stringify({ Contrasena: pass }),
-            contentType: 'application/json'
-        })
-        .done(function () {
-            usr_mostrarMsg('success', 'Contraseña actualizada correctamente.');
-            setTimeout(function () { usr_modal.hide(); cargarUsuarios(); }, 800);
-        })
-        .fail(function (xhr) {
-            usr_mostrarMsg('danger', xhr.responseJSON?.message || 'Error al actualizar la contraseña.');
-        })
-        .always(function () { $('#uBtnGuardar').prop('disabled', false); });
-    } else {
-        const nombre = $('#uUsuario').val().trim();
-        App.api(USR_API, {
-            method: 'POST',
-            data: JSON.stringify({ Usuario: nombre, Contrasena: pass }),
-            contentType: 'application/json'
-        })
-        .done(function () {
-            usr_mostrarMsg('success', `Usuario "${usr_esc(nombre)}" creado correctamente.`);
-            setTimeout(function () { usr_modal.hide(); cargarUsuarios(); }, 800);
-        })
-        .fail(function (xhr) {
-            const msg = xhr.responseJSON?.message || 'Error al crear el usuario.';
-            if (msg.includes('ya existe')) {
-                $('#uUsuario').addClass('is-invalid');
-                $('#uUsuarioError').text('Este usuario ya existe.');
-            } else {
-                usr_mostrarMsg('danger', msg);
-            }
-        })
-        .always(function () { $('#uBtnGuardar').prop('disabled', false); });
+    App.api(USR_API, {
+        method: 'POST',
+        data: JSON.stringify({ Usuario: nombre, Contrasena: pass }),
+        contentType: 'application/json'
+    })
+    .done(function () {
+        usr_mostrarMsg('success', `Usuario "${usr_esc(nombre)}" creado correctamente.`);
+        setTimeout(function () { usr_modal.hide(); cargarUsuarios(); }, 800);
+    })
+    .fail(function (xhr) {
+        const msg = xhr.responseJSON?.message || 'Error al crear el usuario.';
+        if (msg.includes('ya existe')) {
+            $('#uUsuario').addClass('is-invalid');
+            $('#uUsuarioError').text('Este usuario ya existe.');
+        } else {
+            usr_mostrarMsg('danger', msg);
+        }
+    })
+    .always(function () { $('#uBtnGuardar').prop('disabled', false); });
+}
+
+function guardarEdicion() {
+    const nuevoNombre  = $('#uUsuario').val().trim();
+    const passActual   = $('#uContrasenaActual').val();
+    const passNueva    = $('#uContrasena').val();
+    const passNueva2   = $('#uContrasena2').val();
+
+    const cambiarNombre = nuevoNombre !== '' && nuevoNombre !== usr_usuarioEdicion;
+    const cambiarPass   = passNueva !== '';
+
+    // Validar nombre si ha cambiado
+    if (cambiarNombre && !/^[A-Za-z0-9_]{1,50}$/.test(nuevoNombre)) {
+        $('#uUsuario').addClass('is-invalid');
+        $('#uUsuarioError').text('Solo letras, números y guion bajo (máx. 50).');
+        return;
     }
+    $('#uUsuario').removeClass('is-invalid');
+    $('#uUsuarioError').text('');
+
+    if (!cambiarNombre && !cambiarPass) {
+        usr_mostrarMsg('warning', 'No has realizado ningún cambio.');
+        return;
+    }
+
+    // Validar contraseña nueva si se ha rellenado
+    if (cambiarPass) {
+        const errPass = usr_validarPassword(passNueva);
+        if (errPass) {
+            $('#uPassError').show().text(errPass);
+            $('#uContrasena').addClass('is-invalid');
+            return;
+        }
+        $('#uPassError').hide().text('');
+        $('#uContrasena').removeClass('is-invalid');
+
+        if (passNueva !== passNueva2) {
+            $('#uPass2Error').show().text('Las contraseñas no coinciden.');
+            $('#uContrasena2').addClass('is-invalid');
+            return;
+        }
+        $('#uPass2Error').hide().text('');
+        $('#uContrasena2').removeClass('is-invalid');
+
+        if (passActual === '') {
+            $('#uContrasenaActual').addClass('is-invalid');
+            $('#uPassActualError').show().text('Debes introducir tu contraseña actual para poder cambiarla.');
+            $('#wrapPassActual').removeClass('d-none');
+            return;
+        }
+        $('#uContrasenaActual').removeClass('is-invalid');
+        $('#uPassActualError').hide().text('');
+    }
+
+    const payload = {};
+    if (cambiarNombre) payload.NuevoUsuario     = nuevoNombre;
+    if (cambiarPass)   payload.ContrasenaActual = passActual;
+    if (cambiarPass)   payload.Contrasena       = passNueva;
+
+    $('#uBtnGuardar').prop('disabled', true);
+
+    App.api(`${USR_API}/${encodeURIComponent(usr_usuarioEdicion)}`, {
+        method: 'PUT',
+        data: JSON.stringify(payload),
+        contentType: 'application/json'
+    })
+    .done(function (resp) {
+        usr_mostrarMsg('success', resp.message || 'Cambios guardados correctamente.');
+        setTimeout(function () { usr_modal.hide(); cargarUsuarios(); }, 800);
+    })
+    .fail(function (xhr) {
+        const msg = xhr.responseJSON?.message || 'Error al guardar los cambios.';
+        if (msg.includes('contraseña actual')) {
+            $('#uContrasenaActual').addClass('is-invalid');
+            $('#uPassActualError').show().text(msg);
+            $('#wrapPassActual').removeClass('d-none');
+        } else if (msg.includes('nombre') || msg.includes('ya existe')) {
+            $('#uUsuario').addClass('is-invalid');
+            $('#uUsuarioError').text(msg);
+        } else {
+            usr_mostrarMsg('danger', msg);
+        }
+    })
+    .always(function () { $('#uBtnGuardar').prop('disabled', false); });
 }
 
 function eliminarUsuario(usuario) {
@@ -212,9 +322,9 @@ function renderUsuarios(items) {
                 <td class="text-center">
                     <div class="d-inline-flex gap-1">
                         <button class="btn btn-sm btn-outline-primary fact-btn"
-                                title="Cambiar contraseña"
+                                title="Editar"
                                 onclick="abrirModificarUsuario('${usr_esc(u.Usuario)}')">
-                            <i class="bi bi-key"></i>
+                            <i class="bi bi-pencil"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-danger fact-btn"
                                 title="Eliminar"
@@ -235,10 +345,13 @@ function usr_validarPassword(pass) {
 }
 
 function usr_resetPassFields() {
+    $('#uContrasenaActual').val('').attr('type', 'password').removeClass('is-invalid');
     $('#uContrasena').val('').attr('type', 'password').removeClass('is-invalid');
     $('#uContrasena2').val('').attr('type', 'password').removeClass('is-invalid');
+    $('#iconTogglePassActual').attr('class', 'bi bi-eye');
     $('#iconTogglePass').attr('class', 'bi bi-eye');
     $('#iconTogglePass2').attr('class', 'bi bi-eye');
+    $('#uPassActualError').hide().text('');
     $('#uPassError').hide().text('');
     $('#uPass2Error').hide().text('');
 }

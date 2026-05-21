@@ -42,7 +42,7 @@ ob_start();
                         <th>Forma de pago</th>
                         <th class="text-center">RE</th>
                         <th class="text-center">Activo</th>
-                        <th class="text-center" style="width:80px;">Editar</th>
+                        <th class="text-center" style="width:110px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="clientesTableBody">
