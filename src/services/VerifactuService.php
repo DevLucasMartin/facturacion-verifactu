@@ -790,8 +790,11 @@ class VerifactuService
         $curlError = curl_error($ch);
         curl_close($ch);
 
-        if ($curlError)                          throw new Exception("Error cURL: {$curlError}");
-        if ($httpCode !== 200 && $httpCode !== 201) throw new Exception("Error HTTP {$httpCode}: {$response}");
+        if ($curlError) throw new Exception("Error cURL: {$curlError}");
+        if ($httpCode !== 200 && $httpCode !== 201) {
+            $safeBody = mb_convert_encoding((string)$response, 'UTF-8', 'auto');
+            throw new Exception("Error HTTP {$httpCode}: " . substr($safeBody, 0, 500));
+        }
 
         return $this->parsearRespuesta($response);
     }
@@ -825,6 +828,7 @@ class VerifactuService
 
     private function parsearRespuesta(string $response): array
     {
+        $response = mb_convert_encoding($response, 'UTF-8', 'auto');
         $this->debugLog('AEAT RESPONSE', $response);
 
         $tag = function (string $name) use ($response): ?string {
@@ -833,6 +837,12 @@ class VerifactuService
             }
             return null;
         };
+
+        // Detectar SOAP Fault antes de buscar campos normales
+        $faultstring = $tag('faultstring');
+        if ($faultstring !== null) {
+            throw new Exception("AEAT: {$faultstring}");
+        }
 
         $csv          = $tag('CSV');
         $estadoEnvio  = $tag('EstadoEnvio');

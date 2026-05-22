@@ -9,20 +9,20 @@ return [
 
     'urls' => [
         'pruebas' => [
-            'factura'      => 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SuministroLRServicio',
+            'factura'      => 'https://prewww1.aeat.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
             'verificacion' => 'https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR',
         ],
         'produccion' => [
-            'factura'      => 'https://www1.aeat.es/wlpl/TIKE-CONT/ws/SuministroLRServicio',
-            'verificacion' => 'https://www2.aeat.es/wlpl/TIKE-CONT/ValidarQR',
+            'factura'      => 'https://www1.agenciatributaria.gob.es/wlpl/TIKE-CONT/ws/SistemaFacturacion/VerifactuSOAP',
+            'verificacion' => 'https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR',
         ],
     ],
 
     // Certificado digital (PKCS#12 / .p12 / .pfx)
     // Solo pon el nombre del archivo en src/storage/certs/ y la contraseña
     'certificado' => (function () {
-        $archivo  = '';           // Ej: 'mi_certificado.p12'
-        $password = '';           // Contraseña del certificado
+        $archivo  = 'SDC_1_2_21_A_ALELU_MUNOZ_HUGO___51224383W.p12';
+        $password = 'Judojudo2006.';           // Contraseña del certificado
         return [
             'archivo'  => $archivo,
             'password' => $password,

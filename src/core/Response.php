@@ -115,7 +115,15 @@ class Response {
     private static function send(int $status, array $body): void {
         http_response_code($status);
         header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $encoded = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($encoded === false) {
+            // Fallback: re-encode sanitizando strings con encoding inválido
+            array_walk_recursive($body, function (&$v) {
+                if (is_string($v)) $v = mb_convert_encoding($v, 'UTF-8', 'auto');
+            });
+            $encoded = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PARTIAL_OUTPUT_ON_ERROR);
+        }
+        echo $encoded;
         exit;
     }
 }

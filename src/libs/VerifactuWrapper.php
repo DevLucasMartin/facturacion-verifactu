@@ -322,10 +322,12 @@ class VerifactuWrapper
 
             if ($opType->isSubject()) {
                 $tipoIva = round((float)($g['tipo_iva'] ?? 0), 2);
-                // S2 = inversión del sujeto pasivo: cuota 0 para el emisor
-                $cuota   = ($cal === 'S1') ? round($base * $tipoIva / 100, 2) : 0.0;
+                // S2 = inversión del sujeto pasivo: TipoImpositivo y CuotaRepercutida deben ser 0 (error AEAT 1198)
+                $esS2    = ($cal === 'S2');
+                $taxRate = $esS2 ? 0.0 : $tipoIva;
+                $cuota   = $esS2 ? 0.0 : round($base * $tipoIva / 100, 2);
 
-                $bd->taxRate   = number_format($tipoIva, 2, '.', '');
+                $bd->taxRate   = number_format($taxRate, 2, '.', '');
                 $bd->taxAmount = number_format($cuota,   2, '.', '');
 
                 $cuotaTotal   += $cuota;
@@ -662,7 +664,10 @@ class VerifactuWrapper
         $data = file_get_contents($this->config['certificado']['ruta']);
         if (!$data) return null;
 
-        $certInfo = openssl_x509_parse($data);
+        $password = $this->config['certificado']['password'] ?? '';
+        if (!openssl_pkcs12_read($data, $certs, $password)) return null;
+
+        $certInfo = openssl_x509_parse($certs['cert'] ?? '');
         if (!$certInfo) return null;
 
         return [
