@@ -109,7 +109,7 @@ class Articulo {
     }
 
     /**
-     * Listar artículos con paginación
+     * Listar artículos con paginación (solo activos, para selectores)
      */
     public function paginate(int $page = 1, int $perPage = 25): array {
         $page    = max(1, (int)$page);
@@ -136,6 +136,149 @@ class Articulo {
             'per_page'    => $perPage,
             'total_pages' => (int)ceil($total / $perPage),
         ];
+    }
+
+    /**
+     * Listar todos los artículos con paginación y búsqueda (gestión, incluye inactivos)
+     */
+    public function paginateGestion(int $page = 1, int $perPage = 25, string $busqueda = ''): array {
+        $page    = max(1, (int)$page);
+        $perPage = max(1, (int)$perPage);
+        $offset  = ($page - 1) * $perPage;
+
+        if ($busqueda !== '') {
+            $like   = "%{$busqueda}%";
+            $where  = "WHERE (`Codigo` LIKE ? OR `Descripcion` LIKE ? OR `Codigo_Barras` LIKE ?)";
+            $params = [$like, $like, $like];
+        } else {
+            $where  = '';
+            $params = [];
+        }
+
+        $total = $this->db->fetchCell(
+            "SELECT COUNT(*) FROM `Articulos` {$where}",
+            $params
+        );
+
+        $items = $this->db->fetchAll(
+            "SELECT `Codigo`, `Descripcion`, `Codigo_Barras`, `Id_Tipo_IVA`,
+                    `Precio_Venta_1`, `Descuento`, `Activo`
+             FROM `Articulos`
+             {$where}
+             ORDER BY `Descripcion`
+             LIMIT {$perPage} OFFSET {$offset}",
+            $params
+        );
+
+        return [
+            'items'       => $items,
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $perPage,
+            'total_pages' => (int)ceil($total / $perPage),
+        ];
+    }
+
+    /**
+     * Crear artículo
+     */
+    public function create(array $data): string {
+        $this->db->query(
+            "INSERT INTO `Articulos`
+                (`Codigo`, `Descripcion`, `Modelo`, `Codigo_Barras`, `Id_Tipo_IVA`,
+                 `Id_Familia`, `Precio_Venta_1`, `Precio_Venta_2`, `Precio_Venta_3`,
+                 `Precio_Venta_4`, `Precio_Venta_5`, `Precio_Venta_6`,
+                 `Precio_Venta_7`, `Precio_Venta_8`, `Descuento`, `Activo`)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                strtoupper(trim($data['Codigo'])),
+                trim($data['Descripcion']),
+                !empty($data['Modelo'])        ? trim($data['Modelo'])        : null,
+                !empty($data['Codigo_Barras']) ? trim($data['Codigo_Barras']) : null,
+                $data['Id_Tipo_IVA'],
+                !empty($data['Id_Familia'])    ? $data['Id_Familia']          : null,
+                (float)($data['Precio_Venta_1'] ?? 0),
+                (float)($data['Precio_Venta_2'] ?? 0),
+                (float)($data['Precio_Venta_3'] ?? 0),
+                (float)($data['Precio_Venta_4'] ?? 0),
+                (float)($data['Precio_Venta_5'] ?? 0),
+                (float)($data['Precio_Venta_6'] ?? 0),
+                (float)($data['Precio_Venta_7'] ?? 0),
+                (float)($data['Precio_Venta_8'] ?? 0),
+                (float)($data['Descuento'] ?? 0),
+                'S',
+            ]
+        );
+
+        return strtoupper(trim($data['Codigo']));
+    }
+
+    /**
+     * Actualizar artículo
+     */
+    public function update(string $codigo, array $data): bool {
+        $stmt = $this->db->query(
+            "UPDATE `Articulos`
+             SET `Descripcion`   = ?,
+                 `Modelo`        = ?,
+                 `Codigo_Barras` = ?,
+                 `Id_Tipo_IVA`   = ?,
+                 `Id_Familia`    = ?,
+                 `Precio_Venta_1`= ?,
+                 `Precio_Venta_2`= ?,
+                 `Precio_Venta_3`= ?,
+                 `Precio_Venta_4`= ?,
+                 `Precio_Venta_5`= ?,
+                 `Precio_Venta_6`= ?,
+                 `Precio_Venta_7`= ?,
+                 `Precio_Venta_8`= ?,
+                 `Descuento`     = ?,
+                 `Activo`        = ?
+             WHERE `Codigo` = ?",
+            [
+                trim($data['Descripcion']),
+                !empty($data['Modelo'])        ? trim($data['Modelo'])        : null,
+                !empty($data['Codigo_Barras']) ? trim($data['Codigo_Barras']) : null,
+                $data['Id_Tipo_IVA'],
+                !empty($data['Id_Familia'])    ? $data['Id_Familia']          : null,
+                (float)($data['Precio_Venta_1'] ?? 0),
+                (float)($data['Precio_Venta_2'] ?? 0),
+                (float)($data['Precio_Venta_3'] ?? 0),
+                (float)($data['Precio_Venta_4'] ?? 0),
+                (float)($data['Precio_Venta_5'] ?? 0),
+                (float)($data['Precio_Venta_6'] ?? 0),
+                (float)($data['Precio_Venta_7'] ?? 0),
+                (float)($data['Precio_Venta_8'] ?? 0),
+                (float)($data['Descuento'] ?? 0),
+                isset($data['Activo']) && $data['Activo'] === 'N' ? 'N' : 'S',
+                $codigo,
+            ]
+        );
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Reactivar un artículo previamente desactivado.
+     */
+    public function reactivate(string $codigo): bool {
+        $stmt = $this->db->query(
+            "UPDATE `Articulos` SET `Activo` = 'S' WHERE `Codigo` = ?",
+            [$codigo]
+        );
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Desactivar artículo (soft-delete — los artículos están referenciados en líneas históricas)
+     */
+    public function delete(string $codigo): bool {
+        $stmt = $this->db->query(
+            "UPDATE `Articulos` SET `Activo` = 'N' WHERE `Codigo` = ?",
+            [$codigo]
+        );
+
+        return $stmt->rowCount() > 0;
     }
 
     /**

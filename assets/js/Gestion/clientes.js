@@ -268,9 +268,7 @@ function guardarNuevoCliente() {
 }
 
 function cargarClientes() {
-    const url = cli_busqueda.length >= 2
-        ? `${FACT_API_BASE}/clientes.php?action=search&q=${encodeURIComponent(cli_busqueda)}&limit=50`
-        : `${FACT_API_BASE}/clientes.php?page=${cli_pagActual}&per_page=25`;
+    const url = `${FACT_API_BASE}/clientes.php?gestion&q=${encodeURIComponent(cli_busqueda)}&page=1&per_page=9999`;
 
     App.api(url)
         .done(function (response) {
@@ -278,7 +276,7 @@ function cargarClientes() {
             const total = response.total ?? items.length;
             renderClientes(items);
             $('#clientesTotalLabel').text(total + ' clientes');
-            if (!cli_busqueda) renderPaginacion(response);
+            $('#clientesPaginacion').hide();
         })
         .fail(function () {
             $('#clientesTableBody').html(`
@@ -300,12 +298,11 @@ function renderClientes(clientes) {
                     No se encontraron clientes
                 </td>
             </tr>`);
-        $('#clientesPaginacion').hide();
         return;
     }
 
     $('#clientesTableBody').html(clientes.map(function (c) {
-        const activo = c.Activo === 'S' || c.Activo == null;
+        const activo  = c.Activo === 'S' || c.Activo == null;
         const tieneRE = parseFloat(c.RE_Porcentaje || 0) > 0 || c.Aplica_RE === 'S';
 
         return `
@@ -324,72 +321,52 @@ function renderClientes(clientes) {
                         ? '<i class="bi bi-check-circle-fill text-success"></i>'
                         : '<i class="bi bi-x-circle-fill text-danger"></i>'}
                 </td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary fact-btn me-1"
+                <td class="text-center d-flex gap-1 justify-content-center">
+                    <button class="btn btn-sm btn-outline-primary fact-btn"
                             title="Modificar"
                             onclick="abrirModificarCliente('${cli_esc(c.Codigo)}')">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger fact-btn"
-                            title="Eliminar"
-                            onclick="eliminarCliente('${cli_esc(c.Codigo)}', '${cli_esc(c.Archivar_Como)}')">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                    ${activo
+                        ? `<button class="btn btn-sm btn-outline-danger fact-btn"
+                                   title="Desactivar"
+                                   onclick="eliminarCliente('${cli_esc(c.Codigo)}', '${cli_esc(c.Archivar_Como)}')">
+                               <i class="bi bi-slash-circle"></i>
+                           </button>`
+                        : `<button class="btn btn-sm btn-outline-success fact-btn"
+                                   title="Activar"
+                                   onclick="activarCliente('${cli_esc(c.Codigo)}', '${cli_esc(c.Archivar_Como)}')">
+                               <i class="bi bi-check-circle"></i>
+                           </button>`}
                 </td>
             </tr>`;
     }).join(''));
 }
 
-function renderPaginacion(response) {
-    const total      = response.total       ?? 0;
-    const pagActual  = response.page        ?? 1;
-    const totalPags  = response.total_pages ?? 1;
-    const perPage    = response.per_page    ?? 25;
-    const desde      = (pagActual - 1) * perPage + 1;
-    const hasta      = Math.min(pagActual * perPage, total);
-
-    if (totalPags <= 1) {
-        $('#clientesPaginacion').hide();
-        return;
-    }
-
-    $('#clientesPaginacion').show();
-    $('#clientesPagInfo').text(`Mostrando ${desde}–${hasta} de ${total}`);
-
-    let links = '';
-    links += `<li class="page-item ${pagActual <= 1 ? 'disabled' : ''}">
-        <a class="page-link" href="#" data-pag="${pagActual - 1}">&laquo;</a></li>`;
-
-    for (let p = Math.max(1, pagActual - 2); p <= Math.min(totalPags, pagActual + 2); p++) {
-        links += `<li class="page-item ${p === pagActual ? 'active' : ''}">
-            <a class="page-link" href="#" data-pag="${p}">${p}</a></li>`;
-    }
-
-    links += `<li class="page-item ${pagActual >= totalPags ? 'disabled' : ''}">
-        <a class="page-link" href="#" data-pag="${pagActual + 1}">&raquo;</a></li>`;
-
-    $('#clientesPagLinks').html(links);
-
-    $('#clientesPagLinks').off('click').on('click', 'a.page-link', function (e) {
-        e.preventDefault();
-        const p = parseInt($(this).data('pag'));
-        if (p >= 1 && p <= totalPags && p !== cli_pagActual) {
-            cli_pagActual = p;
-            cargarClientes();
-        }
-    });
-}
-
 function eliminarCliente(codigo, nombre) {
-    if (!confirm(`¿Eliminar el cliente "${nombre}" (${codigo})?\n\nEsta acción no se puede deshacer.`)) return;
+    if (!confirm(`¿Desactivar el cliente "${nombre}" (${codigo})?\n\nNo aparecerá en selectores de facturas ni albaranes, pero se conserva el histórico.`)) return;
 
     App.api(`${FACT_API_BASE}/clientes.php/${encodeURIComponent(codigo)}`, { method: 'DELETE' })
         .done(function () {
-            App.notify('Cliente eliminado correctamente', 'success');
+            App.notify('Cliente desactivado correctamente', 'success');
             cargarClientes();
         })
         .fail(function (xhr) {
-            const msg = xhr.responseJSON?.message || 'Error al eliminar el cliente.';
+            const msg = xhr.responseJSON?.message || 'Error al desactivar el cliente.';
+            App.notify(msg, 'danger');
+        });
+}
+
+function activarCliente(codigo, nombre) {
+    if (!confirm(`¿Activar el cliente "${nombre}" (${codigo})?\n\nVolverá a aparecer en los selectores de facturas y albaranes.`)) return;
+
+    App.api(`${FACT_API_BASE}/clientes.php/${encodeURIComponent(codigo)}/activar`, { method: 'PATCH' })
+        .done(function () {
+            App.notify('Cliente activado correctamente', 'success');
+            cargarClientes();
+        })
+        .fail(function (xhr) {
+            const msg = xhr.responseJSON?.message || 'Error al activar el cliente.';
             App.notify(msg, 'danger');
         });
 }

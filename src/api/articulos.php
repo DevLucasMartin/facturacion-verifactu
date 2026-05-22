@@ -4,9 +4,12 @@
  * Módulo de Facturación
  *
  * Endpoints:
- * GET /api/articulos            - Listar artículos
- * GET /api/articulos/:codigo    - Ver artículo
- * GET /api/articulos/search     - Buscar artículos
+ * GET    /api/articulos                    - Listar artículos (gestión, paginado)
+ * GET    /api/articulos?action=search&q=X  - Buscar artículos (activos)
+ * GET    /api/articulos/:codigo            - Ver artículo
+ * POST   /api/articulos                    - Crear artículo
+ * PUT    /api/articulos/:codigo            - Actualizar artículo
+ * DELETE /api/articulos/:codigo            - Desactivar artículo
  */
 
 require_once __DIR__ . '/../core/Auth.php';
@@ -65,10 +68,17 @@ try {
                     Response::success($articulo);
                 }
             } else {
-                $page    = (int)($_GET['page'] ?? 1);
-                $perPage = (int)($_GET['per_page'] ?? 25);
+                $page      = (int)($_GET['page']     ?? 1);
+                $perPage   = (int)($_GET['per_page'] ?? 25);
+                $busqueda  = trim($_GET['q'] ?? '');
+                $gestion   = isset($_GET['gestion']);
 
-                $result = $articuloModel->paginate($page, $perPage);
+                if ($gestion) {
+                    $result = $articuloModel->paginateGestion($page, $perPage, $busqueda);
+                } else {
+                    $result = $articuloModel->paginate($page, $perPage);
+                }
+
                 Response::paginated(
                     $result['items'],
                     $result['total'],
@@ -80,6 +90,88 @@ try {
             http_response_code(404);
             Response::error('Recurso no encontrado');
         }
+
+    } elseif ($method === 'POST') {
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        if (empty($body['Codigo'])) {
+            http_response_code(400);
+            Response::error('El código del artículo es obligatorio');
+        }
+        if (empty($body['Descripcion'])) {
+            http_response_code(400);
+            Response::error('La descripción es obligatoria');
+        }
+        if (empty($body['Id_Tipo_IVA'])) {
+            http_response_code(400);
+            Response::error('El tipo de IVA es obligatorio');
+        }
+
+        $codigo = strtoupper(trim($body['Codigo']));
+        if ($articuloModel->find($codigo)) {
+            http_response_code(409);
+            Response::error("Ya existe un artículo con el código {$codigo}");
+        }
+
+        $articuloModel->create($body);
+        http_response_code(201);
+        Response::success(['Codigo' => $codigo], "Artículo {$codigo} creado correctamente");
+
+    } elseif ($method === 'PUT') {
+        if (!isset($parts[1])) {
+            http_response_code(400);
+            Response::error('Se requiere el código del artículo');
+        }
+
+        $codigo   = rawurldecode($parts[1]);
+        $articulo = $articuloModel->find($codigo);
+        if (!$articulo) {
+            Response::notFound('Artículo no encontrado');
+        }
+
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        if (empty($body['Descripcion'])) {
+            http_response_code(400);
+            Response::error('La descripción es obligatoria');
+        }
+        if (empty($body['Id_Tipo_IVA'])) {
+            http_response_code(400);
+            Response::error('El tipo de IVA es obligatorio');
+        }
+
+        $articuloModel->update($codigo, $body);
+        Response::success(['Codigo' => $codigo], 'Artículo actualizado correctamente');
+
+    } elseif ($method === 'DELETE') {
+        if (!isset($parts[1])) {
+            http_response_code(400);
+            Response::error('Se requiere el código del artículo');
+        }
+
+        $codigo   = rawurldecode($parts[1]);
+        $articulo = $articuloModel->find($codigo);
+        if (!$articulo) {
+            Response::notFound('Artículo no encontrado');
+        }
+
+        $articuloModel->delete($codigo);
+        Response::success(null, 'Artículo desactivado correctamente');
+
+    } elseif ($method === 'PATCH') {
+        if (!isset($parts[1]) || ($parts[2] ?? '') !== 'activar') {
+            Response::notFound('Endpoint no encontrado');
+        }
+
+        $codigo   = rawurldecode($parts[1]);
+        $articulo = $articuloModel->find($codigo);
+        if (!$articulo) {
+            Response::notFound('Artículo no encontrado');
+        }
+
+        $articuloModel->reactivate($codigo);
+        Response::success(null, 'Artículo activado correctamente');
+
     } else {
         http_response_code(405);
         Response::error('Método no permitido');

@@ -111,17 +111,18 @@ class Cliente {
                     `Id_Tipo_IVA`, `RE_Porcentaje`, `Aplica_RE`, `Id_Forma_Pago`,
                     `Id_Zona`, `Tarifa`, `Email_Facturacion`
              FROM `Clientes`
-             WHERE `Archivar_Como` LIKE ?
-                OR `NIF`          LIKE ?
-                OR `Codigo`       LIKE ?
+             WHERE `Activo` = 'S'
+               AND (`Archivar_Como` LIKE ?
+                 OR `NIF`          LIKE ?
+                 OR `Codigo`       LIKE ?)
              ORDER BY `Codigo`
-             LIMIT 25",
+             LIMIT {$fact_limit_busq}",
             [$fact_busq_param, $fact_busq_param, $fact_busq_param]
         );
     }
 
     /**
-     * Listar clientes con paginación
+     * Listar clientes activos con paginación (para selectores en facturas/albaranes)
      */
     public function paginate(int $fact_pag = 1, int $fact_perPage = 25): array {
         $fact_pag     = max(1, $fact_pag);
@@ -129,13 +130,14 @@ class Cliente {
         $offset       = ($fact_pag - 1) * $fact_perPage;
 
         $fact_total_clientes = (int)$this->fact_conexionBBDD->fetchCell(
-            "SELECT COUNT(*) FROM `Clientes`"
+            "SELECT COUNT(*) FROM `Clientes` WHERE `Activo` = 'S'"
         );
 
         $fact_items = $this->fact_conexionBBDD->fetchAll(
             "SELECT `Codigo`, `NIF`, `Archivar_Como`,
                     `Id_Tipo_IVA`, `RE_Porcentaje`, `Aplica_RE`, `Id_Forma_Pago`
              FROM `Clientes`
+             WHERE `Activo` = 'S'
              ORDER BY `Codigo`
              LIMIT {$fact_perPage} OFFSET {$offset}"
         );
@@ -146,6 +148,47 @@ class Cliente {
             'page'        => $fact_pag,
             'per_page'    => $fact_perPage,
             'total_pages' => (int)ceil($fact_total_clientes / $fact_perPage),
+        ];
+    }
+
+    /**
+     * Listar todos los clientes con paginación y búsqueda (gestión, incluye inactivos)
+     */
+    public function paginateGestion(int $page = 1, int $perPage = 25, string $busqueda = ''): array {
+        $page    = max(1, $page);
+        $perPage = max(1, $perPage);
+        $offset  = ($page - 1) * $perPage;
+
+        if ($busqueda !== '') {
+            $like   = "%{$busqueda}%";
+            $where  = "WHERE (`Archivar_Como` LIKE ? OR `NIF` LIKE ? OR `Codigo` LIKE ?)";
+            $params = [$like, $like, $like];
+        } else {
+            $where  = '';
+            $params = [];
+        }
+
+        $total = (int)$this->fact_conexionBBDD->fetchCell(
+            "SELECT COUNT(*) FROM `Clientes` {$where}",
+            $params
+        );
+
+        $items = $this->fact_conexionBBDD->fetchAll(
+            "SELECT `Codigo`, `NIF`, `Archivar_Como`,
+                    `Id_Tipo_IVA`, `RE_Porcentaje`, `Aplica_RE`, `Id_Forma_Pago`, `Activo`
+             FROM `Clientes`
+             {$where}
+             ORDER BY `Codigo`
+             LIMIT {$perPage} OFFSET {$offset}",
+            $params
+        );
+
+        return [
+            'items'       => $items,
+            'total'       => $total,
+            'page'        => $page,
+            'per_page'    => $perPage,
+            'total_pages' => (int)ceil($total / $perPage),
         ];
     }
 
@@ -272,18 +315,39 @@ class Cliente {
     }
 
     /**
-     * Eliminar un cliente. Devuelve false si tiene facturas asociadas.
+     * Reactivar un cliente previamente desactivado.
+     */
+    public function reactivate(string $codigo): bool
+    {
+        $affected = $this->fact_conexionBBDD->update(
+            'Clientes',
+            [
+                'Activo'                      => 'S',
+                'Ultima_Modificacion'         => date('Y-m-d H:i:s'),
+                'Usuario_Ultima_Modificacion' => $_SESSION['usuario'] ?? 'sistema',
+            ],
+            '`Codigo` = ?',
+            [$codigo]
+        );
+        return $affected > 0;
+    }
+
+    /**
+     * Desactivar un cliente (soft-delete). El cliente queda Activo='N' y no aparece
+     * en listados ni selectores, pero se conserva el histórico de facturas.
      */
     public function delete(string $codigo): bool
     {
-        $facturas = $this->fact_conexionBBDD->fetchCell(
-            "SELECT COUNT(*) FROM `Facturas_Clientes` WHERE `Id_Cliente` = ?",
+        $affected = $this->fact_conexionBBDD->update(
+            'Clientes',
+            [
+                'Activo'                      => 'N',
+                'Ultima_Modificacion'         => date('Y-m-d H:i:s'),
+                'Usuario_Ultima_Modificacion' => $_SESSION['usuario'] ?? 'sistema',
+            ],
+            '`Codigo` = ?',
             [$codigo]
         );
-        if ((int)$facturas > 0) {
-            return false;
-        }
-        $this->fact_conexionBBDD->delete('Clientes', '`Codigo` = ?', [$codigo]);
-        return true;
+        return $affected > 0;
     }
 }

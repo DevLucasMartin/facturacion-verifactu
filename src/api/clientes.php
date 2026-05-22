@@ -87,9 +87,17 @@ try {
                 Response::success($perfil);
             }
 
-            $numPag  = (int)($_GET['page'] ?? 1);
-            $perPage = (int)($_GET['per_page'] ?? 25);
-            $result  = $clienteModel->paginate($numPag, $perPage);
+            $numPag   = (int)($_GET['page']     ?? 1);
+            $perPage  = (int)($_GET['per_page'] ?? 25);
+            $busqueda = trim($_GET['q'] ?? '');
+            $gestion  = isset($_GET['gestion']);
+
+            if ($gestion) {
+                $result = $clienteModel->paginateGestion($numPag, $perPage, $busqueda);
+            } else {
+                $result = $clienteModel->paginate($numPag, $perPage);
+            }
+
             Response::paginated(
                 $result['items'],
                 $result['total'],
@@ -214,19 +222,24 @@ try {
         if (!$clienteModel->find($idCliente)) {
             Response::notFound('Cliente no encontrado');
         }
-        if (!$clienteModel->delete($idCliente)) {
-            http_response_code(409);
-            Response::error('No se puede eliminar el cliente porque tiene facturas asociadas');
-        }
-        Response::success(null, 'Cliente eliminado correctamente');
+        $clienteModel->delete($idCliente);
+        Response::success(null, 'Cliente desactivado correctamente');
     }
 
     if ($fact_method === 'PATCH' && $fact_recurso === 'clientes') {
         $idCliente = $fact_parts[1] ?? '';
         $accion    = $fact_parts[2] ?? '';
 
-        if ($idCliente === '' || $accion !== 'nif') {
+        if ($idCliente === '' || !in_array($accion, ['nif', 'activar'])) {
             Response::notFound('Endpoint no encontrado');
+        }
+
+        if ($accion === 'activar') {
+            if (!$clienteModel->find($idCliente)) {
+                Response::notFound('Cliente no encontrado');
+            }
+            $clienteModel->reactivate($idCliente);
+            Response::success(null, 'Cliente activado correctamente');
         }
 
         require_once __DIR__ . '/../core/Validator.php';

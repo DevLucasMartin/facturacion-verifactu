@@ -198,6 +198,12 @@ header('Expires: 0');
                 <i class="bi bi-people"></i> Clientes
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link <?= ($fact_active_menu ?? '') === 'productos' ? 'active' : '' ?>"
+               href="/SistemaGestionFacturas/src/views/Gestion/productos.php">
+                <i class="bi bi-box-seam"></i> Productos
+            </a>
+        </li>
         <?php if (($_SESSION['usuario'] ?? '') === 'admin'): ?>
         <li class="nav-item">
             <a class="nav-link <?= ($fact_active_menu ?? '') === 'usuarios' ? 'active' : '' ?>"
