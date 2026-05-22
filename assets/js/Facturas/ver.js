@@ -134,7 +134,7 @@
                 : '');
 
         facturaTotal = f.total || 0;
-        renderPago(f.total || 0, f.importe_cobrado || 0, f.cobrada);
+        renderPago(f.total || 0, f.importe_cobrado || 0, f.cobrada, f.pagos || []);
 
         const btnEdit = document.getElementById('btnEditar');
         if (btnEdit) {
@@ -331,7 +331,12 @@
 
     // ─── Pago ─────────────────────────────────────────────────────────────────
 
-    function renderPago(total, cobrado, esCobrada) {
+    function fmtFecha(str) {
+        if (!str) return '-';
+        return new Date(str).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function renderPago(total, cobrado, esCobrada, pagos) {
         const badge = document.getElementById('pagoBadge');
         const panel = document.getElementById('pagoPanel');
         if (!panel) return;
@@ -348,8 +353,26 @@
             }
         }
 
+        const historialHtml = pagos && pagos.length > 0 ? `
+            <table class="table table-sm mb-3">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha</th>
+                        <th class="text-end">Importe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${pagos.map(p => `
+                    <tr>
+                        <td>${fmtFecha(p.fecha)}</td>
+                        <td class="text-end text-success fw-semibold">${App.formatCurrency(p.importe)}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>` : '';
+
         if (esCobrada) {
             panel.innerHTML = `
+                ${historialHtml}
                 <div class="text-center py-2">
                     <i class="bi bi-check-circle-fill text-success fs-3 d-block mb-2"></i>
                     <p class="mb-0 text-success fw-semibold">Factura cobrada en su totalidad</p>
@@ -360,6 +383,7 @@
         const hoy = new Date().toISOString().split('T')[0];
 
         panel.innerHTML = `
+            ${historialHtml}
             <dl class="row mb-3">
                 <dt class="col-sm-5">Total factura:</dt>
                 <dd class="col-sm-7 fw-semibold">${App.formatCurrency(total)}</dd>
@@ -387,7 +411,6 @@
                 </div>
             </div>`;
 
-        // Evitar negativos en el input
         document.getElementById('pagoImporte').addEventListener('input', function() {
             if (parseFloat(this.value) < 0) this.value = '';
         });
@@ -415,10 +438,10 @@
                 App.notify(data.message || 'Error al registrar el pago', 'danger');
                 return;
             }
+            const pagos = data.data.pagos || [];
             if (data.data.cobrada) {
                 App.notify('Factura cobrada en su totalidad', 'success');
-                renderPago(facturaTotal, facturaTotal, true);
-                // Actualizar badge de cobrado en la cabecera de factura
+                renderPago(facturaTotal, facturaTotal, true, pagos);
                 const cobradoEl = document.querySelector('#facturaData .badge.bg-warning, #facturaData .badge.bg-success');
                 if (cobradoEl && cobradoEl.textContent !== 'Cobrado') {
                     cobradoEl.className   = 'badge bg-success';
@@ -426,7 +449,7 @@
                 }
             } else {
                 App.notify(`Pago de ${App.formatCurrency(importe)} registrado`, 'success');
-                renderPago(facturaTotal, data.data.importe_cobrado, false);
+                renderPago(facturaTotal, data.data.importe_cobrado, false, pagos);
             }
         })
         .fail(() => App.notify('Error de conexión', 'danger'))

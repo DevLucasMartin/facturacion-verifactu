@@ -121,6 +121,10 @@ try {
                     "SELECT `Codigo` FROM `Facturas_Clientes` WHERE `Factura_Rectificada_Id` = ? AND `Tipo_Documento` = 'RECTIFICATIVA' LIMIT 1",
                     [$qs_codigo]
                 );
+                $pagosHist = $db->fetchAll(
+                    "SELECT `Id`, `Importe`, `Fecha` FROM `pagos_facturas` WHERE `Id_Factura` = ? ORDER BY `Fecha`, `Id`",
+                    [$qs_codigo]
+                );
                 echo json_encode(['success' => true, 'data' => [
                     'codigo'           => $f['Codigo']          ?? '',
                     'fecha'            => $f['Fecha']           ?? null,
@@ -134,6 +138,11 @@ try {
                     'observaciones'    => $f['Observaciones']   ?? '',
                     'total'            => (float)($f['Total']            ?? 0),
                     'importe_cobrado'  => (float)($f['Importe_Cobrado']  ?? 0),
+                    'pagos'            => array_map(fn($p) => [
+                        'id'      => (int)$p['Id'],
+                        'importe' => (float)$p['Importe'],
+                        'fecha'   => $p['Fecha'],
+                    ], $pagosHist),
                     'dto_especial'          => (float)($f['Descuento_Especial']  ?? 0),
                     'dto_comercial'         => (float)($f['Descuento_Comercial'] ?? 0),
                     'dto_pp'                => (float)($f['Descuento_PP']        ?? 0),
@@ -271,10 +280,28 @@ try {
         }
         $db->update('Facturas_Clientes', $campos, '`Codigo` = ?', [$qs_codigo]);
 
+        // Registrar el pago individual en el historial
+        $db->insert('pagos_facturas', [
+            'Id_Factura' => $qs_codigo,
+            'Importe'    => $importe,
+            'Fecha'      => $fecha,
+        ]);
+
+        // Devolver el historial completo actualizado
+        $pagos = $db->fetchAll(
+            "SELECT `Id`, `Importe`, `Fecha` FROM `pagos_facturas` WHERE `Id_Factura` = ? ORDER BY `Fecha`, `Id`",
+            [$qs_codigo]
+        );
+
         echo json_encode(['success' => true, 'data' => [
             'importe_cobrado' => $nuevoCobrado,
             'pendiente'       => max(0, round($total - $nuevoCobrado, 4)),
             'cobrada'         => $totalCobrada,
+            'pagos'           => array_map(fn($p) => [
+                'id'      => (int)$p['Id'],
+                'importe' => (float)$p['Importe'],
+                'fecha'   => $p['Fecha'],
+            ], $pagos),
         ]], JSON_UNESCAPED_UNICODE);
         exit;
     }

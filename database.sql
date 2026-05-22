@@ -9,6 +9,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- Limpieza previa (orden inverso a dependencias)
 DROP TABLE IF EXISTS `Verifactu_Registros`;
 DROP TABLE IF EXISTS `Facturas_Sustituidas`;
+DROP TABLE IF EXISTS `Pagos_Facturas`;
 DROP TABLE IF EXISTS `Lineas_Facturas_Clientes`;
 DROP TABLE IF EXISTS `Albaran_Factura`;
 DROP TABLE IF EXISTS `Lineas_Albaranes_Clientes`;
@@ -387,7 +388,23 @@ CREATE TABLE `Facturas_Clientes` (
   COMMENT='Facturas de clientes';
 
 -- =============================================================
--- 14. LÍNEAS DE FACTURA
+-- 14. HISTORIAL DE PAGOS DE FACTURAS
+-- =============================================================
+CREATE TABLE `Pagos_Facturas` (
+    `Id`         INT UNSIGNED  NOT NULL AUTO_INCREMENT,
+    `Id_Factura` VARCHAR(30)   NOT NULL,
+    `Importe`    DECIMAL(14,4) NOT NULL,
+    `Fecha`      DATE          NOT NULL,
+    `Fecha_Alta` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`Id`),
+    KEY `idx_pagos_factura` (`Id_Factura`),
+    CONSTRAINT `fk_pago_factura` FOREIGN KEY (`Id_Factura`)
+        REFERENCES `Facturas_Clientes` (`Codigo`) ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='Historial de cobros parciales y totales de facturas';
+
+-- =============================================================
+-- 16. LÍNEAS DE FACTURA
 -- =============================================================
 CREATE TABLE `Lineas_Facturas_Clientes` (
     `Id`               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -421,7 +438,7 @@ CREATE TABLE `Lineas_Facturas_Clientes` (
   COMMENT='Líneas de detalle de facturas';
 
 -- =============================================================
--- 15. RELACIÓN ALBARÁN ↔ FACTURA
+-- 17. RELACIÓN ALBARÁN ↔ FACTURA
 -- =============================================================
 CREATE TABLE `Albaran_Factura` (
     `Id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -437,7 +454,7 @@ CREATE TABLE `Albaran_Factura` (
   COMMENT='Relación N:M entre albaranes y facturas';
 
 -- =============================================================
--- 16. FACTURAS SUSTITUIDAS (para recapitulativas F3)
+-- 18. FACTURAS SUSTITUIDAS (para recapitulativas F3)
 -- =============================================================
 CREATE TABLE `Facturas_Sustituidas` (
     `Id`                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -452,7 +469,7 @@ CREATE TABLE `Facturas_Sustituidas` (
   COMMENT='Facturas simplificadas sustituidas por una recapitulativa';
 
 -- =============================================================
--- 17. REGISTROS VERIFACTU
+-- 19. REGISTROS VERIFACTU
 -- =============================================================
 CREATE TABLE `Verifactu_Registros` (
     `Id`                  BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
