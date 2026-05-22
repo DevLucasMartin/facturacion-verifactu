@@ -83,7 +83,7 @@ ob_start();
 <div class="fact-list-actions d-flex flex-wrap gap-2 mb-3">
     <a href="/SistemaGestionFacturas/src/views/albaranes/nuevo.php"
        class="btn btn-primary btn-sm fact-btn">
-        <i class="bi bi-plus-lg me-1"></i>Nuevo albarán
+        <i class="bi bi-plus-lg me-1"></i>Nuevo documento
     </a>
     <button type="button" class="btn btn-outline-secondary btn-sm fact-btn"
         onclick="abrirModalPlantillas()">

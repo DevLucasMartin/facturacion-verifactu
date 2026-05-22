@@ -3,7 +3,7 @@
  * Nuevo Albarán
  */
 
-$fact_page_title    = 'Nuevo albarán';
+$fact_page_title    = 'Nuevo documento';
 $fact_page_subtitle = 'Crear documento de entrega';
 $fact_active_menu   = 'albaranes';
 

@@ -89,9 +89,14 @@ ob_start();
             <div class="card mb-4 fact-card" id="clienteCard">
                 <div class="card-header fact-card-header d-flex justify-content-between align-items-center">
                     <span><i class="bi bi-person me-2"></i>Cliente</span>
-                    <button type="button" class="btn btn-sm btn-primary fact-btn" onclick="seleccionarCliente()">
-                        <i class="bi bi-arrow-repeat me-1"></i>Cambiar
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" id="btnBorrarCliente" class="btn btn-sm btn-outline-danger" onclick="borrarCliente()" style="display:none;">
+                            <i class="bi bi-x-circle me-1"></i>Quitar cliente
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary fact-btn" onclick="seleccionarCliente()">
+                            <i class="bi bi-arrow-repeat me-1"></i>Cambiar
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body fact-card-body">
                     <div id="clienteEmpty" class="text-muted text-center py-3">
@@ -115,11 +120,6 @@ ob_start();
                             <dt class="col-sm-3">Aplica RE:</dt>
                             <dd class="col-sm-9" id="clienteAplicaRE"></dd>
                         </dl>
-                        <div class="mt-2">
-                            <button type="button" id="btnBorrarCliente" class="btn btn-sm btn-outline-danger" onclick="borrarCliente()" style="display:none;">
-                                <i class="bi bi-x-circle me-1"></i>Quitar cliente
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>

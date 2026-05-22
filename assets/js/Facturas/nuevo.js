@@ -637,7 +637,6 @@
             document.getElementById('clienteNIF').textContent       = clienteActual.NIF || '';
             document.getElementById('clienteDireccion').textContent = clienteActual.Direccion || '-';
             document.getElementById('clienteFormaPago').textContent = (clienteActual.Id_Forma_Pago || '-').toUpperCase();
-            document.getElementById('clienteTarifa').textContent    = 'Tarifa ' + tarifaActual;
             document.getElementById('clienteTipoIVA').textContent   = clienteActual.Id_Tipo_IVA || '-';
             document.getElementById('clienteAplicaRE').textContent  = (clienteActual.Aplica_RE == 1) ? 'Sí' : 'No';
 
