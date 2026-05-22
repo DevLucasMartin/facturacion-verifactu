@@ -156,7 +156,7 @@ ob_start();
                                     <th style="width:95px;">Dto.%</th>
                                     <th style="width:80px;">IVA</th>
                                     <th id="thRE" class="d-none" style="width:80px;">RE</th>
-                                    <th id="thCalif" style="width:160px;">Calificación</th>
+                                    <th id="thCalif" style="width:160px;">Cal. Operación</th>
                                     <th style="width:90px;">Base imp.</th>
                                     <th style="width:90px;">IVA calc.</th>
                                     <th style="width:60px;"></th>

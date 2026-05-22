@@ -1690,7 +1690,50 @@
                     throw new Error('La factura se procesó pero no se obtuvo el código. Revisa el listado de facturas.');
                 }
 
+                const chkNifVacioEl2 = document.getElementById('chkNifVacio');
+                const nifVacioFinal2 = chkNifVacioEl2?.checked ?? false;
+                nifExportacionVacio = nifVacioFinal2;
+                const inputNifEl2 = document.getElementById('inputNifExportacion');
+                if (inputNifEl2 && !nifVacioFinal2) {
+                    nifExportacion = inputNifEl2.value.trim().toUpperCase();
+                }
+
                 const verifactuPayload = { tipo_origen: 'FACTURA', id_documento: factCodigo };
+                const inputPaisEl2 = document.getElementById('inputPaisExportacion');
+                const paisInputVal2 = (inputPaisEl2?.value || paisExportacion || '').trim().toUpperCase();
+                const hayE5envio2 = lineas.some(l => l.calificacion === 'E5');
+
+                if (lineas.some(l => CALIFICACION_EXPORTACION.includes(l.calificacion))) {
+                    if (hayE5envio2) {
+                        const nifLimpio2 = (nifExportacion || '').trim().toUpperCase();
+                        if (!nifLimpio2) {
+                            App.hideLoading?.();
+                            notify('Para una operación E5 (entrega intracomunitaria) debes indicar el VAT del destinatario.', 'danger');
+                            return;
+                        }
+                        if (!/^[A-Z]{2}$/.test(paisInputVal2)) {
+                            App.hideLoading?.();
+                            notify('Selecciona el código de país del destinatario para una operación E5.', 'danger');
+                            return;
+                        }
+                        const errorVat2 = window.FormUtils?.validarVatUE?.(nifLimpio2, paisInputVal2);
+                        if (errorVat2) {
+                            App.hideLoading?.();
+                            notify(errorVat2 + ' Revisa que el VAT corresponda al país seleccionado.', 'danger');
+                            return;
+                        }
+                        const yaPrefijado2 = nifLimpio2.startsWith(paisInputVal2);
+                        verifactuPayload.nif_exportacion       = yaPrefijado2 ? nifLimpio2 : (paisInputVal2 + nifLimpio2);
+                        verifactuPayload.nif_exportacion_vacio = false;
+                    } else {
+                        const nifFromInput2 = (inputNifEl2?.value || '').trim().toUpperCase();
+                        verifactuPayload.nif_exportacion       = nifFromInput2 || (nifVacioFinal2 ? '' : nifExportacion);
+                        verifactuPayload.nif_exportacion_vacio = !nifFromInput2 && nifVacioFinal2;
+                    }
+                }
+                if (/^[A-Z]{2}$/.test(paisInputVal2)) {
+                    verifactuPayload.pais_exportacion = paisInputVal2;
+                }
                 await apiSend('/verifactu.php/enviar', verifactuPayload, 'POST');
 
                 App.hideLoading?.();
