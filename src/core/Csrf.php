@@ -25,7 +25,9 @@ class Csrf
 
     /**
      * Para endpoints de API (AJAX).
-     * Comprueba la cabecera X-CSRF-Token en métodos que modifican estado.
+     * En métodos que modifican estado (POST/PUT/PATCH/DELETE):
+     *   1. Valida la cabecera X-CSRF-Token.
+     *   2. Valida que el Content-Type sea application/json.
      * En GET/HEAD/OPTIONS no hace nada.
      */
     public static function requireApi(): void
@@ -42,6 +44,21 @@ class Csrf
                 JSON_UNESCAPED_UNICODE
             );
             exit;
+        }
+
+        // DELETE sin cuerpo no envía Content-Type; solo validamos cuando hay cuerpo.
+        if ($method !== 'DELETE') {
+            $rawCt      = $_SERVER['CONTENT_TYPE'] ?? '';
+            $contentType = strtolower(trim(explode(';', $rawCt)[0]));
+            if ($contentType !== 'application/json') {
+                http_response_code(415);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(
+                    ['success' => false, 'message' => 'Content-Type debe ser application/json.'],
+                    JSON_UNESCAPED_UNICODE
+                );
+                exit;
+            }
         }
     }
 
