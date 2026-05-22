@@ -193,6 +193,8 @@ class PdfService
                 'height' => 110,
                 'ratio'  => true,
             ]);
+        } else {
+            $template->setValue('QR_FACTURA', '');
         }
 
         $numero   = $datos['FACTURA_NUMERO'] ?? $datos['ALBARAN_NUMERO'] ?? ('doc_' . time());

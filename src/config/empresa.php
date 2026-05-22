@@ -4,8 +4,8 @@
  * Ajustar con los datos reales antes de usar en producción.
  */
 return [
-    'razon_social'   => 'Solventia Tecnología S.L.',
-    'nif'            => '89890001K',
+    'razon_social'   => 'ALELU MUÑOZ HUGO',
+    'nif'            => '51224383W',
     'telefono'       => '+34 91 847 3200',
     'email'          => 'comercial@solventia.es',
     'web'            => 'www.solventia.es',
