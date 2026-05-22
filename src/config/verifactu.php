@@ -19,10 +19,16 @@ return [
     ],
 
     // Certificado digital (PKCS#12 / .p12 / .pfx)
-    'certificado' => [
-        'ruta'     => '',   // Ruta absoluta al archivo .p12
-        'password' => '',
-    ],
+    // Solo pon el nombre del archivo en src/storage/certs/ y la contraseña
+    'certificado' => (function () {
+        $archivo  = '';           // Ej: 'mi_certificado.p12'
+        $password = '';           // Contraseña del certificado
+        return [
+            'archivo'  => $archivo,
+            'password' => $password,
+            'ruta'     => $archivo !== '' ? __DIR__ . '/../storage/certs/' . $archivo : '',
+        ];
+    })(),
 
     // Comportamiento
     'auto_envio'        => false,
