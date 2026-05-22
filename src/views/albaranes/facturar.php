@@ -195,6 +195,7 @@ ob_start();
 
         <!-- Columna lateral -->
         <div class="col-lg-4">
+            <div style="position: sticky; top: 80px;">
             <!-- Totales -->
             <div class="card mb-4 fact-card">
                 <div class="card-header fact-card-header">
@@ -241,6 +242,7 @@ ob_start();
                     </a>
                 </div>
             </div>
+            </div><!-- /sticky -->
         </div>
     </div>
 </form>

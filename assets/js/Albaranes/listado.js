@@ -522,11 +522,18 @@ window.abrirModalPlantillas = function() {
                                 } else {
                                     App.notify(json.message || 'Error al renombrar', 'error');
                                 }
+                                textEl.style.display  = '';
+                                inputEl.style.display = 'none';
                             })
-                            .catch(e => App.notify(e.message, 'error'));
+                            .catch(e => {
+                                App.notify(e.message, 'error');
+                                textEl.style.display  = '';
+                                inputEl.style.display = 'none';
+                            });
+                        } else {
+                            textEl.style.display  = '';
+                            inputEl.style.display = 'none';
                         }
-                        textEl.style.display  = '';
-                        inputEl.style.display = 'none';
                     };
 
                     inputEl.addEventListener('blur', guardar);
