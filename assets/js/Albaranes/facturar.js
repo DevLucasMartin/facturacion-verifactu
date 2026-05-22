@@ -605,6 +605,19 @@ async function facturar() {
         }
     }
 
+    if (tipoDocumento !== 'SIMPLIFICADA' && clienteActual) {
+        const nifConfirmado = await App.confirmarNIF(clienteActual.NIF || '', {
+            clienteCodigo: clienteActual.Codigo,
+            apiBase: FACT_API_BASE,
+        });
+        if (nifConfirmado === null) return;
+        if (nifConfirmado !== clienteActual.NIF) {
+            clienteActual.NIF = nifConfirmado;
+            const elNIF = document.getElementById('clienteNIF');
+            if (elNIF) elNIF.textContent = nifConfirmado;
+        }
+    }
+
     const formData = new FormData(document.getElementById('facturarForm'));
     const hayExportacionEnPayload = albaranesPay.some(function(ab) {
         const estado = estadoAlbaranes[ab.codigo];

@@ -1629,6 +1629,19 @@
 
             modal.hide();
 
+            if (tipoDoc !== 'SIMPLIFICADA' && clienteActual) {
+                const nifConfirmado = await App.confirmarNIF(clienteActual.NIF || '', {
+                    clienteCodigo: clienteActual.Codigo,
+                    apiBase: API,
+                });
+                if (nifConfirmado === null) return;
+                if (nifConfirmado !== clienteActual.NIF) {
+                    clienteActual.NIF = nifConfirmado;
+                    const elNIF = document.getElementById('clienteNIF');
+                    if (elNIF) elNIF.textContent = nifConfirmado;
+                }
+            }
+
             try {
                 App.showLoading?.();
 
@@ -1698,6 +1711,19 @@
                 return;
             }
             if (!validarClienteN2()) { mostrarPopupN2(); return; }
+
+            if (tipoDoc !== 'SIMPLIFICADA' && clienteActual) {
+                const nifConfirmado = await App.confirmarNIF(clienteActual.NIF || '', {
+                    clienteCodigo: clienteActual.Codigo,
+                    apiBase: API,
+                });
+                if (nifConfirmado === null) return;
+                if (nifConfirmado !== clienteActual.NIF) {
+                    clienteActual.NIF = nifConfirmado;
+                    const elNIF = document.getElementById('clienteNIF');
+                    if (elNIF) elNIF.textContent = nifConfirmado;
+                }
+            }
 
             App.showLoading?.();
 

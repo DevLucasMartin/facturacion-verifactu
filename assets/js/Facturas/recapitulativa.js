@@ -10,6 +10,7 @@
     const RECAP_API_BASE = BASE + '/src/api';
 
     let simplificadasActuales = [];
+    let clienteNIFSeleccionado = '';
 
     $(document).ready(function () {
         cargarCanales();
@@ -21,7 +22,9 @@
 
         $('#recapForm').on('submit', function (e) {
             e.preventDefault();
-            crearRecapitulativa();
+            crearRecapitulativa().catch(function (err) {
+                App.notify(err.message || 'Error inesperado', 'danger');
+            });
         });
     });
 
@@ -40,8 +43,9 @@
                         results: lista.map(function (c) {
                             const apellidos = c.Apellidos ? ' ' + c.Apellidos : '';
                             return {
-                                id: c.Codigo,
-                                text: (c.Nombre || c.Archivar_Como || 'Sin nombre') + apellidos + ' (' + (c.NIF || '-') + ')'
+                                id:   c.Codigo,
+                                text: (c.Nombre || c.Archivar_Como || 'Sin nombre') + apellidos + ' (' + (c.NIF || '-') + ')',
+                                nif:  c.NIF || ''
                             };
                         })
                     };
@@ -52,6 +56,10 @@
             placeholder: 'Buscar cliente...',
             minimumInputLength: 2,
             width: '100%'
+        }).on('select2:select', function (e) {
+            clienteNIFSeleccionado = e.params.data.nif || '';
+        }).on('select2:clear', function () {
+            clienteNIFSeleccionado = '';
         });
     }
 
@@ -228,7 +236,7 @@
         }).get();
     }
 
-    function crearRecapitulativa() {
+    async function crearRecapitulativa() {
         const formData      = new FormData(document.getElementById('recapForm'));
         const seleccionadas = getSeleccionadas();
 
@@ -249,6 +257,13 @@
         if (!payload.mes)           { App.notify('Debe seleccionar un mes.', 'warning');                      return; }
         if (!seleccionadas.length)  { App.notify('Selecciona al menos una factura simplificada.', 'warning'); return; }
         if (!simplificadasActuales.length) { App.notify('No hay facturas simplificadas para recapitular.', 'warning'); return; }
+
+        const nifConfirmado = await App.confirmarNIF(clienteNIFSeleccionado, {
+            clienteCodigo: $('#selectCliente').val() || '',
+            apiBase: RECAP_API_BASE,
+        });
+        if (nifConfirmado === null) return;
+        if (nifConfirmado !== clienteNIFSeleccionado) clienteNIFSeleccionado = nifConfirmado;
 
         const btn = document.getElementById('btnCrear');
         btn.disabled = true;

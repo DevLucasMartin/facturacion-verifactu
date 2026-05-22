@@ -143,8 +143,139 @@ const App = (() => {
         }).format(n) + '\u00a0' + symbol;
     }
 
+    // ─── Modal confirmación NIF ──────────────────────────────────────────────
+    // opciones: { clienteCodigo, apiBase }
+    // Devuelve el NIF confirmado (string) o null si se cancela.
+    // Si el NIF cambia y se pasan opciones, actualiza la BD antes de resolver.
+    function confirmarNIF(nifActual, opciones) {
+        return new Promise(function (resolve) {
+            const existing = document.getElementById('modalConfirmarNIF');
+            if (existing) {
+                try { bootstrap.Modal.getInstance(existing)?.hide(); } catch (_) {}
+                existing.remove();
+            }
+
+            const esc = escapeHtml;
+            document.body.insertAdjacentHTML('beforeend', `
+            <div class="modal fade" id="modalConfirmarNIF" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+                <div class="modal-dialog modal-dialog-centered" style="max-width:380px">
+                    <div class="modal-content">
+                        <div class="modal-header py-2">
+                            <h6 class="modal-title mb-0">
+                                <i class="bi bi-person-badge me-2 text-primary"></i>Verificar NIF del cliente
+                            </h6>
+                        </div>
+                        <div class="modal-body pb-2">
+                            <p class="text-muted small mb-2">
+                                Comprueba que el NIF del cliente es correcto antes de continuar.
+                            </p>
+                            <input type="text" id="inputConfirmarNIF"
+                                class="form-control form-control-lg text-uppercase fw-semibold text-center"
+                                value="${esc(nifActual)}" placeholder="NIF del cliente"
+                                autocomplete="off" spellcheck="false" maxlength="20">
+                            <div id="errorConfirmarNIF" class="invalid-feedback d-none" style="display:block !important"></div>
+                        </div>
+                        <div class="modal-footer py-2 justify-content-between">
+                            <button type="button" class="btn btn-secondary" id="btnCancelarConfirmarNIF">
+                                <i class="bi bi-x-lg me-1"></i>Cancelar
+                            </button>
+                            <button type="button" class="btn btn-primary" id="btnAceptarConfirmarNIF">
+                                <i class="bi bi-check-lg me-1"></i>Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>`);
+
+            const modalEl = document.getElementById('modalConfirmarNIF');
+            const bsModal = new bootstrap.Modal(modalEl);
+            const inputEl = document.getElementById('inputConfirmarNIF');
+            const errEl   = document.getElementById('errorConfirmarNIF');
+            const btnOk   = document.getElementById('btnAceptarConfirmarNIF');
+
+            let resolved = false;
+            function finish(nif) {
+                if (resolved) return;
+                resolved = true;
+                bsModal.hide();
+                resolve(nif);
+            }
+
+            function mostrarError(msg) {
+                if (!errEl) return;
+                errEl.textContent = msg;
+                errEl.classList.remove('d-none');
+                if (inputEl) inputEl.classList.add('is-invalid');
+            }
+            function limpiarError() {
+                if (!errEl) return;
+                errEl.classList.add('d-none');
+                if (inputEl) inputEl.classList.remove('is-invalid');
+            }
+
+            btnOk.onclick = async function () {
+                const nifNuevo = (inputEl?.value || '').trim().toUpperCase();
+                limpiarError();
+
+                if (nifNuevo === nifActual || !opciones?.clienteCodigo || !opciones?.apiBase) {
+                    finish(nifNuevo);
+                    return;
+                }
+
+                btnOk.disabled = true;
+                btnOk.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+
+                try {
+                    const resp = await fetch(
+                        opciones.apiBase + '/clientes.php/' + encodeURIComponent(opciones.clienteCodigo) + '/nif',
+                        {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ NIF: nifNuevo }),
+                        }
+                    );
+                    const json = await resp.json().catch(() => ({}));
+                    if (!resp.ok || json.ok === false || json.success === false) {
+                        mostrarError(json.message || 'NIF no válido. Revisa el formato.');
+                        btnOk.disabled = false;
+                        btnOk.innerHTML = '<i class="bi bi-check-lg me-1"></i>Confirmar';
+                        return;
+                    }
+                    finish(nifNuevo);
+                } catch (_) {
+                    mostrarError('Error de conexión al actualizar el NIF.');
+                    btnOk.disabled = false;
+                    btnOk.innerHTML = '<i class="bi bi-check-lg me-1"></i>Confirmar';
+                }
+            };
+
+            document.getElementById('btnCancelarConfirmarNIF').onclick = function () {
+                finish(null);
+            };
+
+            if (inputEl) {
+                inputEl.addEventListener('input', function () {
+                    this.value = this.value.toUpperCase();
+                    limpiarError();
+                });
+                inputEl.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') btnOk.click();
+                    if (e.key === 'Escape') finish(null);
+                });
+            }
+
+            modalEl.addEventListener('hidden.bs.modal', function () {
+                if (!resolved) finish(null);
+                modalEl.remove();
+            });
+
+            bsModal.show();
+            setTimeout(function () { if (inputEl) inputEl.select(); }, 350);
+        });
+    }
+
     // ─── API pública ──────────────────────────────────────────────────────────
-    return { api, notify, showLoading, hideLoading, escapeHtml, formatCurrency };
+    return { api, notify, showLoading, hideLoading, escapeHtml, formatCurrency, confirmarNIF };
 })();
 
 // ─── Excel Background Export via Service Worker ──────────────────────────────

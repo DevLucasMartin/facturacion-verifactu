@@ -1131,6 +1131,17 @@
 
         if (enviarVerifactu && !validarClienteN2()) { mostrarPopupN2(); return; }
 
+        const nifConfirmado = await App.confirmarNIF(clienteActual?.NIF || '', {
+            clienteCodigo: clienteActual?.Codigo,
+            apiBase: API,
+        });
+        if (nifConfirmado === null) return;
+        if (clienteActual && nifConfirmado !== clienteActual.NIF) {
+            clienteActual.NIF = nifConfirmado;
+            const elNIF = document.getElementById('clienteNIF');
+            if (elNIF) elNIF.textContent = nifConfirmado;
+        }
+
         App.showLoading();
         try {
             const data = await apiSend('/facturas.php', payload, 'POST');
