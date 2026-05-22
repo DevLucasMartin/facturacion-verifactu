@@ -46,9 +46,11 @@ class Csrf
             exit;
         }
 
-        // DELETE sin cuerpo no envía Content-Type; solo validamos cuando hay cuerpo.
-        if ($method !== 'DELETE') {
-            $rawCt      = $_SERVER['CONTENT_TYPE'] ?? '';
+        // Validar Content-Type solo cuando el request lleva cuerpo real.
+        // POSTs sin payload (ej. acciones de trigger) no envían Content-Length.
+        $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+        if ($contentLength > 0) {
+            $rawCt       = $_SERVER['CONTENT_TYPE'] ?? '';
             $contentType = strtolower(trim(explode(';', $rawCt)[0]));
             if ($contentType !== 'application/json') {
                 http_response_code(415);

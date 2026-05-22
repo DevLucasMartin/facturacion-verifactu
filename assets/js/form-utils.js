@@ -51,12 +51,17 @@ const FormUtils = (() => {
             return normalizeResponse(json);
         }
 
+        function getCsrfToken() {
+            return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        }
+
         async function apiSend(path, body = {}, method = 'POST') {
             const res = await fetch(base + path, {
                 method,
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept':       'application/json',
+                    'Content-Type':  'application/json',
+                    'Accept':        'application/json',
+                    'X-CSRF-Token':  getCsrfToken(),
                 },
                 body: JSON.stringify(body),
             });

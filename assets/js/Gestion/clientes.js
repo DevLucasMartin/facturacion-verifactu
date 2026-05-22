@@ -222,6 +222,12 @@ function guardarNuevoCliente() {
         $('#nuevoClienteMsg').removeClass('d-none alert-info alert-success alert-warning').addClass('alert-danger').text('El campo "Archivar como" es obligatorio.');
         return;
     }
+    const nifVal = ($('#ncNif').val() || '').trim();
+    if (!nifVal) {
+        $('#ncNif').addClass('is-invalid');
+        document.getElementById('ncNifError').textContent = 'El NIF es obligatorio.';
+        return;
+    }
     if (!cli_validarNIF(document.getElementById('ncNif'))) return;
 
     const payload = {

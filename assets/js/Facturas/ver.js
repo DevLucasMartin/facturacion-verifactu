@@ -268,13 +268,16 @@
         const panel = document.getElementById('totalesPanel');
         if (!panel || !t) return;
 
+        const subtotal = parseFloat(t.subtotal || 0);
+        const baseImp  = parseFloat(t.base_imponible || 0);
+        const totalDto = Math.round((subtotal - baseImp) * 100) / 100;
+
         const filas = [];
-        if (parseFloat(t.subtotal || 0) !== parseFloat(t.base_imponible || 0))
-            filas.push(['Subtotal', App.formatCurrency(t.subtotal || 0)]);
-        if (parseFloat(t.dto_especial  || 0) > 0) filas.push(['Dto. Especial',  '- ' + App.formatCurrency(t.dto_especial)]);
-        if (parseFloat(t.dto_comercial || 0) > 0) filas.push(['Dto. Comercial', '- ' + App.formatCurrency(t.dto_comercial)]);
-        if (parseFloat(t.dto_pp        || 0) > 0) filas.push(['Dto. P.P.',      '- ' + App.formatCurrency(t.dto_pp)]);
-        filas.push(['Base imponible', App.formatCurrency(t.base_imponible || 0)]);
+        if (totalDto > 0) {
+            filas.push(['Subtotal', App.formatCurrency(subtotal)]);
+            filas.push(['Descuentos', '<span class="text-danger">- ' + App.formatCurrency(totalDto) + '</span>']);
+        }
+        filas.push(['Base imponible', App.formatCurrency(baseImp)]);
 
         (t.cuotas_iva || []).forEach(c => {
             filas.push([`IVA ${c.porcentaje_iva}%`, App.formatCurrency(c.cuota_iva || 0)]);
