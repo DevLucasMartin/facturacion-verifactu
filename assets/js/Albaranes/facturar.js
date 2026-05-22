@@ -37,7 +37,8 @@ function actualizarVisibilidadDestinatario() {
 
 $(document).ready(function() {
 
-    // Cargar formas de pago
+    // Cargar canales y formas de pago
+    cargarCanales();
     cargarFormasPago();
 
     // Preparar modal de cliente y dropdown de albaranes
@@ -78,6 +79,23 @@ $(document).ready(function() {
     $('input[name="Tipo_Documento"]').on('change', actualizarResumen);
     $(document).on('change', 'input[name="destinatario_tipo"]', actualizarResumen);
 });
+
+function cargarCanales() {
+    $.getJSON(`${FACT_API_BASE}/canales.php`)
+        .done(function(resp) {
+            const lista = resp?.data ?? [];
+            const sel   = $('#selectCanal');
+            sel.empty();
+            lista.forEach(function(c) {
+                const val   = c.Codigo || c.id_canal || '';
+                const label = c.Descripcion ? `${val} – ${c.Descripcion}` : (c.nombre || val);
+                sel.append(new Option(label, val));
+            });
+        })
+        .fail(function() {
+            console.warn('No se pudieron cargar los canales.');
+        });
+}
 
 function cargarFormasPago() {
     $.getJSON(`${FACT_API_BASE}/formas_pago.php`)
@@ -630,6 +648,7 @@ async function facturar() {
     const payload = {
         albaranes:           albaranesPay,
         Tipo_Documento:      formData.get('Tipo_Documento')      || 'FACTURA',
+        Id_Canal:            formData.get('Id_Canal')            || '',
         Fecha:               formData.get('Fecha')               || new Date().toISOString().slice(0, 10),
         Id_Forma_Pago:       formData.get('Id_Forma_Pago')       || '',
         Observaciones:       formData.get('Observaciones')       || '',

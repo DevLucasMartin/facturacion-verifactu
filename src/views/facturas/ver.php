@@ -130,10 +130,6 @@ ob_start();
             </div>
             <div class="card-body fact-card-body">
                 <div class="d-flex flex-wrap gap-2">
-                    <button id="btnVerifactu" onclick="firmarYEnviar()" class="btn btn-sm btn-outline-primary fact-btn">
-                        <i class="bi bi-send me-1"></i>Enviar a Hacienda
-                    </button>
-
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle fact-btn"
                                 data-bs-toggle="dropdown" aria-expanded="false">

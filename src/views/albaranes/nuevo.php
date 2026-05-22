@@ -12,7 +12,6 @@ ob_start();
 
 <form id="albaranForm" method="POST">
     <input type="hidden" name="codigo" value="">
-    <input type="hidden" id="inputIdCliente" name="Id_Cliente" value="">
 
     <div class="row">
         <!-- Columna Principal -->
@@ -40,22 +39,23 @@ ob_start();
                             <input type="date" class="form-control fact-form-control" id="inputFecha" name="Fecha"
                                 value="<?= htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8') ?>" required>
                         </div>
+                        <div class="col-md-3">
+                            <label class="form-label fact-form-label">Cliente *</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control fact-form-control" id="inputIdCliente" name="Id_Cliente" readonly required>
+                                <button type="button" class="btn btn-outline-secondary" onclick="seleccionarCliente()" title="Buscar cliente">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="row g-3 mt-2">
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Forma de Pago</label>
-                            <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select select-forma-pago">
-                            </select>
-                        </div>
                         <div class="col-md-4">
                             <label class="form-label fact-form-label">Clave Régimen IVA</label>
                             <select id="selectClaveRegimen" name="Clave_Regimen" class="form-select fact-form-select">
                             </select>
                         </div>
-                    </div>
-
-                    <div class="row g-3 mt-2">
                         <div class="col-md-8">
                             <label class="form-label fact-form-label">Observaciones</label>
                             <textarea class="form-control fact-form-control" id="inputObservaciones"
@@ -188,6 +188,11 @@ ob_start();
                     <span><i class="bi bi-calculator me-2"></i>Totales</span>
                 </div>
                 <div class="card-body fact-card-body">
+                    <div class="mb-3">
+                        <label class="form-label fact-form-label mb-1">Forma de Pago</label>
+                        <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select form-select-sm fact-form-select select-forma-pago">
+                        </select>
+                    </div>
                     <div class="row g-2 mb-2">
                         <div class="col-4">
                             <label class="form-label fact-form-label mb-1">Dto. Especial %</label>
@@ -246,6 +251,10 @@ ob_start();
                             onclick="guardarYFacturar()">
                         <i class="bi bi-receipt me-1"></i>Guardar, Facturar y Enviar a Verifactu
                     </button>
+                    <button type="button" class="btn btn-outline-primary fact-btn w-100 mb-2"
+                            onclick="abrirModalGuardarPlantilla()">
+                        <i class="bi bi-layout-text-window me-1"></i>Guardar como plantilla
+                    </button>
                     <a href="/SistemaGestionFacturas/src/views/albaranes/listado.php"
                        class="btn btn-outline-secondary w-100 fact-btn">
                         <i class="bi bi-x-lg me-1"></i>Cancelar
@@ -260,6 +269,29 @@ ob_start();
         </div>
     </div>
 </form>
+
+<!-- Modal Guardar Plantilla -->
+<div class="modal fade" id="guardarPlantillaModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Guardar como plantilla</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label fact-form-label">Nombre de la plantilla</label>
+                <input type="text" class="form-control fact-form-control" id="inputNombrePlantilla"
+                    placeholder="Ej: Pedido mensual cliente X">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnConfirmarPlantilla">
+                    <i class="bi bi-floppy me-1"></i>Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Modal Cliente -->
 <div class="modal fade" id="clienteModal" tabindex="-1" aria-labelledby="clienteModalLabel">

@@ -491,8 +491,6 @@
         let acciones = '';
         if (v.estado === 'ERROR')
             acciones = '<button class="btn btn-outline-primary btn-sm me-1" onclick="reintentar()"><i class="bi bi-arrow-clockwise me-1"></i>Reintentar</button>';
-        else if (v.estado !== 'ENVIADO' && v.estado !== 'ANULADO')
-            acciones = '<button class="btn btn-success btn-sm" onclick="firmarYEnviar()"><i class="bi bi-send me-1"></i>Enviar a Hacienda</button>';
 
         panel.innerHTML = detalles + (acciones ? `<hr><div class="text-center">${acciones}</div>` : '');
 
@@ -507,12 +505,7 @@
         const panel = document.getElementById('verifactuPanel');
         if (badge) { badge.className = 'badge bg-secondary'; badge.textContent = 'Sin enviar'; }
         if (panel) panel.innerHTML = `
-            <p class="text-muted mb-2">Esta factura aún no ha sido enviada a Hacienda.</p>
-            <div class="text-center">
-                <button class="btn btn-success btn-sm" onclick="firmarYEnviar()">
-                    <i class="bi bi-send me-1"></i>Enviar a Hacienda
-                </button>
-            </div>`;
+            <p class="text-muted mb-2">Esta factura aún no ha sido enviada a Hacienda.</p>`;
     }
 
     // ─── Acciones globales ────────────────────────────────────────────────────

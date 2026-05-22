@@ -62,11 +62,6 @@ ob_start();
                             <input type="date" name="Fecha" id="inputFecha" class="form-control fact-form-control"
                                    value="<?= date('Y-m-d') ?>" required>
                         </div>
-                        <!-- Forma de pago -->
-                        <div class="col-md-3">
-                            <label class="form-label fact-form-label" for="selectFormaPago">Forma de pago</label>
-                            <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select select-forma-pago" required></select>
-                        </div>
                     </div>
 
                     <!-- Campos rectificación -->
@@ -273,6 +268,11 @@ ob_start();
                     <span><i class="bi bi-calculator me-2"></i>Totales</span>
                 </div>
                 <div class="card-body fact-card-body">
+                    <!-- Forma de Pago -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Forma de Pago</label>
+                        <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select form-select-sm fact-form-select select-forma-pago" required></select>
+                    </div>
                     <!-- Descuentos -->
                     <div class="mb-3">
                         <label class="form-label small text-muted">Descuentos</label>

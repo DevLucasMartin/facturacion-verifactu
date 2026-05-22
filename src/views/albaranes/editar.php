@@ -57,27 +57,7 @@ ob_start();
                     </div>
 
                     <div class="row g-3 mt-2">
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Dto. Especial %</label>
-                            <input type="number" class="form-control fact-form-control" id="inputDtoEspecial" value="0" min="0" max="100" step="any" placeholder="0.00%">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Dto. Comercial %</label>
-                            <input type="number" class="form-control fact-form-control" id="inputDtoComercial" value="0" min="0" max="100" step="any" placeholder="0.00%">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Dto. Pronto Pago %</label>
-                            <input type="number" class="form-control fact-form-control" id="inputDtoPP" value="0" min="0" max="100" step="any" placeholder="0.00%">
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mt-2">
-                        <div class="col-md-3">
-                            <label class="form-label fact-form-label">Forma de Pago</label>
-                            <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select select-forma-pago">
-                            </select>
-                        </div>
-                        <div class="col-md-8">
+                        <div class="col-md-12">
                             <label class="form-label fact-form-label">Observaciones</label>
                             <textarea class="form-control fact-form-control" id="inputObservaciones" name="Observaciones" rows="2"></textarea>
                         </div>
@@ -243,6 +223,26 @@ ob_start();
                     <span><i class="bi bi-calculator me-2"></i>Totales</span>
                 </div>
                 <div class="card-body fact-card-body">
+                    <div class="mb-3">
+                        <label class="form-label fact-form-label mb-1">Forma de Pago</label>
+                        <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select form-select-sm fact-form-select select-forma-pago">
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-4">
+                            <label class="form-label fact-form-label mb-1">Dto. Especial %</label>
+                            <input type="number" class="form-control form-control-sm fact-form-control" id="inputDtoEspecial" value="0" min="0" max="100" step="any" placeholder="0.00%">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fact-form-label mb-1">Dto. Comercial %</label>
+                            <input type="number" class="form-control form-control-sm fact-form-control" id="inputDtoComercial" value="0" min="0" max="100" step="any" placeholder="0.00%">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fact-form-label mb-1">Dto. Pronto Pago %</label>
+                            <input type="number" class="form-control form-control-sm fact-form-control" id="inputDtoPP" value="0" min="0" max="100" step="any" placeholder="0.00%">
+                        </div>
+                    </div>
+                    <hr>
                     <dl class="row mb-0">
                         <dt class="col-7">Subtotal:</dt>
                         <dd class="col-5 text-end" id="subtotalDisplay">0,00 €</dd>

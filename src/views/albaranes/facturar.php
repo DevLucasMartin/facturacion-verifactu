@@ -58,33 +58,14 @@ ob_start();
                             </div>
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label fact-form-label">Canal *</label>
+                            <select name="Id_Canal" id="selectCanal" class="form-select fact-form-select" required>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label fact-form-label">Fecha *</label>
                             <input type="date" class="form-control fact-form-control" name="Fecha"
                                 value="<?= htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8') ?>" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Forma de Pago</label>
-                            <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select">
-                                <option value="">Elige la forma de pago...</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mt-2">
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Dto. Especial %</label>
-                            <input type="number" class="form-control fact-form-control"
-                                name="Descuento_Especial" value="0" min="0" max="100" step="any">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Dto. Comercial %</label>
-                            <input type="number" class="form-control fact-form-control"
-                                name="Descuento_Comercial" value="0" min="0" max="100" step="any">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fact-form-label">Dto. Pronto Pago %</label>
-                            <input type="number" class="form-control fact-form-control"
-                                name="Descuento_PP" value="0" min="0" max="100" step="any">
                         </div>
                     </div>
 
@@ -214,6 +195,38 @@ ob_start();
 
         <!-- Columna lateral -->
         <div class="col-lg-4">
+            <!-- Totales -->
+            <div class="card mb-4 fact-card">
+                <div class="card-header fact-card-header">
+                    <span><i class="bi bi-calculator me-2"></i>Totales</span>
+                </div>
+                <div class="card-body fact-card-body">
+                    <div class="mb-3">
+                        <label class="form-label fact-form-label mb-1">Forma de Pago</label>
+                        <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select form-select-sm fact-form-select">
+                            <option value="">Elige la forma de pago...</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-4">
+                            <label class="form-label fact-form-label mb-1">Dto. Especial %</label>
+                            <input type="number" class="form-control form-control-sm fact-form-control"
+                                name="Descuento_Especial" value="0" min="0" max="100" step="any" placeholder="0.00%">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fact-form-label mb-1">Dto. Comercial %</label>
+                            <input type="number" class="form-control form-control-sm fact-form-control"
+                                name="Descuento_Comercial" value="0" min="0" max="100" step="any" placeholder="0.00%">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fact-form-label mb-1">Dto. Pronto Pago %</label>
+                            <input type="number" class="form-control form-control-sm fact-form-control"
+                                name="Descuento_PP" value="0" min="0" max="100" step="any" placeholder="0.00%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card mb-4 fact-card">
                 <div class="card-header fact-card-header">
                     <span><i class="bi bi-gear me-2"></i>Acciones</span>
