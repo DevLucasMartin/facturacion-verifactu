@@ -14,6 +14,8 @@
 
 require_once __DIR__ . '/../core/Auth.php';
 Auth::requireApi();
+require_once __DIR__ . '/../core/Csrf.php';
+Csrf::requireApi();
 
 require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/../core/Response.php';

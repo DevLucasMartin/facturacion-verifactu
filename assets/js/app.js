@@ -29,15 +29,25 @@ const App = (() => {
         return data;
     }
 
+    // ─── CSRF token ──────────────────────────────────────────────────────────
+    function getCsrfToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
+
     // ─── API helper (jQuery deferred) ────────────────────────────────────────
     function api(url, opts = {}) {
+        const method = opts.method || 'GET';
         const ajaxOpts = {
             url,
-            type:     opts.method      || 'GET',
+            type:     method,
             dataType: 'json',
         };
         if (opts.data)        ajaxOpts.data        = opts.data;
         if (opts.contentType) ajaxOpts.contentType = opts.contentType;
+
+        if (!['GET', 'HEAD'].includes(method.toUpperCase())) {
+            ajaxOpts.headers = { 'X-CSRF-Token': getCsrfToken() };
+        }
 
         const def = $.Deferred();
         $.ajax(ajaxOpts)
@@ -230,7 +240,7 @@ const App = (() => {
                         opciones.apiBase + '/clientes.php/' + encodeURIComponent(opciones.clienteCodigo) + '/nif',
                         {
                             method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
                             body: JSON.stringify({ NIF: nifNuevo }),
                         }
                     );

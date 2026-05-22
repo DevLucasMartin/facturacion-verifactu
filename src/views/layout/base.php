@@ -6,6 +6,7 @@ if (!isset($_SESSION['usuario'])) {
     header('Location: /SistemaGestionFacturas/src/views/login.php');
     exit;
 }
+require_once __DIR__ . '/../../core/Csrf.php';
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Pragma: no-cache');
 header('Expires: 0');
@@ -15,6 +16,7 @@ header('Expires: 0');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?= htmlspecialchars(Csrf::generate(), ENT_QUOTES, 'UTF-8') ?>">
     <title><?= htmlspecialchars($fact_page_title ?? 'Sistema de Facturación', ENT_QUOTES, 'UTF-8') ?> · VeriFACTU</title>
 
     <!-- Bootstrap 5 -->

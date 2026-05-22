@@ -7,10 +7,14 @@ if (isset($_SESSION['usuario'])) {
 }
 
 require_once __DIR__ . '/../../src/config/database.php';
+require_once __DIR__ . '/../../src/core/Csrf.php';
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!Csrf::validate($_POST['_csrf_token'] ?? '')) {
+        $error = 'Token de seguridad inválido. Recarga la página e inténtalo de nuevo.';
+    } else {
     $user = trim($_POST['usuario'] ?? '');
     $pass = trim($_POST['password'] ?? '');
 
@@ -28,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $error = 'Usuario o contraseña incorrectos.';
+    } // end else (CSRF válido)
 }
 ?>
 <!DOCTYPE html>
@@ -116,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST" action="">
+            <input type="hidden" name="_csrf_token" value="<?= htmlspecialchars(Csrf::generate(), ENT_QUOTES, 'UTF-8') ?>">
             <div class="mb-3">
                 <label for="usuario" class="form-label">Usuario</label>
                 <div class="input-group">

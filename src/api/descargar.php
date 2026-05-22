@@ -5,6 +5,8 @@
 
 require_once __DIR__ . '/../core/Auth.php';
 Auth::requireApi();
+require_once __DIR__ . '/../core/Csrf.php';
+Csrf::requireApi();
 
 $archivo = $_GET['archivo'] ?? '';
 
