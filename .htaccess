@@ -1,5 +1,20 @@
 Options -Indexes
 
+# ─── Headers de seguridad ────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+    # Evita que el navegador adivine el MIME type del recurso
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Bloquea que la app se incruste en iframes de otros dominios (anti-clickjacking)
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Controla qué información de referencia se envía en peticiones externas
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Deshabilita funciones del navegador que esta app no necesita
+    Header always set Permissions-Policy "geolocation=(), camera=(), microphone=()"
+</IfModule>
+
 # Bloquear acceso a archivos sensibles de configuración
 <FilesMatch "\.(sql|json|lock|md|log|sh|env|yml|yaml|xml|ini|dist)$">
     Require all denied
