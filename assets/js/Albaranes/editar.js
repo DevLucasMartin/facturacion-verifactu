@@ -54,6 +54,11 @@
     });
 
     function inicializarEventos() {
+        const selCRDoc = document.getElementById('selectClaveRegimenDoc');
+        if (selCRDoc && typeof window.buildClaveRegimenOptions === 'function') {
+            selCRDoc.innerHTML = window.buildClaveRegimenOptions('01');
+        }
+
         ['inputDtoEspecial', 'inputDtoComercial', 'inputDtoPP'].forEach(function(id) {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', recalcular);
@@ -194,6 +199,15 @@
 
         // Observaciones
         document.getElementById('inputObservaciones').value = f.Observaciones || '';
+
+        // Clave Régimen — leer del primer línea E4/E5/E6 que tenga valor
+        const CLAVE_E456 = ['E4', 'E5', 'E6'];
+        const lineaE456 = Array.isArray(f.lineas)
+            ? f.lineas.find(l => CLAVE_E456.includes(l.Calificacion || l.CalificacionOperacion || ''))
+            : null;
+        const claveRegimen = (lineaE456 && lineaE456.Clave_Regimen) ? lineaE456.Clave_Regimen : (f.Clave_Regimen || '01');
+        const selCRDoc = document.getElementById('selectClaveRegimenDoc');
+        if (selCRDoc) selCRDoc.value = claveRegimen;
 
         // Forma de pago
         document.getElementById('selectFormaPago').value = (f.Id_Forma_Pago || '').toUpperCase();

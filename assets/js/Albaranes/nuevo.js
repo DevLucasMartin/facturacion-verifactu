@@ -63,6 +63,8 @@
     function inicializarEventos() {
         const selCR = document.getElementById('selectClaveRegimen');
         if (selCR) selCR.innerHTML = buildClaveRegimenOptions(claveRegimenGlobal);
+        const selCRDoc = document.getElementById('selectClaveRegimenDoc');
+        if (selCRDoc) selCRDoc.innerHTML = buildClaveRegimenOptions(claveRegimenGlobal);
 
         document.getElementById('selectCanal')?.addEventListener('change', actualizarNumeroDocumento);
         document.getElementById('inputFecha')?.addEventListener('change', actualizarNumeroDocumento);
@@ -362,7 +364,11 @@
 
     window.cambiarClaveRegimenGlobal = function (valor) {
         claveRegimenGlobal = valor;
+        const selCRDoc = document.getElementById('selectClaveRegimenDoc');
+        if (selCRDoc) selCRDoc.value = valor;
     };
+
+    window.buildClaveRegimenOptions = buildClaveRegimenOptions;
 
     function actualizarVistaNifExportacion() {
         const hayExportacion = lineas.some(l => CALIFICACION_EXPORTACION.includes(l.calificacion)) ||
@@ -1465,6 +1471,8 @@
                 claveRegimenGlobal = e456.Clave_Regimen;
                 const selCR = document.getElementById('selectClaveRegimen');
                 if (selCR) selCR.value = claveRegimenGlobal;
+                const selCRDoc = document.getElementById('selectClaveRegimenDoc');
+                if (selCRDoc) selCRDoc.value = claveRegimenGlobal;
             }
         }
     }

@@ -59,7 +59,7 @@ ob_start();
     </div>
 
     <!-- Paginación -->
-    <div class="card-footer fact-card-footer d-flex align-items-center justify-content-between" id="productosPaginacion" style="display:none!important;">
+    <div class="card-footer fact-card-footer d-flex align-items-center justify-content-between" id="productosPaginacion" style="display:none;">
         <small class="text-muted" id="productosPagInfo"></small>
         <nav>
             <ul class="pagination pagination-sm mb-0 fact-pagination" id="productosPagLinks"></ul>

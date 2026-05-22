@@ -268,7 +268,12 @@ function guardarNuevoCliente() {
 }
 
 function cargarClientes() {
-    const url = `${FACT_API_BASE}/clientes.php?gestion&q=${encodeURIComponent(cli_busqueda)}&page=1&per_page=9999`;
+    let url;
+    if (cli_busqueda.length >= 2) {
+        url = `${FACT_API_BASE}/clientes.php?gestion&q=${encodeURIComponent(cli_busqueda)}&page=1&per_page=10`;
+    } else {
+        url = `${FACT_API_BASE}/clientes.php?gestion&page=${cli_pagActual}&per_page=10`;
+    }
 
     App.api(url)
         .done(function (response) {
@@ -276,7 +281,7 @@ function cargarClientes() {
             const total = response.total ?? items.length;
             renderClientes(items);
             $('#clientesTotalLabel').text(total + ' clientes');
-            $('#clientesPaginacion').hide();
+            if (!cli_busqueda) renderCliPaginacion(response);
         })
         .fail(function () {
             $('#clientesTableBody').html(`
@@ -289,6 +294,46 @@ function cargarClientes() {
         });
 }
 
+function renderCliPaginacion(response) {
+    const total     = response.total  ?? 0;
+    const pagActual = response.page   ?? 1;
+    const totalPags = response.pages  ?? 1;
+    const perPage   = response.per_page ?? 10;
+    const desde     = (pagActual - 1) * perPage + 1;
+    const hasta     = Math.min(pagActual * perPage, total);
+
+    if (totalPags <= 1) {
+        $('#clientesPaginacion').hide();
+        return;
+    }
+
+    $('#clientesPaginacion').show();
+    $('#clientesPagInfo').text(`Mostrando ${desde}–${hasta} de ${total}`);
+
+    let links = '';
+    links += `<li class="page-item ${pagActual <= 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" data-pag="${pagActual - 1}">&laquo;</a></li>`;
+
+    for (let p = Math.max(1, pagActual - 2); p <= Math.min(totalPags, pagActual + 2); p++) {
+        links += `<li class="page-item ${p === pagActual ? 'active' : ''}">
+            <a class="page-link" href="#" data-pag="${p}">${p}</a></li>`;
+    }
+
+    links += `<li class="page-item ${pagActual >= totalPags ? 'disabled' : ''}">
+        <a class="page-link" href="#" data-pag="${pagActual + 1}">&raquo;</a></li>`;
+
+    $('#clientesPagLinks').html(links);
+
+    $('#clientesPagLinks').off('click').on('click', 'a.page-link', function (e) {
+        e.preventDefault();
+        const p = parseInt($(this).data('pag'));
+        if (p >= 1 && p <= totalPags && p !== cli_pagActual) {
+            cli_pagActual = p;
+            cargarClientes();
+        }
+    });
+}
+
 function renderClientes(clientes) {
     if (!clientes.length) {
         $('#clientesTableBody').html(`
@@ -298,6 +343,7 @@ function renderClientes(clientes) {
                     No se encontraron clientes
                 </td>
             </tr>`);
+        $('#clientesPaginacion').hide();
         return;
     }
 

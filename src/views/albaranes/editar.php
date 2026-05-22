@@ -46,15 +46,12 @@ ob_start();
                             <input type="date" class="form-control fact-form-control" id="inputFecha" name="Fecha" required>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fact-form-label">Cliente *</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control fact-form-control" id="inputIdCliente" name="Id_Cliente" readonly required>
-                                <button type="button" class="btn btn-outline-secondary" onclick="seleccionarCliente()" title="Buscar cliente">
-                                    <i class="bi bi-search"></i>
-                                </button>
-                            </div>
+                            <label class="form-label fact-form-label">Clave Régimen IVA</label>
+                            <select id="selectClaveRegimenDoc" name="Clave_Regimen" class="form-select fact-form-select">
+                            </select>
                         </div>
                     </div>
+                    <input type="hidden" id="inputIdCliente" name="Id_Cliente">
 
                     <div class="row g-3 mt-2">
                         <div class="col-md-12">

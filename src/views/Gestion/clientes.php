@@ -58,7 +58,7 @@ ob_start();
     </div>
 
     <!-- Paginación -->
-    <div class="card-footer fact-card-footer d-flex align-items-center justify-content-between" id="clientesPaginacion" style="display:none!important;">
+    <div class="card-footer fact-card-footer d-flex align-items-center justify-content-between" id="clientesPaginacion" style="display:none;">
         <small class="text-muted" id="clientesPagInfo"></small>
         <nav>
             <ul class="pagination pagination-sm mb-0 fact-pagination" id="clientesPagLinks"></ul>

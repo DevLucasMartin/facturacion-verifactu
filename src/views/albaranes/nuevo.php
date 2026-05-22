@@ -40,23 +40,15 @@ ob_start();
                                 value="<?= htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8') ?>" required>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fact-form-label">Cliente *</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control fact-form-control" id="inputIdCliente" name="Id_Cliente" readonly required>
-                                <button type="button" class="btn btn-outline-secondary" onclick="seleccionarCliente()" title="Buscar cliente">
-                                    <i class="bi bi-search"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mt-2">
-                        <div class="col-md-4">
                             <label class="form-label fact-form-label">Clave Régimen IVA</label>
-                            <select id="selectClaveRegimen" name="Clave_Regimen" class="form-select fact-form-select">
+                            <select id="selectClaveRegimenDoc" name="Clave_Regimen" class="form-select fact-form-select">
                             </select>
                         </div>
-                        <div class="col-md-8">
+                    </div>
+                    <input type="hidden" id="inputIdCliente" name="Id_Cliente">
+
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-12">
                             <label class="form-label fact-form-label">Observaciones</label>
                             <textarea class="form-control fact-form-control" id="inputObservaciones"
                                 name="Observaciones" rows="2"></textarea>

@@ -178,9 +178,9 @@ function guardarProducto() {
 function cargarProductos() {
     let url;
     if (prod_busqueda.length >= 2) {
-        url = `${FACT_API_BASE}/articulos.php?gestion&q=${encodeURIComponent(prod_busqueda)}&page=1&per_page=50`;
+        url = `${FACT_API_BASE}/articulos.php?gestion&q=${encodeURIComponent(prod_busqueda)}&page=1&per_page=10`;
     } else {
-        url = `${FACT_API_BASE}/articulos.php?gestion&page=${prod_pagActual}&per_page=25`;
+        url = `${FACT_API_BASE}/articulos.php?gestion&page=${prod_pagActual}&per_page=10`;
     }
 
     App.api(url)
@@ -256,10 +256,10 @@ function renderProductos(productos) {
 }
 
 function renderPaginacion(response) {
-    const total     = response.total       ?? 0;
-    const pagActual = response.page        ?? 1;
-    const totalPags = response.total_pages ?? 1;
-    const perPage   = response.per_page    ?? 25;
+    const total     = response.total  ?? 0;
+    const pagActual = response.page   ?? 1;
+    const totalPags = response.pages  ?? 1;
+    const perPage   = response.per_page ?? 10;
     const desde     = (pagActual - 1) * perPage + 1;
     const hasta     = Math.min(pagActual * perPage, total);
 
