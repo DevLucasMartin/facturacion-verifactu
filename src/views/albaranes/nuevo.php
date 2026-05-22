@@ -110,29 +110,28 @@ ob_start();
                     <span><i class="bi bi-geo-alt me-2"></i>Territorio / Régimen fiscal</span>
                 </div>
                 <div class="card-body fact-card-body">
-                    <div class="row g-3 align-items-center">
-                        <div class="col-md-5">
-                            <label class="form-label mb-0" for="selectTerritorio"><strong>Territorio:</strong></label>
-                            <select id="selectTerritorio" class="form-select form-select-sm mt-1">
-                                <option value="PENINSULAR" selected>Península e Islas Baleares (IVA)</option>
-                                <option value="CANARIAS">Islas Canarias (IGIC)</option>
-                                <option value="CEUTA_MELILLA">Ceuta y Melilla (IPSI)</option>
-                                <option value="FUERA_ESPANA">Fuera de España</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label mb-0" for="selectRE"><strong>Rec. Equivalencia:</strong></label>
-                            <select id="selectRE" class="form-select form-select-sm mt-1">
-                                <option value="0">No aplica</option>
-                                <option value="1">Sí aplica</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 align-self-end">
-                            <small class="text-muted">
-                                <i class="bi bi-info-circle me-1"></i>
-                                Los impuestos se filtran según el territorio.
-                            </small>
-                        </div>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <label class="form-label mb-0" for="selectTerritorio"><strong>Territorio:</strong></label>
+                        <select id="selectTerritorio" class="form-select form-select-sm" style="width:auto; min-width:260px;">
+                            <option value="PENINSULAR" selected>Península e Islas Baleares (IVA)</option>
+                            <option value="CANARIAS">Islas Canarias (IGIC)</option>
+                            <option value="CEUTA_MELILLA">Ceuta y Melilla (IPSI)</option>
+                            <option value="FUERA_ESPANA">Fuera de España (exportación / intracomunitario)</option>
+                        </select>
+                        <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Al elegir territorio, los impuestos de las líneas se filtran automáticamente.</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 flex-wrap mt-3">
+                        <label id="labelPaisExportacion" class="form-label mb-0 d-none" for="inputPaisExportacion"><strong>País destino:</strong></label>
+                        <select id="inputPaisExportacion" class="form-select form-select-sm d-none" style="width:260px;" onchange="cambiarPaisExportacion(this.value)">
+                        </select>
+                        <label id="labelRE" class="form-label mb-0" for="selectRE"><strong>Rec. Equivalencia:</strong></label>
+                        <select id="selectRE" class="form-select form-select-sm" style="width:auto;">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                        <label id="labelClaveRegimen" class="form-label mb-0 d-none" for="selectClaveRegimen"><strong>Clave Régimen:</strong></label>
+                        <select id="selectClaveRegimen" class="form-select form-select-sm d-none" style="width:auto;" onchange="cambiarClaveRegimenGlobal(this.value)">
+                        </select>
                     </div>
                 </div>
             </div>
@@ -175,6 +174,44 @@ ob_start();
                         </table>
                     </div>
                 </div>
+            </div>
+
+            <!-- NIF exportación (visible solo para S2/N2/E2/E5) -->
+            <div id="nifExportacionSection" class="card mb-4 fact-card d-none">
+                <div class="card-header fact-card-header">
+                    <span><i class="bi bi-globe me-2"></i>Identificador fiscal del destinatario</span>
+                </div>
+                <div class="card-body fact-card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label fact-form-label">NIF / VAT del destinatario</label>
+                            <input type="text" id="inputNifExportacion" class="form-control fact-form-control text-uppercase"
+                                placeholder="Ej: ESA12345674 o FR12345678901"
+                                oninput="cambiarNifExportacion(this.value)">
+                            <div id="vatFormatoError" class="d-none mt-1">
+                                <small class="text-danger" id="vatFormatoErrorTexto"></small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="chkNifVacio"
+                                    onchange="cambiarNifExportacionVacio(this.checked)">
+                                <label class="form-check-label" for="chkNifVacio">
+                                    Enviar sin identificador fiscal (operación sin NIF)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="viesDisplay" class="alert alert-info mt-2 d-none py-2">
+                        <small><strong>Identificador VIES que se enviará a AEAT:</strong> <span id="viesValue" class="fw-bold"></span></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aviso cliente N2/E5 -->
+            <div id="avisoClienteN2" class="alert alert-warning mt-2" style="display:none;">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                <span id="avisoClienteN2Texto"></span>
             </div>
 
         </div>
@@ -269,6 +306,24 @@ ob_start();
         </div>
     </div>
 </form>
+
+<!-- Modal error N2 -->
+<div class="modal fade" id="errorN2Modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Validación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="errorN2Texto"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Modal Guardar Plantilla -->
 <div class="modal fade" id="guardarPlantillaModal" tabindex="-1">

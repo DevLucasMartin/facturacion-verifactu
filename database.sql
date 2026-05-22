@@ -78,10 +78,6 @@ CREATE TABLE `Paises` (
     PRIMARY KEY (`Codigo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `Paises` VALUES
-    ('ES', 'España'), ('DE', 'Alemania'), ('FR', 'Francia'),
-    ('IT', 'Italia'), ('PT', 'Portugal'), ('GB', 'Reino Unido');
-
 -- =============================================================
 -- 3. TIPOS DE CLIENTES
 -- =============================================================

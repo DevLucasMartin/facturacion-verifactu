@@ -492,11 +492,16 @@
             placeholder: 'Selecciona país',
             allowClear: true,
             width: '260px',
+            dropdownParent: $('body'),
             language: {
                 noResults: () => 'Sin resultados',
                 searching: () => 'Buscando…',
                 inputTooShort: () => 'Escribe para buscar',
             }
+        });
+        $sel.on('select2:open', function () {
+            const dd = document.querySelector('.select2-dropdown--above');
+            if (dd) dd.classList.replace('select2-dropdown--above', 'select2-dropdown--below');
         });
         $sel.on('change.paisExp', function () { window.cambiarPaisExportacion(this.value); });
         $sel.on('select2:clear.paisExp', function () {
