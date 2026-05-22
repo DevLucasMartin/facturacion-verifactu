@@ -244,7 +244,7 @@ ob_start();
                     </button>
                     <button type="button" class="btn btn-success fact-btn w-100 mb-2" id="btnGuardarFacturar"
                             onclick="guardarYFacturar()">
-                        <i class="bi bi-receipt me-1"></i>Guardar y Facturar
+                        <i class="bi bi-receipt me-1"></i>Guardar, Facturar y Enviar a Verifactu
                     </button>
                     <a href="/SistemaGestionFacturas/src/views/albaranes/listado.php"
                        class="btn btn-outline-secondary w-100 fact-btn">

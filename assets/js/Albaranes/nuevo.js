@@ -1690,11 +1690,14 @@
                     throw new Error('La factura se procesó pero no se obtuvo el código. Revisa el listado de facturas.');
                 }
 
+                const verifactuPayload = { tipo_origen: 'FACTURA', id_documento: factCodigo };
+                await apiSend('/verifactu.php/enviar', verifactuPayload, 'POST');
+
                 App.hideLoading?.();
-                notify('Factura ' + factCodigo + ' creada correctamente.', 'success');
+                notify('Factura ' + factCodigo + ' creada y enviada a Hacienda.', 'success');
                 setTimeout(() => {
                     window.location.href = BASE + '/src/views/facturas/ver.php?codigo=' + encodeURIComponent(factCodigo);
-                }, 800);
+                }, 1000);
 
             } catch (err) {
                 App.hideLoading?.();

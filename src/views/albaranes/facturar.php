@@ -220,7 +220,7 @@ ob_start();
                 </div>
                 <div class="card-body fact-card-body">
                     <button type="submit" class="btn btn-primary fact-btn w-100 mb-2" id="btnFacturar">
-                        <i class="bi bi-file-earmark-check me-1"></i>Crear Factura
+                        <i class="bi bi-file-earmark-check me-1"></i>Facturar y Enviar a Verifactu
                     </button>
                     <a href="/SistemaGestionFacturas/src/views/albaranes/listado.php"
                        class="btn btn-outline-secondary w-100 fact-btn">

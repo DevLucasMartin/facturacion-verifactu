@@ -280,7 +280,7 @@ ob_start();
                         <i class="bi bi-floppy me-1"></i>Guardar cambios
                     </button>
                     <button type="button" class="btn btn-success fact-btn w-100 mb-2" onclick="guardarYFacturar()">
-                        <i class="bi bi-receipt me-1"></i>Guardar y Facturar
+                        <i class="bi bi-receipt me-1"></i>Guardar, Facturar y Enviar a Verifactu
                     </button>
                     <a href="/SistemaGestionFacturas/src/views/albaranes/ver.php?codigo=<?= htmlspecialchars($codigo, ENT_QUOTES, 'UTF-8') ?>"
                        class="btn btn-outline-secondary w-100 fact-btn">

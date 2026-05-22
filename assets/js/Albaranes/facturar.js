@@ -718,7 +718,7 @@ async function facturar() {
         App.hideLoading();
         App.notify(err.message || 'Error al crear la factura.', 'danger');
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-file-earmark-check me-1"></i>Crear Factura';
+        btn.innerHTML = '<i class="bi bi-file-earmark-check me-1"></i>Facturar y Enviar a Verifactu';
     }
 }
 
