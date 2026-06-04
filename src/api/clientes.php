@@ -52,12 +52,12 @@ try {
                 $fact_limit = min((int)($_GET['limit'] ?? 500), 2000);
                 $fact_items = Database::getInstance()->fetchAll(
                     "SELECT `Codigo` AS id_cliente,
-                            IFNULL(NULLIF(TRIM(`Archivar_Como`), ''),
+                            IFNULL(NULLIF(TRIM(`Nombre`), ''),
                                 CONCAT(TRIM(`Nombre`), IF(`Apellidos` IS NOT NULL AND TRIM(`Apellidos`) != '',
                                 CONCAT(' ', TRIM(`Apellidos`)), ''))) AS nombre_fiscal
                      FROM `Clientes`
                      WHERE `Activo` = 'S'
-                     ORDER BY `Archivar_Como`, `Nombre`
+                     ORDER BY `Nombre`, `Apellidos`
                      LIMIT {$fact_limit}"
                 );
                 Response::success($fact_items);
@@ -115,17 +115,14 @@ try {
     if ($fact_method === 'POST' && $fact_recurso === 'clientes') {
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
 
-        $codigo       = strtoupper(trim($body['Codigo']         ?? ''));
-        $nombre       = trim($body['Nombre']                    ?? '');
+        // El código es autoincrementado (001, 002, 003...): lo asigna el modelo
+        // de forma segura ante concurrencia (ver crearAutoCodigo).
+        $nombre       = trim($body['Nombre'] ?? $body['Archivar'] ?? '');
         $apellidos    = trim($body['Apellidos']                 ?? '');
-        $organizacion = trim($body['Organizacion']              ?? '');
-        $archivar     = trim($body['Archivar_Como'] ?? $body['Archivar'] ?? '');
         $nif          = trim($body['NIF']                       ?? '');
         $direccion    = trim($body['Direccion']                 ?? '');
-        $poblacion    = trim($body['Poblacion']                 ?? '');
-        $provincia    = trim($body['Provincia']                 ?? '');
-        $idPais       = trim($body['Id_Pais']                   ?? '');
-        $tipoCliente  = trim($body['Id_Tipo_Cliente']           ?? '');
+        $codigoPostal = trim($body['Codigo_Postal'] ?? $body['CP'] ?? '');
+        $telefonos    = is_array($body['Telefonos'] ?? null) ? $body['Telefonos'] : [];
         $formaPago    = strtoupper(trim($body['Id_Forma_Pago']  ?? ''));
         $tarifa       = (int)($body['Tarifa']                   ?? 1);
         $aplicaRE     = ($body['Aplica_RE'] ?? 0) == 1;
@@ -134,35 +131,20 @@ try {
         $dtoPP        = (float)($body['Descuento_Pronto_Pago'] ?? 0);
         $activo       = in_array($body['Activo'] ?? 'S', ['S', 'N']) ? ($body['Activo'] ?? 'S') : 'S';
 
-        if ($codigo === '') {
+        if ($nombre === '') {
             http_response_code(422);
-            Response::error('El código de cliente es obligatorio');
+            Response::error('El nombre del cliente es obligatorio');
         }
-        if (!preg_match('/^[A-Z0-9]{1,12}$/', $codigo)) {
-            http_response_code(422);
-            Response::error('El código solo puede contener letras y números (máx. 12 caracteres)');
-        }
-        if (empty($nombre) && empty($organizacion) && empty($archivar)) {
-            http_response_code(422);
-            Response::error('Se requiere al menos Nombre u Organización');
-        }
-        if ($clienteModel->find($codigo)) {
+        if ($nif !== '' && $clienteModel->findByNIF($nif)) {
             http_response_code(409);
-            Response::error('Código de cliente ya existente');
-        }
-
-        // Archivar_Como es NOT NULL: si no se envía, se auto-calcula del nombre
-        if ($archivar === '') {
-            $archivar = $organizacion !== '' ? $organizacion
-                      : ($nombre . ($apellidos !== '' ? ', ' . $apellidos : ''));
+            Response::error('Ya existe un cliente con ese NIF');
         }
 
         $rePorc = (float)($body['RE_Porcentaje'] ?? ($aplicaRE ? 5.20 : 0.00));
 
         $data = [
-            'Codigo'       => $codigo,
             'NIF'          => $nif,
-            'Archivar_Como'=> $archivar,
+            'Nombre'       => $nombre,
             'Tarifa'       => $tarifa,
             'RE_Porcentaje'=> $rePorc,
             'Aplica_RE'    => $rePorc > 0 ? 'S' : 'N',
@@ -170,11 +152,25 @@ try {
         ];
         if ($apellidos !== '') $data['Apellidos']    = $apellidos;
         if ($formaPago !== '') $data['Id_Forma_Pago']= $formaPago;
+        if (array_key_exists('Email_Facturacion', $body)) {
+            $data['Email_Facturacion'] = trim($body['Email_Facturacion'] ?? '') ?: null;
+        }
         $data['Descuento_Especial']  = $dtoEspecial;
         $data['Descuento_Comercial'] = $dtoComercial;
         $data['Descuento_PP']        = $dtoPP;
 
-        $nuevoCodigo = $clienteModel->create($data);
+        // Asigna el código y crea el cliente de forma atómica/segura ante concurrencia
+        $nuevoCodigo = $clienteModel->crearAutoCodigo($data);
+
+        // Dirección principal (tabla Direcciones_Clientes)
+        if ($direccion !== '' || $codigoPostal !== '') {
+            $clienteModel->setDireccionPrincipal($nuevoCodigo, $direccion, $codigoPostal);
+        }
+        // Teléfonos (tabla Telefonos_Clientes) — un cliente puede tener varios
+        if (!empty($telefonos)) {
+            $clienteModel->setTelefonos($nuevoCodigo, $telefonos);
+        }
+
         $cliente     = $clienteModel->findWithDetails($nuevoCodigo);
         http_response_code(201);
         Response::success($cliente);
@@ -194,7 +190,7 @@ try {
 
         $data = [];
         if (array_key_exists('Apellidos',         $body)) $data['Apellidos']         = trim($body['Apellidos']         ?? '');
-        if (array_key_exists('Archivar_Como',      $body)) $data['Archivar_Como']     = trim($body['Archivar_Como']     ?? '');
+        if (array_key_exists('Nombre',      $body)) $data['Nombre']     = trim($body['Nombre']     ?? '');
         if (array_key_exists('NIF',                $body)) $data['NIF']               = strtoupper(trim($body['NIF']   ?? ''));
         if (array_key_exists('Id_Forma_Pago',      $body)) $data['Id_Forma_Pago']     = strtoupper(trim($body['Id_Forma_Pago'] ?? '')) ?: null;
         if (array_key_exists('Tarifa',             $body)) $data['Tarifa']            = (int)($body['Tarifa'] ?? 1);
@@ -202,16 +198,36 @@ try {
         if (array_key_exists('RE_Porcentaje',      $body)) $data['Aplica_RE']         = ($data['RE_Porcentaje'] > 0) ? 'S' : 'N';
         if (array_key_exists('Email_Facturacion',  $body)) $data['Email_Facturacion'] = trim($body['Email_Facturacion'] ?? '') ?: null;
 
-        if (empty($data)) {
+        $tieneDireccion = array_key_exists('Direccion', $body)
+                       || array_key_exists('Codigo_Postal', $body)
+                       || array_key_exists('CP', $body);
+        $tieneTelefonos = array_key_exists('Telefonos', $body);
+
+        if (empty($data) && !$tieneDireccion && !$tieneTelefonos) {
             http_response_code(422);
             Response::error('No se han enviado campos a actualizar');
         }
-        if (isset($data['Archivar_Como']) && $data['Archivar_Como'] === '') {
+        if (isset($data['Nombre']) && $data['Nombre'] === '') {
             http_response_code(422);
-            Response::error('El campo "Archivar como" no puede estar vacío');
+            Response::error('El nombre del cliente no puede estar vacío');
         }
 
-        $clienteModel->update($idCliente, $data);
+        if (!empty($data)) {
+            $clienteModel->update($idCliente, $data);
+        }
+        // Dirección principal (tabla Direcciones_Clientes)
+        if ($tieneDireccion) {
+            $clienteModel->setDireccionPrincipal(
+                $idCliente,
+                trim($body['Direccion'] ?? ''),
+                trim($body['Codigo_Postal'] ?? $body['CP'] ?? '')
+            );
+        }
+        // Teléfonos (tabla Telefonos_Clientes)
+        if ($tieneTelefonos) {
+            $clienteModel->setTelefonos($idCliente, is_array($body['Telefonos']) ? $body['Telefonos'] : []);
+        }
+
         Response::success($clienteModel->findWithDetails($idCliente), 'Cliente actualizado correctamente');
     }
 

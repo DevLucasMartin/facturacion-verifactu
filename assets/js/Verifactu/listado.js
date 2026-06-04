@@ -24,12 +24,6 @@ $(document).ready(function () {
     });
 
     // Botones de acción en registros
-    $(document).on('click', '#registrosBody .vf-btn-reintentar', function () {
-        reintentar($(this).data('tipo') + '/' + $(this).data('id'));
-    });
-    $(document).on('click', '#registrosBody .vf-btn-enviar', function () {
-        enviar($(this).data('tipo') + '/' + $(this).data('id'));
-    });
     $(document).on('click', '#registrosBody .vf-btn-detalles', function () {
         verDetalles($(this).data('tipo') + '/' + $(this).data('id'));
     });
@@ -40,7 +34,7 @@ $(document).ready(function () {
 });
 
 function cargarCertificado() {
-    App.api(FACT_API_BASE + '/verifactu.php/verifactu/certificado').done(function (response) {
+    App.api(FACT_API_BASE + '/verifactu.php/certificado').done(function (response) {
         if (!response.data) return;
         const cert   = response.data;
         const banner = $('#certExpiryBanner');
@@ -54,7 +48,7 @@ function cargarCertificado() {
 }
 
 function cargarEstadisticas() {
-    App.api(FACT_API_BASE + '/verifactu.php/verifactu/stats').done(function (response) {
+    App.api(FACT_API_BASE + '/verifactu.php/stats').done(function (response) {
         const stats = response.data || {};
         $('#statTotal').text(stats.total || 0);
         $('#statEnviados').text(stats.enviados || 0);
@@ -65,7 +59,7 @@ function cargarEstadisticas() {
 
 function cargarRegistros(page = 1) {
     vf_currentPage = page;
-    let url = FACT_API_BASE + '/verifactu.php/verifactu?page=' + page + '&per_page=20';
+    let url = FACT_API_BASE + '/verifactu.php?page=' + page + '&per_page=20';
 
     if (vf_filtroEstado) url += '&estado=' + vf_filtroEstado;
     if (vf_filtroTipo)   url += '&tipo='   + vf_filtroTipo;
@@ -116,16 +110,25 @@ function renderRegistros(registros) {
         ANULADO:   { label: 'Anulado',   class: 'bg-secondary' }
     };
 
+    const tipoDocLabels = {
+        FACTURA:        'Factura',
+        COMPLETA:       'Factura',
+        RECTIFICATIVA:  'Rectificativa',
+        RECAPITULATIVA: 'Recapitulativa',
+        SIMPLIFICADA:   'Simplificada'
+    };
+
     tbody.html(registros.map(function (registro) {
         const estado  = estadoLabels[registro.Estado_Envio] || { label: registro.Estado_Envio || 'Desconocido', class: 'bg-secondary' };
         const cliente = registro.Cliente_Nombre || 'Sin cliente';
         const total   = parseFloat(registro.Factura_Total || 0);
+        const tipoDoc = tipoDocLabels[registro.Tipo_Documento] || registro.Tipo_Origen || '-';
 
         return `
             <tr class="${registro.Estado_Envio === 'ERROR' ? 'table-danger' : ''}">
                 <td>
                     <strong>${vf_escapeHtml(registro.Id_Documento)}</strong><br>
-                    <small class="text-muted">${vf_escapeHtml(registro.Tipo_Origen)}</small>
+                    <small class="text-muted">${vf_escapeHtml(tipoDoc)}</small>
                 </td>
                 <td>${vf_formatFecha(registro.Fecha_Generacion)}</td>
                 <td>${vf_escapeHtml(cliente.substring(0, 35))}</td>
@@ -138,16 +141,6 @@ function renderRegistros(registros) {
                 </td>
                 <td class="text-center">
                     <div class="btn-group btn-group-sm fact-btn-group">
-                        ${registro.Estado_Envio === 'ERROR' ? `
-                        <button class="btn btn-outline-primary vf-btn-reintentar" title="Reintentar"
-                            data-tipo="${vf_escapeHtml(registro.Tipo_Origen)}" data-id="${vf_escapeHtml(registro.Id_Documento)}">
-                            <i class="bi bi-arrow-clockwise"></i>
-                        </button>` : ''}
-                        ${registro.Estado_Envio === 'PENDIENTE' || registro.Estado_Envio === 'GENERADO' ? `
-                        <button class="btn btn-outline-success vf-btn-enviar" title="Enviar a Hacienda"
-                            data-tipo="${vf_escapeHtml(registro.Tipo_Origen)}" data-id="${vf_escapeHtml(registro.Id_Documento)}">
-                            <i class="bi bi-send"></i>
-                        </button>` : ''}
                         <button class="btn btn-outline-info vf-btn-detalles" title="Ver detalles"
                             data-tipo="${vf_escapeHtml(registro.Tipo_Origen)}" data-id="${vf_escapeHtml(registro.Id_Documento)}">
                             <i class="bi bi-eye"></i>
@@ -204,66 +197,8 @@ function recargarEstadisticas() {
     cargarRegistros(vf_currentPage);
 }
 
-function procesarCola() {
-    if (!confirm('¿Procesar la cola de facturas pendientes? Esto enviará todas las facturas pendientes a Hacienda.')) return;
-
-    App.showLoading();
-    App.api(FACT_API_BASE + '/verifactu.php/verifactu/cola', { method: 'POST' })
-        .done(function (response) {
-            const resultado = response.data || {};
-            const msg = `Cola procesada: ${resultado.enviados || 0} enviados, ${resultado.errores || 0} errores`;
-            App.notify(msg, resultado.errores > 0 ? 'warning' : 'success');
-            recargarEstadisticas();
-        })
-        .fail(function (xhr) {
-            App.notify(xhr.responseJSON?.message || 'Error al procesar la cola', 'danger');
-        })
-        .always(function () {
-            App.hideLoading();
-        });
-}
-
-function reintentar(codigo) {
-    if (!confirm('¿Reintentar el envío de este documento a Hacienda?')) return;
-
-    App.showLoading();
-    App.api(FACT_API_BASE + '/verifactu.php/verifactu/reintentar/' + codigo, { method: 'POST' })
-        .done(function () {
-            App.notify('Documento enviado correctamente', 'success');
-            recargarEstadisticas();
-        })
-        .fail(function (xhr) {
-            App.notify(xhr.responseJSON?.message || 'Error al reintentar', 'danger');
-        })
-        .always(function () {
-            App.hideLoading();
-        });
-}
-
-function enviar(codigo) {
-    if (!confirm('¿Enviar este documento a Hacienda?')) return;
-
-    const partes = codigo.split('/');
-    App.showLoading();
-    App.api(FACT_API_BASE + '/verifactu.php/enviar', {
-        method:      'POST',
-        data:        JSON.stringify({ tipo_origen: partes[0], id_documento: partes[1] }),
-        contentType: 'application/json'
-    })
-        .done(function () {
-            App.notify('Documento enviado correctamente', 'success');
-            recargarEstadisticas();
-        })
-        .fail(function (xhr) {
-            App.notify(xhr.responseJSON?.message || 'Error al enviar', 'danger');
-        })
-        .always(function () {
-            App.hideLoading();
-        });
-}
-
 function verDetalles(tipoCodigo) {
-    App.api(FACT_API_BASE + '/verifactu.php/verifactu/estado/' + tipoCodigo)
+    App.api(FACT_API_BASE + '/verifactu.php/estado/' + tipoCodigo)
         .done(function (response) {
             const registro = response.data;
             if (!registro) {

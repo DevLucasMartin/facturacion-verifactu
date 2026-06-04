@@ -37,6 +37,7 @@ function escapeHtml(text) {
 }
 
 var tiposIVA = {};
+var clienteAlbaran = null;
 
 function fmtTipoIVA(linea) {
     var tipo = tiposIVA[linea.Id_Tipo_IVA];
@@ -158,16 +159,20 @@ function renderTotales(a) {
 
 function renderCliente(a) {
     var c = a.cliente;
+    clienteAlbaran = c || null;
     if (!c) {
         $('#clientePanel').html('<div class="text-muted">Sin datos de cliente.</div>');
         return;
     }
+    var dirs = c.direcciones || [];
+    var dir  = dirs.find(function (d) { return d.Predeterminada === 'S'; }) || dirs[0] || {};
+    var dirTxt = [dir.Direccion, dir.Codigo_Postal, dir.Ciudad].filter(Boolean).join(', ');
     var html =
         '<dl class="row mb-0">' +
-        '<dt class="col-sm-4">Nombre:</dt><dd class="col-sm-8">' + escapeHtml(c.Archivar_Como || '-') + '</dd>' +
+        '<dt class="col-sm-4">Nombre:</dt><dd class="col-sm-8">' + escapeHtml(c.Nombre || '-') + '</dd>' +
         '<dt class="col-sm-4">Id Cliente:</dt><dd class="col-sm-8">' + escapeHtml(c.Codigo || '-') + '</dd>' +
         '<dt class="col-sm-4">NIF:</dt><dd class="col-sm-8">' + escapeHtml(c.NIF || '-') + '</dd>' +
-        '<dt class="col-sm-4">Dirección:</dt><dd class="col-sm-8">' + escapeHtml(c.Direccion || '-') + '</dd>' +
+        '<dt class="col-sm-4">Dirección:</dt><dd class="col-sm-8">' + escapeHtml(dirTxt || '-') + '</dd>' +
         '<dt class="col-sm-4">Forma Pago:</dt><dd class="col-sm-8">' + escapeHtml(a.Id_Forma_Pago || '-') + '</dd>' +
         '<dt class="col-sm-4">Tipo IVA:</dt><dd class="col-sm-8">' + escapeHtml(c.Id_Tipo_IVA || '-') + '</dd>' +
         '<dt class="col-sm-4">Aplica RE:</dt><dd class="col-sm-8">' + (c.Aplica_RE == 1 ? 'Sí' : 'No') + '</dd>' +
@@ -262,9 +267,59 @@ function descargarPdf() {
 }
 
 function enviarEmail(proforma) {
-    var email = prompt('Introduce el email de destino:');
-    if (!email || email.trim() === '') return;
+    if (!clienteAlbaran || !clienteAlbaran.Codigo) {
+        App.notify('No se han podido cargar los datos del cliente', 'error');
+        return;
+    }
 
+    var emailGuardado = (clienteAlbaran.Email_Facturacion || '').trim();
+    if (emailGuardado) {
+        enviarEmailAlbaran(emailGuardado, proforma);
+        return;
+    }
+
+    // El cliente no tiene email guardado: avisar y pedirlo con SweetAlert2
+    Swal.fire({
+        icon:              'warning',
+        title:             'Cliente sin email',
+        text:              'Este cliente no tiene ningún email guardado. Introdúcelo para enviar el documento; se guardará en su ficha.',
+        input:             'email',
+        inputPlaceholder:  'correo@ejemplo.com',
+        showCancelButton:  true,
+        confirmButtonText: 'Guardar y enviar',
+        cancelButtonText:  'Cancelar',
+        confirmButtonColor: '#198754',
+        inputValidator: function(value) {
+            if (!value || !value.trim()) return 'Debes introducir un email';
+        }
+    }).then(function(result) {
+        if (!result.isConfirmed) return;
+        var nuevoEmail = result.value.trim();
+
+        // Guardar el email en la ficha del cliente y luego enviar
+        App.showLoading();
+        App.api(API_VER + '/clientes.php/' + encodeURIComponent(clienteAlbaran.Codigo), {
+            method:      'PUT',
+            contentType: 'application/json',
+            data:        JSON.stringify({ Email_Facturacion: nuevoEmail })
+        })
+        .done(function(data) {
+            if (data && data.success) {
+                clienteAlbaran.Email_Facturacion = nuevoEmail;
+                enviarEmailAlbaran(nuevoEmail, proforma);
+            } else {
+                App.hideLoading();
+                App.notify((data && data.message) || 'Error al guardar el email del cliente', 'error');
+            }
+        })
+        .fail(function() {
+            App.hideLoading();
+            App.notify('Error al guardar el email del cliente', 'error');
+        });
+    });
+}
+
+function enviarEmailAlbaran(email, proforma) {
     App.showLoading();
     App.api(API_VER + '/albaranes.php/' + encodeURIComponent(codigoAlbaran) + '/email', {
         method:      'POST',
@@ -272,7 +327,7 @@ function enviarEmail(proforma) {
         data:        JSON.stringify({ email: email, proforma: proforma ? true : false })
     })
     .done(function(response) {
-        App.notify(response.message || 'Email enviado', 'success');
+        App.notify(response.message || ('Email enviado a ' + email), 'success');
     })
     .fail(function(xhr) {
         var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Error al enviar el email';

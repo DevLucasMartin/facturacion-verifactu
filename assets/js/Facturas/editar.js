@@ -236,7 +236,9 @@
             document.getElementById('inputIdCliente').value        = clienteActual.Codigo || '';
             document.getElementById('clienteNombre').textContent   = clienteActual.Razon_Social || clienteActual.Nombre || '';
             document.getElementById('clienteNIF').textContent      = clienteActual.NIF || '';
-            document.getElementById('clienteDireccion').textContent = clienteActual.Direccion || '-';
+            const _dirs = clienteActual.direcciones || [];
+            const _dir  = _dirs.find(d => d.Predeterminada === 'S') || _dirs[0] || {};
+            document.getElementById('clienteDireccion').textContent = [_dir.Direccion, _dir.Codigo_Postal, _dir.Ciudad].filter(Boolean).join(', ') || '-';
             document.getElementById('clienteFormaPago').textContent = clienteActual.Id_Forma_Pago || '-';
             document.getElementById('clienteTarifa').textContent   = 'Tarifa ' + tarifaActual;
 

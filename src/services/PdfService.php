@@ -116,7 +116,7 @@ class PdfService
             ];
         }
 
-        $nombreCompleto = trim($cliente['Archivar_Como'] ?? '');
+        $nombreCompleto = trim($cliente['Nombre'] ?? '');
         if ($nombreCompleto === '') {
             $nombreCompleto = $cliente['NIF'] ?? '';
         }

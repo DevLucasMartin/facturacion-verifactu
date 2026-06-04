@@ -75,7 +75,7 @@ $(document).ready(function() {
                     results: lista.map(function(c) {
                         return {
                             id:   c.Codigo,
-                            text: (c.Archivar_Como || c.Nombre || c.Codigo) + ' (' + (c.NIF || '-') + ')'
+                            text: (c.Nombre || c.Nombre || c.Codigo) + ' (' + (c.NIF || '-') + ')'
                         };
                     })
                 };
@@ -282,21 +282,29 @@ $(document).ready(function() {
 
     // ====== Eliminar ======
     window.fact_solicitarBorrado = function(fact_codFactura) {
-        if (!confirm('¿Está seguro de que desea eliminar este albarán?')) return;
+        App.confirm({
+            icon:        'warning',
+            title:       'Eliminar albarán',
+            text:        '¿Está seguro de que desea eliminar este albarán?',
+            confirmText: 'Eliminar',
+            danger:      true
+        }).then(function (ok) {
+            if (!ok) return;
 
-        const url = `${FACT_API_BASE}/albaranes.php/` + encodeURIComponent(fact_codFactura);
+            const url = `${FACT_API_BASE}/albaranes.php/` + encodeURIComponent(fact_codFactura);
 
-        peticionListadoFacturas(url, { method: 'DELETE' })
-            .done(function() {
-                if (typeof App !== 'undefined' && typeof App.notify === 'function') {
-                    App.notify('Albarán eliminado correctamente', 'success');
-                }
-                cargarListadoFacturas(fact_currentPage);
-            })
-            .fail(function(err) {
-                console.error('Error eliminando albarán:', err.status, err.responseText);
-                alert('No se pudo eliminar el albarán. Revisa consola/Network.');
-            });
+            peticionListadoFacturas(url, { method: 'DELETE' })
+                .done(function() {
+                    if (typeof App !== 'undefined' && typeof App.notify === 'function') {
+                        App.notify('Albarán eliminado correctamente', 'success');
+                    }
+                    cargarListadoFacturas(fact_currentPage);
+                })
+                .fail(function(err) {
+                    console.error('Error eliminando albarán:', err.status, err.responseText);
+                    App.alert('No se pudo eliminar el albarán. Revisa consola/Network.', { icon: 'error', title: 'Error' });
+                });
+        });
     };
 
     // ====== Submit filtros ======

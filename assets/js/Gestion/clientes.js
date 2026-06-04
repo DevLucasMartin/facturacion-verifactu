@@ -47,7 +47,12 @@ function abrirNuevoCliente() {
     $('#nuevoClienteMsg').addClass('d-none').removeClass('alert-success alert-danger alert-warning').addClass('alert-info').text('');
     $('#nuevoClienteForm')[0].reset();
     $('#ncRE').val('0');
-    $('#ncCodigo').prop('readonly', false).removeClass('is-invalid is-valid');
+    $('#ncDireccion').val('');
+    $('#ncCodigoPostal').val('');
+    cli_setTelefonos([]);
+    // El código se asigna automáticamente al guardar: ocultar el campo en alta
+    $('#ncCodigoCol').hide();
+    $('#ncCodigo').val('').removeClass('is-invalid is-valid');
     $('#ncCodigoError').text('');
     $('#ncNif').removeClass('is-invalid is-valid');
     $('#ncNifError').text('');
@@ -60,6 +65,7 @@ function abrirModificarCliente(codigo) {
     $('#nuevoClienteModalTitle').text('Modificar Cliente');
     $('#nuevoClienteMsg').addClass('d-none').removeClass('alert-success alert-danger alert-warning').addClass('alert-info').text('');
     $('#nuevoClienteForm')[0].reset();
+    $('#ncCodigoCol').show();
     $('#ncCodigo').prop('readonly', true).removeClass('is-invalid is-valid').val(codigo);
     $('#ncNif').removeClass('is-invalid is-valid');
     $('#ncNifError').text('');
@@ -68,12 +74,22 @@ function abrirModificarCliente(codigo) {
         .done(function (response) {
             const c = response.data;
             $('#ncApellidos').val(c.Apellidos        || '');
-            $('#ncArchivar').val(c.Archivar_Como      || '');
+            $('#ncArchivar').val(c.Nombre      || '');
             $('#ncNif').val(c.NIF                     || '');
             $('#ncFormaPago').val(c.Id_Forma_Pago      || '');
             $('#ncTarifa').val(c.Tarifa                || 1);
             $('#ncRE').val(c.RE_Porcentaje             || 0);
             $('#ncEmail').val(c.Email_Facturacion       || '');
+
+            // Dirección principal (predeterminada o la primera)
+            const dirs = c.direcciones || [];
+            const dir  = dirs.find(d => d.Predeterminada === 'S') || dirs[0] || {};
+            $('#ncDireccion').val(dir.Direccion         || '');
+            $('#ncCodigoPostal').val(dir.Codigo_Postal  || '');
+
+            // Teléfonos
+            cli_setTelefonos(c.telefonos || []);
+
             cli_modal.show();
         })
         .fail(function () {
@@ -207,19 +223,43 @@ function cli_validarCodigo(input) {
     }
 }
 
+// ===== Teléfonos (varios por cliente) =====
+function cli_addTelefono(valor) {
+    const fila = $(
+        '<div class="input-group input-group-sm mb-1 cli-telefono-fila">' +
+        '<input type="text" class="form-control fact-form-control cli-telefono-input" placeholder="600 000 000" maxlength="20">' +
+        '<button type="button" class="btn btn-outline-danger" onclick="cli_removeTelefono(this)" title="Quitar"><i class="bi bi-trash"></i></button>' +
+        '</div>'
+    );
+    fila.find('.cli-telefono-input').val(valor || '');
+    $('#ncTelefonosLista').append(fila);
+}
+
+function cli_removeTelefono(btn) {
+    $(btn).closest('.cli-telefono-fila').remove();
+}
+
+function cli_setTelefonos(telefonos) {
+    $('#ncTelefonosLista').empty();
+    if (telefonos && telefonos.length) {
+        telefonos.forEach(function (t) { cli_addTelefono(t.Telefono || t); });
+    } else {
+        cli_addTelefono('');
+    }
+}
+
+function cli_getTelefonos() {
+    return $('#ncTelefonosLista .cli-telefono-input')
+        .map(function () { return ($(this).val() || '').trim(); })
+        .get()
+        .filter(function (v) { return v !== ''; });
+}
+
 function guardarNuevoCliente() {
-    const codigoVal   = ($('#ncCodigo').val()   || '').trim().toUpperCase();
     const archivarVal = ($('#ncArchivar').val() || '').trim();
 
-    if (!cli_modoEdicion) {
-        if (!codigoVal || !/^[A-Z0-9]{1,12}$/.test(codigoVal)) {
-            $('#ncCodigo').addClass('is-invalid');
-            document.getElementById('ncCodigoError').textContent = 'El código es obligatorio (solo letras y números, máx. 12).';
-            return;
-        }
-    }
     if (!archivarVal) {
-        $('#nuevoClienteMsg').removeClass('d-none alert-info alert-success alert-warning').addClass('alert-danger').text('El campo "Archivar como" es obligatorio.');
+        $('#nuevoClienteMsg').removeClass('d-none alert-info alert-success alert-warning').addClass('alert-danger').text('El campo "Nombre" es obligatorio.');
         return;
     }
     const nifVal = ($('#ncNif').val() || '').trim();
@@ -232,27 +272,32 @@ function guardarNuevoCliente() {
 
     const payload = {
         Apellidos:         ($('#ncApellidos').val() || '').trim(),
-        Archivar_Como:     archivarVal,
+        Nombre:     archivarVal,
         NIF:               ($('#ncNif').val()       || '').trim(),
         Id_Forma_Pago:     ($('#ncFormaPago').val() || '').trim(),
         Email_Facturacion: ($('#ncEmail').val()     || '').trim() || null,
         Tarifa:            parseInt($('#ncTarifa').val(), 10) || 1,
         Aplica_RE:         parseFloat($('#ncRE').val()) > 0 ? 1 : 0,
         RE_Porcentaje:     parseFloat($('#ncRE').val()) || 0,
+        Direccion:         ($('#ncDireccion').val()     || '').trim(),
+        Codigo_Postal:     ($('#ncCodigoPostal').val()  || '').trim(),
+        Telefonos:         cli_getTelefonos(),
     };
     if (!cli_modoEdicion) {
-        payload.Codigo  = codigoVal;
         payload.Archivar = archivarVal;
     }
 
     const url    = cli_modoEdicion ? `${FACT_API_BASE}/clientes.php/${encodeURIComponent(cli_codigoEdicion)}` : `${FACT_API_BASE}/clientes.php`;
     const method = cli_modoEdicion ? 'PUT' : 'POST';
-    const msgOk  = cli_modoEdicion ? 'Cliente actualizado correctamente.' : `Cliente ${cli_esc(codigoVal)} creado correctamente.`;
 
     $('#ncBtnGuardar').prop('disabled', true);
 
     App.api(url, { method, data: JSON.stringify(payload), contentType: 'application/json' })
-        .done(function () {
+        .done(function (resp) {
+            const codigoAsignado = resp?.data?.Codigo || '';
+            const msgOk = cli_modoEdicion
+                ? 'Cliente actualizado correctamente.'
+                : `Cliente ${cli_esc(codigoAsignado)} creado correctamente.`;
             $('#nuevoClienteMsg').removeClass('d-none alert-info alert-danger alert-warning').addClass('alert-success').text(msgOk);
             setTimeout(function () {
                 cli_modal.hide();
@@ -261,12 +306,7 @@ function guardarNuevoCliente() {
         })
         .fail(function (xhr) {
             const msg = xhr.responseJSON?.message || 'Error al guardar el cliente.';
-            const esDuplicado = !cli_modoEdicion && (msg.includes('ya existente') || msg.includes('already'));
-            $('#nuevoClienteMsg').removeClass('d-none alert-info alert-success').addClass(esDuplicado ? 'alert-warning' : 'alert-danger').text(msg);
-            if (esDuplicado) {
-                $('#ncCodigo').addClass('is-invalid');
-                document.getElementById('ncCodigoError').textContent = 'Este código ya existe.';
-            }
+            $('#nuevoClienteMsg').removeClass('d-none alert-info alert-success alert-warning').addClass('alert-danger').text(msg);
         })
         .always(function () {
             $('#ncBtnGuardar').prop('disabled', false);
@@ -360,7 +400,7 @@ function renderClientes(clientes) {
         return `
             <tr class="fact-tr-hover">
                 <td><strong>${cli_esc(c.Codigo)}</strong></td>
-                <td>${cli_esc(c.Archivar_Como || '')}</td>
+                <td>${cli_esc(c.Nombre || '')}</td>
                 <td>${cli_esc(c.NIF || '-')}</td>
                 <td>${cli_esc(c.Id_Forma_Pago || '-')}</td>
                 <td class="text-center">
@@ -382,12 +422,12 @@ function renderClientes(clientes) {
                     ${activo
                         ? `<button class="btn btn-sm btn-outline-danger fact-btn"
                                    title="Desactivar"
-                                   onclick="eliminarCliente('${cli_esc(c.Codigo)}', '${cli_esc(c.Archivar_Como)}')">
+                                   onclick="eliminarCliente('${cli_esc(c.Codigo)}', '${cli_esc(c.Nombre)}')">
                                <i class="bi bi-slash-circle"></i>
                            </button>`
                         : `<button class="btn btn-sm btn-outline-success fact-btn"
                                    title="Activar"
-                                   onclick="activarCliente('${cli_esc(c.Codigo)}', '${cli_esc(c.Archivar_Como)}')">
+                                   onclick="activarCliente('${cli_esc(c.Codigo)}', '${cli_esc(c.Nombre)}')">
                                <i class="bi bi-check-circle"></i>
                            </button>`}
                 </td>
@@ -396,31 +436,44 @@ function renderClientes(clientes) {
 }
 
 function eliminarCliente(codigo, nombre) {
-    if (!confirm(`¿Desactivar el cliente "${nombre}" (${codigo})?\n\nNo aparecerá en selectores de facturas ni albaranes, pero se conserva el histórico.`)) return;
-
-    App.api(`${FACT_API_BASE}/clientes.php/${encodeURIComponent(codigo)}`, { method: 'DELETE' })
-        .done(function () {
-            App.notify('Cliente desactivado correctamente', 'success');
-            cargarClientes();
-        })
-        .fail(function (xhr) {
-            const msg = xhr.responseJSON?.message || 'Error al desactivar el cliente.';
-            App.notify(msg, 'danger');
-        });
+    App.confirm({
+        icon:        'warning',
+        title:       'Desactivar cliente',
+        text:        `¿Desactivar el cliente "${nombre}" (${codigo})? No aparecerá en selectores de facturas ni albaranes, pero se conserva el histórico.`,
+        confirmText: 'Desactivar',
+        danger:      true
+    }).then(function (ok) {
+        if (!ok) return;
+        App.api(`${FACT_API_BASE}/clientes.php/${encodeURIComponent(codigo)}`, { method: 'DELETE' })
+            .done(function () {
+                App.notify('Cliente desactivado correctamente', 'success');
+                cargarClientes();
+            })
+            .fail(function (xhr) {
+                const msg = xhr.responseJSON?.message || 'Error al desactivar el cliente.';
+                App.notify(msg, 'danger');
+            });
+    });
 }
 
 function activarCliente(codigo, nombre) {
-    if (!confirm(`¿Activar el cliente "${nombre}" (${codigo})?\n\nVolverá a aparecer en los selectores de facturas y albaranes.`)) return;
-
-    App.api(`${FACT_API_BASE}/clientes.php/${encodeURIComponent(codigo)}/activar`, { method: 'PATCH' })
-        .done(function () {
-            App.notify('Cliente activado correctamente', 'success');
-            cargarClientes();
-        })
-        .fail(function (xhr) {
-            const msg = xhr.responseJSON?.message || 'Error al activar el cliente.';
-            App.notify(msg, 'danger');
-        });
+    App.confirm({
+        icon:        'question',
+        title:       'Activar cliente',
+        text:        `¿Activar el cliente "${nombre}" (${codigo})? Volverá a aparecer en los selectores de facturas y albaranes.`,
+        confirmText: 'Activar'
+    }).then(function (ok) {
+        if (!ok) return;
+        App.api(`${FACT_API_BASE}/clientes.php/${encodeURIComponent(codigo)}/activar`, { method: 'PATCH' })
+            .done(function () {
+                App.notify('Cliente activado correctamente', 'success');
+                cargarClientes();
+            })
+            .fail(function (xhr) {
+                const msg = xhr.responseJSON?.message || 'Error al activar el cliente.';
+                App.notify(msg, 'danger');
+            });
+    });
 }
 
 function cli_esc(text) {

@@ -140,7 +140,7 @@ function cargarAlbaran(codigo) {
 function mostrarCliente(c) {
     clienteActual = c;
     document.getElementById('inputIdCliente').value         = c.Codigo || '';
-    document.getElementById('clienteNombre').textContent    = c.Archivar_Como || c.Nombre || c.Codigo || '';
+    document.getElementById('clienteNombre').textContent    = c.Nombre || c.Nombre || c.Codigo || '';
     document.getElementById('clienteNIF').textContent       = c.NIF || '';
     document.getElementById('clienteVacio').style.display   = 'none';
     document.getElementById('clienteInfo').style.display    = '';
@@ -215,7 +215,7 @@ function abrirDropdownAlbaranes() {
         const c = estado.albaran.cliente;
         clientes.push({
             Codigo: id,
-            Nombre: c?.Nombre || c?.Archivar_Como || id,
+            Nombre: c?.Nombre || c?.Nombre || id,
             NIF:    c?.NIF || '',
         });
     });
@@ -387,7 +387,7 @@ function buscarClientes(query) {
                 <tr style="cursor:pointer" onclick="seleccionarClienteReal('${escAttr(String(c.Codigo))}')">
                     <td>${escHtml(c.Codigo)}</td>
                     <td>${escHtml(c.NIF || '-')}</td>
-                    <td>${escHtml(c.Archivar_Como || '-')}</td>
+                    <td>${escHtml(c.Nombre || '-')}</td>
                     <td>${escHtml(c.Id_Forma_Pago || '-')}</td>
                 </tr>`).join('');
         })
@@ -424,7 +424,7 @@ function renderAlbaranes() {
                 <span>
                     <i class="bi bi-file-earmark me-2"></i>
                     <strong>${escHtml(codigo)}</strong>
-                    &nbsp;·&nbsp; ${escHtml(a.cliente?.Archivar_Como || a.Id_Cliente || '')}
+                    &nbsp;·&nbsp; ${escHtml(a.cliente?.Nombre || a.Id_Cliente || '')}
                     &nbsp;·&nbsp; Canal: ${escHtml(a.Id_Canal || '-')}
                 </span>
                 <div>

@@ -154,36 +154,6 @@ class VerifactuService
         }
     }
 
-    /**
-     * Procesar la cola de envíos pendientes.
-     */
-    public function procesarCola(): array
-    {
-        $resultados    = ['enviados' => 0, 'errores' => 0, 'pendientes' => 0];
-        $maxReintentos = $this->config['max_reintentos']    ?? 5;
-        $tiempoBase    = $this->config['tiempo_espera_base'] ?? 60;
-
-        $pendientes = $this->registroModel->getPendientes($maxReintentos);
-
-        foreach ($pendientes as $pendiente) {
-            $espera       = pow(2, $pendiente['Reintentos']) * $tiempoBase;
-            $transcurrido = time() - $this->toTimestamp($pendiente['Fecha_Generacion']);
-
-            if ($transcurrido < $espera) {
-                $resultados['pendientes']++;
-                continue;
-            }
-
-            $resultado = $this->enviarAHacienda(
-                $pendiente['Tipo_Origen'],
-                $pendiente['Id_Documento']
-            );
-            $resultado['ok'] ? $resultados['enviados']++ : $resultados['errores']++;
-        }
-
-        return $resultados;
-    }
-
     public function regenerarFirma(string $tipoOrigen, string $idDocumento): array
     {
         return $this->firmar($tipoOrigen, $idDocumento, false);
@@ -451,11 +421,11 @@ class VerifactuService
     private function obtenerCliente(string $idCliente): ?array
     {
         $row = Database::getInstance()->fetch(
-            'SELECT NIF, Nombre, Archivar_Como FROM Clientes WHERE Codigo = ?',
+            'SELECT NIF, Nombre, Nombre FROM Clientes WHERE Codigo = ?',
             [$idCliente]
         );
         if (!$row) return null;
-        $row['Nombre'] = trim((string)($row['Archivar_Como'] ?? $row['Nombre'] ?? ''));
+        $row['Nombre'] = trim((string)($row['Nombre'] ?? $row['Nombre'] ?? ''));
         return $row;
     }
 
@@ -603,7 +573,7 @@ class VerifactuService
 
         if (!empty($cliente)) {
             $nif    = trim((string)($cliente['NIF']          ?? ''));
-            $nombre = trim((string)($cliente['Nombre']       ?? $cliente['Archivar_Como'] ?? ''));
+            $nombre = trim((string)($cliente['Nombre']       ?? $cliente['Nombre'] ?? ''));
             $datos['cliente'] = [
                 'nif'                   => $nif,
                 'razon_social'          => ($nombre !== '' ? $nombre : 'Cliente'),
@@ -685,11 +655,6 @@ class VerifactuService
             $cache[$codigoTipoIva] = ['iva' => $pct, 'codigo_verifactu' => $cv];
         }
         return $cache[$codigoTipoIva];
-    }
-
-    private function toTimestamp($fecha): int
-    {
-        return $fecha instanceof \DateTimeInterface ? $fecha->getTimestamp() : strtotime((string)$fecha);
     }
 
     private function addElement(DOMDocument $dom, DOMNode $parent, string $tag, string $value): DOMElement

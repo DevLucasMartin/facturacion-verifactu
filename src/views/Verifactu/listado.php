@@ -134,10 +134,10 @@ ob_start();
         </div>
     </div>
     <div class="card-footer fact-card-footer d-flex justify-content-between align-items-center">
+        <span class="text-muted small" id="paginationInfo"></span>
         <nav>
             <ul class="pagination pagination-sm fact-pagination mb-0" id="paginationNav"></ul>
         </nav>
-        <span class="text-muted small" id="paginationInfo"></span>
     </div>
 </div>
 

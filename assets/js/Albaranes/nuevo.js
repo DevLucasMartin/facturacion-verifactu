@@ -707,7 +707,7 @@
                 <tr style="cursor:pointer" onclick="seleccionarClienteReal('${escapeHtml(c.Codigo)}')">
                     <td>${escapeHtml(c.Codigo)}</td>
                     <td>${escapeHtml(c.NIF || '-')}</td>
-                    <td>${escapeHtml(c.Archivar_Como || '-')}</td>
+                    <td>${escapeHtml(c.Nombre || '-')}</td>
                     <td>${escapeHtml(c.Id_Forma_Pago || '-')}</td>
                 </tr>`).join('');
             tbody.innerHTML = rows || `<tr><td colspan="5" class="text-muted text-center">No hay clientes</td></tr>`;
@@ -744,9 +744,12 @@
             document.getElementById('clienteEmpty').style.display   = 'none';
             document.getElementById('clienteData').style.display    = '';
             document.getElementById('inputIdCliente').value         = clienteActual.Codigo || '';
-            document.getElementById('clienteNombre').textContent    = clienteActual.Archivar_Como || '';
+            document.getElementById('clienteNombre').textContent    = clienteActual.Nombre || '';
             document.getElementById('clienteNIF').textContent       = clienteActual.NIF || '';
-            document.getElementById('clienteDireccion').textContent = clienteActual.Direccion || '-';
+            const _dirs = clienteActual.direcciones || [];
+            const _dir  = _dirs.find(d => d.Predeterminada === 'S') || _dirs[0] || {};
+            const _dirTxt = [_dir.Direccion, _dir.Codigo_Postal, _dir.Ciudad].filter(Boolean).join(', ');
+            document.getElementById('clienteDireccion').textContent = _dirTxt || '-';
             document.getElementById('clienteFormaPago').textContent = (clienteActual.Id_Forma_Pago || '-').toUpperCase();
             const elTarifa = document.getElementById('clienteTarifa');
             if (elTarifa) elTarifa.textContent = tarifaActual;
@@ -850,20 +853,12 @@
         const submitBtn = $(this).find('[type=submit]');
         submitBtn.prop('disabled', true);
 
-        const codigoVal = ($('#ncCodigo').val() || '').trim().toUpperCase();
-        if (!codigoVal || !/^[A-Z0-9]{1,12}$/.test(codigoVal)) {
-            $('#ncCodigo').addClass('is-invalid');
-            document.getElementById('ncCodigoError').textContent = 'El código es obligatorio y solo puede contener letras y números (máx. 12).';
-            submitBtn.prop('disabled', false);
-            return;
-        }
-
         const archivarVal = ($('#ncArchivar').val() || '').trim();
         if (!archivarVal) {
             $('#nuevoClienteMsg')
                 .removeClass('d-none alert-info alert-success alert-warning')
                 .addClass('alert-danger')
-                .text('El campo "Archivar como" es obligatorio.');
+                .text('El campo "Nombre" es obligatorio.');
             submitBtn.prop('disabled', false);
             return;
         }
@@ -874,7 +869,6 @@
         }
 
         const payload = {
-            Codigo:               codigoVal,
             Nombre:               ($('#ncNombre').val()            || '').trim(),
             Apellidos:            ($('#ncApellidos').val()         || '').trim(),
             Organizacion:         ($('#ncOrganizacion').val()      || '').trim(),

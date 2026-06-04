@@ -79,11 +79,10 @@ ob_start();
                 <div id="nuevoClienteMsg" class="alert alert-info d-none mb-3"></div>
                 <form id="nuevoClienteForm">
                     <div class="row g-3">
-                        <div class="col-md-3">
-                            <label class="form-label fact-form-label">Código <span class="text-danger">*</span></label>
+                        <div class="col-md-3" id="ncCodigoCol">
+                            <label class="form-label fact-form-label">Código</label>
                             <input type="text" class="form-control fact-form-control" id="ncCodigo" name="ncCodigo"
-                                   placeholder="CLI001" maxlength="12"
-                                   oninput="cli_validarCodigo(this)">
+                                   readonly>
                             <div class="invalid-feedback" id="ncCodigoError"></div>
                         </div>
                         <div class="col-md-3">
@@ -91,7 +90,7 @@ ob_start();
                             <input type="text" class="form-control fact-form-control" id="ncApellidos" name="ncApellidos">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fact-form-label">Archivar como <span class="text-danger">*</span></label>
+                            <label class="form-label fact-form-label">Nombre <span class="text-danger">*</span></label>
                             <input type="text" class="form-control fact-form-control" id="ncArchivar" name="ncArchivar"
                                    placeholder="Nombre o razón social">
                         </div>
@@ -114,6 +113,23 @@ ob_start();
                             <label class="form-label fact-form-label">Email facturación</label>
                             <input type="email" class="form-control fact-form-control" id="ncEmail" name="ncEmail"
                                    placeholder="facturacion@empresa.com">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fact-form-label">Dirección</label>
+                            <input type="text" class="form-control fact-form-control" id="ncDireccion" name="ncDireccion"
+                                   placeholder="Calle, número, piso...">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fact-form-label">Código postal</label>
+                            <input type="text" class="form-control fact-form-control" id="ncCodigoPostal" name="ncCodigoPostal"
+                                   placeholder="28001" maxlength="10">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fact-form-label">Teléfonos</label>
+                            <div id="ncTelefonosLista"></div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="ncAddTelefono" onclick="cli_addTelefono()">
+                                <i class="bi bi-plus-lg me-1"></i>Añadir teléfono
+                            </button>
                         </div>
                     </div>
                     <hr class="my-3">

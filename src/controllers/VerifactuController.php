@@ -195,19 +195,6 @@ class VerifactuController
     }
 
     /**
-     * Procesar cola pendiente
-     */
-    public function procesarCola(): void
-    {
-        try {
-            $resultado = $this->verifactuService->procesarCola();
-            Response::success($resultado, 'Cola procesada');
-        } catch (Exception $e) {
-            Response::serverError('Error al procesar cola', $e);
-        }
-    }
-
-    /**
      * Estado del certificado
      */
     public function certificado(): void
@@ -373,7 +360,7 @@ class VerifactuController
             // Cliente
             if (!empty($cliente)) {
                 $nif    = trim((string)($cliente['NIF']            ?? ''));
-                $nombre = trim((string)($cliente['Nombre']         ?? $cliente['Archivar_Como'] ?? ''));
+                $nombre = trim((string)($cliente['Nombre']         ?? $cliente['Nombre'] ?? ''));
                 $datos['cliente'] = [
                     'nif'             => $nif,
                     'razon_social'    => $nombre !== '' ? $nombre : 'Cliente',

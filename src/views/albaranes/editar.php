@@ -443,7 +443,7 @@ ob_start();
                             <input type="text" class="form-control fact-form-control" id="ncApellidos" name="ncApellidos">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fact-form-label">Archivar como <span class="text-danger">*</span></label>
+                            <label class="form-label fact-form-label">Nombre <span class="text-danger">*</span></label>
                             <input type="text" class="form-control fact-form-control" id="ncArchivar" name="ncArchivar"
                                    placeholder="Nombre o razón social">
                         </div>

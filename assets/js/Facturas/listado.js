@@ -76,7 +76,7 @@ $(document).ready(function() {
                     results: lista.map(function(c) {
                         return {
                             id:   c.Codigo,
-                            text: (c.Archivar_Como || c.Nombre || c.Codigo) + ' (' + (c.NIF || '-') + ')'
+                            text: (c.Nombre || c.Nombre || c.Codigo) + ' (' + (c.NIF || '-') + ')'
                         };
                     })
                 };

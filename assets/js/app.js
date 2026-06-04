@@ -284,8 +284,45 @@ const App = (() => {
         });
     }
 
+    // ─── Diálogos (SweetAlert2) ─────────────────────────────────────────────────
+    // Confirmación. Devuelve una Promise<boolean> que resuelve true si se acepta.
+    function confirm(opts) {
+        opts = opts || {};
+        if (typeof Swal === 'undefined') {
+            // Fallback al diálogo nativo si SweetAlert2 no está cargado
+            return Promise.resolve(window.confirm(opts.text || opts.title || '¿Confirmar?'));
+        }
+        return Swal.fire({
+            icon:               opts.icon || 'question',
+            title:              opts.title || '¿Confirmar?',
+            text:               opts.text || '',
+            showCancelButton:   true,
+            confirmButtonText:  opts.confirmText || 'Aceptar',
+            cancelButtonText:   opts.cancelText || 'Cancelar',
+            confirmButtonColor: opts.confirmColor || (opts.danger ? '#dc3545' : '#198754'),
+            cancelButtonColor:  '#6c757d',
+            reverseButtons:     true
+        }).then(function (result) { return result.isConfirmed === true; });
+    }
+
+    // Aviso simple. Devuelve una Promise que resuelve al cerrar.
+    function alert(message, opts) {
+        opts = opts || {};
+        if (typeof Swal === 'undefined') {
+            window.alert(message);
+            return Promise.resolve();
+        }
+        return Swal.fire({
+            icon:               opts.icon || 'info',
+            title:              opts.title || '',
+            text:               message || '',
+            confirmButtonText:  opts.confirmText || 'Entendido',
+            confirmButtonColor: opts.confirmColor || '#0d6efd'
+        });
+    }
+
     // ─── API pública ──────────────────────────────────────────────────────────
-    return { api, notify, showLoading, hideLoading, escapeHtml, formatCurrency, confirmarNIF };
+    return { api, notify, showLoading, hideLoading, escapeHtml, formatCurrency, confirmarNIF, confirm, alert };
 })();
 
 // ─── Excel Background Export via Service Worker ──────────────────────────────

@@ -399,7 +399,7 @@ class FacturaController
 
             $headStyle = [
                 'font'           => ['style' => 'bold', 'color' => '#FFFFFF'],
-                'fill'           => '#97b06b',
+                'fill'           => '#2E86C1',
                 'text-align'     => 'center',
                 'vertical-align' => 'center',
                 'border'         => 'thin',
@@ -410,7 +410,7 @@ class FacturaController
             $sheet->writeHeader(array_fill_keys($cabeceras, null), $headStyle);
 
             foreach ($datos as $index => $fila) {
-                $rowOptions = $index % 2 === 0 ? ['fill' => '#dcdcdc'] : [];
+                $rowOptions = $index % 2 === 0 ? ['fill' => '#D6EAF8'] : [];
                 $sheet->writeRow($fila, $rowOptions, ['vertical-align' => 'center', 'height' => 20]);
             }
 

@@ -12,7 +12,6 @@
  * GET  /api/verifactu/xml/aeat/:codigo    - Descargar XML de AEAT (si existe)
  * POST /api/verifactu/firmar    - Firmar documento
  * POST /api/verifactu/enviar    - Enviar a Hacienda
- * POST /api/verifactu/cola      - Procesar cola
  */
 
 require_once __DIR__ . '/../core/Auth.php';
@@ -152,8 +151,6 @@ try {
                             $controller->firmar();
                         } elseif ($segmentosRuta[1] === 'enviar') {
                             $controller->firmarYEnviar();
-                        } elseif ($segmentosRuta[1] === 'cola') {
-                            $controller->procesarCola();
                         } elseif ($segmentosRuta[1] === 'anular' && isset($segmentosRuta[2])) {
                             $codigoCompleto = $segmentosRuta[2] . '/' . ($segmentosRuta[3] ?? '');
                             $controller->anular($codigoCompleto);

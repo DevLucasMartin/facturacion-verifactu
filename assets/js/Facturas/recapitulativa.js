@@ -44,7 +44,7 @@
                             const apellidos = c.Apellidos ? ' ' + c.Apellidos : '';
                             return {
                                 id:   c.Codigo,
-                                text: (c.Nombre || c.Archivar_Como || 'Sin nombre') + apellidos + ' (' + (c.NIF || '-') + ')',
+                                text: (c.Nombre || c.Nombre || 'Sin nombre') + apellidos + ' (' + (c.NIF || '-') + ')',
                                 nif:  c.NIF || ''
                             };
                         })

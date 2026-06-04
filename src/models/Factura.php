@@ -136,7 +136,7 @@ class Factura
 
             return $this->db->fetchAll(
                 "SELECT F.`Codigo`, F.`Numero`, F.`Fecha`, F.`Id_Canal`, F.`Id_Cliente`,
-                        F.`Total`, F.`Cerrada`, C.`Archivar_Como` AS Nombre,
+                        F.`Total`, F.`Cerrada`, C.`Nombre` AS Nombre,
                         VR.`Estado_Envio`, VR.`CSV_Hacienda`
                  FROM `Facturas_Clientes` F
                  LEFT JOIN `Clientes` C ON C.`Codigo` = F.`Id_Cliente`
@@ -151,7 +151,7 @@ class Factura
 
         return $this->db->fetchAll(
             "SELECT F.`Codigo`, F.`Numero`, F.`Fecha`, F.`Id_Canal`, F.`Id_Cliente`,
-                    F.`Total`, F.`Cerrada`, C.`Archivar_Como` AS Nombre
+                    F.`Total`, F.`Cerrada`, C.`Nombre` AS Nombre
              FROM `Facturas_Clientes` F
              LEFT JOIN `Clientes` C ON C.`Codigo` = F.`Id_Cliente`
              WHERE {$where}
@@ -261,7 +261,7 @@ class Factura
         }
 
         if (!empty($filtros['Nombre'])) {
-            $whereParts[] = "C.`Archivar_Como` = ?";
+            $whereParts[] = "C.`Nombre` = ?";
             $params[]     = $filtros['Nombre'];
         }
 
@@ -337,7 +337,7 @@ class Factura
         }
 
         if (!empty($filtros['Nombre'])) {
-            $whereParts[] = "C.`Archivar_Como` = ?";
+            $whereParts[] = "C.`Nombre` = ?";
             $params[]     = $filtros['Nombre'];
         }
 
@@ -383,7 +383,7 @@ class Factura
                     F.`Tipo_Documento` AS tipo_documento,
                     F.`Total`          AS total,
                     F.`Id_Cliente`     AS id_cliente,
-                    C.`Archivar_Como`  AS nombre_cliente,
+                    C.`Nombre`  AS nombre_cliente,
                     F.`Cobrada`        AS cobrada,
                     CASE
                         WHEN F.`Abono`   = 'S' THEN 'ANULADA'
@@ -430,7 +430,7 @@ class Factura
 
         $sql = "SELECT
                     F.`Codigo`, F.`Fecha`, F.`Total`, F.`Tipo_Documento`, F.`Cerrada`,
-                    C.`NIF`, C.`Archivar_Como` AS Nombre
+                    C.`NIF`, C.`Nombre` AS Nombre
                 FROM `Facturas_Clientes` F
                 LEFT JOIN `Clientes` C ON C.`Codigo` = F.`Id_Cliente`
                 WHERE F.`Codigo` LIKE ?

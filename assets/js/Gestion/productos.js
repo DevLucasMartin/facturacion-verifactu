@@ -296,31 +296,44 @@ function renderPaginacion(response) {
 }
 
 function eliminarProducto(codigo, descripcion) {
-    if (!confirm(`¿Desactivar el producto "${descripcion}" (${codigo})?\n\nNo aparecerá en los selectores de facturas ni albaranes, pero se conserva en el histórico.`)) return;
-
-    App.api(`${FACT_API_BASE}/articulos.php/${encodeURIComponent(codigo)}`, { method: 'DELETE' })
-        .done(function () {
-            App.notify('Producto desactivado correctamente', 'success');
-            cargarProductos();
-        })
-        .fail(function (xhr) {
-            const msg = xhr.responseJSON?.message || 'Error al desactivar el producto.';
-            App.notify(msg, 'danger');
-        });
+    App.confirm({
+        icon:        'warning',
+        title:       'Desactivar producto',
+        text:        `¿Desactivar el producto "${descripcion}" (${codigo})? No aparecerá en los selectores de facturas ni albaranes, pero se conserva en el histórico.`,
+        confirmText: 'Desactivar',
+        danger:      true
+    }).then(function (ok) {
+        if (!ok) return;
+        App.api(`${FACT_API_BASE}/articulos.php/${encodeURIComponent(codigo)}`, { method: 'DELETE' })
+            .done(function () {
+                App.notify('Producto desactivado correctamente', 'success');
+                cargarProductos();
+            })
+            .fail(function (xhr) {
+                const msg = xhr.responseJSON?.message || 'Error al desactivar el producto.';
+                App.notify(msg, 'danger');
+            });
+    });
 }
 
 function activarProducto(codigo, descripcion) {
-    if (!confirm(`¿Activar el producto "${descripcion}" (${codigo})?\n\nVolverá a aparecer en los selectores de facturas y albaranes.`)) return;
-
-    App.api(`${FACT_API_BASE}/articulos.php/${encodeURIComponent(codigo)}/activar`, { method: 'PATCH' })
-        .done(function () {
-            App.notify('Producto activado correctamente', 'success');
-            cargarProductos();
-        })
-        .fail(function (xhr) {
-            const msg = xhr.responseJSON?.message || 'Error al activar el producto.';
-            App.notify(msg, 'danger');
-        });
+    App.confirm({
+        icon:        'question',
+        title:       'Activar producto',
+        text:        `¿Activar el producto "${descripcion}" (${codigo})? Volverá a aparecer en los selectores de facturas y albaranes.`,
+        confirmText: 'Activar'
+    }).then(function (ok) {
+        if (!ok) return;
+        App.api(`${FACT_API_BASE}/articulos.php/${encodeURIComponent(codigo)}/activar`, { method: 'PATCH' })
+            .done(function () {
+                App.notify('Producto activado correctamente', 'success');
+                cargarProductos();
+            })
+            .fail(function (xhr) {
+                const msg = xhr.responseJSON?.message || 'Error al activar el producto.';
+                App.notify(msg, 'danger');
+            });
+    });
 }
 
 function prod_esc(text) {

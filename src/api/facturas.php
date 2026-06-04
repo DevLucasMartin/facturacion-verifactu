@@ -223,17 +223,27 @@ try {
                     echo json_encode(['success' => false, 'message' => 'Cliente no encontrado'], JSON_UNESCAPED_UNICODE);
                     exit;
                 }
-                $nombreFiscal = $c['Archivar_Como'] ?? '';
-                if (empty(trim($nombreFiscal))) {
+                $nombreFiscal = trim($c['Nombre'] ?? '');
+                if ($nombreFiscal === '') {
                     $nombreFiscal = trim(($c['Nombre'] ?? '') . ' ' . ($c['Apellidos'] ?? ''));
                 }
+                // Dirección desde Direcciones_Clientes (predeterminada o la primera)
+                $dir = $db->fetch(
+                    "SELECT `Direccion`, `Ciudad`, `Codigo_Postal`
+                     FROM `Direcciones_Clientes`
+                     WHERE `Id_Cliente` = ?
+                     ORDER BY `Predeterminada` DESC, `Id` ASC
+                     LIMIT 1",
+                    [$row['Id_Cliente']]
+                ) ?: [];
                 echo json_encode(['success' => true, 'data' => [
+                    'codigo'        => $c['Codigo']            ?? '',
                     'nombre_fiscal' => $nombreFiscal,
                     'nombre'        => $c['Nombre']            ?? '',
                     'nif'           => $c['NIF']               ?? '',
-                    'direccion'     => $c['Direccion']         ?? '',
-                    'poblacion'     => $c['Poblacion']         ?? '',
-                    'cp'            => $c['CP']                ?? '',
+                    'direccion'     => $dir['Direccion']       ?? '',
+                    'poblacion'     => $dir['Ciudad']          ?? '',
+                    'cp'            => $dir['Codigo_Postal']    ?? '',
                     'email'         => $c['Email_Facturacion'] ?? '',
                 ]], JSON_UNESCAPED_UNICODE);
                 exit;

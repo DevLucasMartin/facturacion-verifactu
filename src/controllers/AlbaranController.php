@@ -142,7 +142,7 @@ class AlbaranController
 
             $headStyle = [
                 'font'           => ['style' => 'bold', 'color' => '#FFFFFF'],
-                'fill'           => '#97b06b',
+                'fill'           => '#2E86C1',
                 'text-align'     => 'center',
                 'vertical-align' => 'center',
                 'border'         => 'thin',
@@ -153,7 +153,7 @@ class AlbaranController
             $sheet->writeHeader(array_fill_keys($cabeceras, null), $headStyle);
 
             foreach ($datos as $index => $fila) {
-                $rowOptions = $index % 2 === 0 ? ['fill' => '#dcdcdc'] : [];
+                $rowOptions = $index % 2 === 0 ? ['fill' => '#D6EAF8'] : [];
                 $sheet->writeRow($fila, $rowOptions, ['vertical-align' => 'center', 'height' => 20]);
             }
 
@@ -161,8 +161,12 @@ class AlbaranController
             $rutaTmp       = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $nombreArchivo;
             $excel->save($rutaTmp);
 
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['success' => true, 'archivo' => $nombreArchivo]);
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="' . $nombreArchivo . '"');
+            header('Content-Length: ' . filesize($rutaTmp));
+            header('Cache-Control: no-cache, no-store, must-revalidate');
+            readfile($rutaTmp);
+            @unlink($rutaTmp);
         } catch (Exception $e) {
             Response::serverError('Error al exportar albaranes', $e);
         }
@@ -181,7 +185,7 @@ class AlbaranController
             }
 
             if ($albaran['Id_Cliente']) {
-                $albaran['cliente'] = $this->clienteModel->find($albaran['Id_Cliente']);
+                $albaran['cliente'] = $this->clienteModel->findWithDetails($albaran['Id_Cliente']);
             }
 
             Response::success($albaran);

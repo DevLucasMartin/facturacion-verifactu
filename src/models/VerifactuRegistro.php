@@ -58,24 +58,10 @@ class VerifactuRegistro {
         return $this->update($id, $data);
     }
 
-    public function getPendientes(int $maxReintentos = 5): array {
-        return $this->db->fetchAll(
-            "SELECT VR.*, F.`Fecha` AS Factura_Fecha, F.`Total` AS Factura_Total,
-                    C.`NIF` AS Cliente_NIF, C.`Archivar_Como` AS Cliente_Nombre
-             FROM `Verifactu_Registros` VR
-             LEFT JOIN `Facturas_Clientes` F ON F.`Codigo` = VR.`Id_Documento`
-             LEFT JOIN `Clientes` C ON C.`Codigo` = F.`Id_Cliente`
-             WHERE VR.`Estado_Envio` IN (?, ?)
-               AND VR.`Reintentos` < ?
-             ORDER BY VR.`Fecha_Generacion`",
-            [self::ESTADO_PENDIENTE, self::ESTADO_ERROR, $maxReintentos]
-        );
-    }
-
     public function getPorEstado(string $estado): array {
         return $this->db->fetchAll(
             "SELECT VR.*, F.`Fecha` AS Factura_Fecha, F.`Total` AS Factura_Total,
-                    C.`NIF` AS Cliente_NIF, C.`Archivar_Como` AS Cliente_Nombre
+                    C.`NIF` AS Cliente_NIF, C.`Nombre` AS Cliente_Nombre
              FROM `Verifactu_Registros` VR
              LEFT JOIN `Facturas_Clientes` F ON F.`Codigo` = VR.`Id_Documento`
              LEFT JOIN `Clientes` C ON C.`Codigo` = F.`Id_Cliente`
@@ -127,7 +113,8 @@ class VerifactuRegistro {
         );
 
         $sql = "SELECT VR.*, F.`Fecha` AS Factura_Fecha, F.`Total` AS Factura_Total,
-                       C.`NIF` AS Cliente_NIF, C.`Archivar_Como` AS Cliente_Nombre
+                       F.`Tipo_Documento` AS Tipo_Documento,
+                       C.`NIF` AS Cliente_NIF, C.`Nombre` AS Cliente_Nombre
                 FROM `Verifactu_Registros` VR
                 LEFT JOIN `Facturas_Clientes` F ON F.`Codigo` = VR.`Id_Documento`
                 LEFT JOIN `Clientes` C ON C.`Codigo` = F.`Id_Cliente`

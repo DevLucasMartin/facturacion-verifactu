@@ -16,6 +16,9 @@
 
     const CODIGO = document.getElementById('app-data')?.dataset?.codigo || '';
 
+    // Datos del cliente de la factura (para envío por email)
+    let clienteActual = null;
+
     // Estado paginación líneas
     let lineasAll  = [];
     let lineasPage = 1;
@@ -306,9 +309,10 @@
         return new Promise(resolve => {
             App.api(API + '/facturas.php?action=cliente&codigo=' + encodeURIComponent(CODIGO))
                 .done(data => {
-                    renderCliente(data.success ? data.data : null);
+                    clienteActual = data.success ? data.data : null;
+                    renderCliente(clienteActual);
                 })
-                .fail(() => renderCliente(null))
+                .fail(() => { clienteActual = null; renderCliente(null); })
                 .always(resolve);
         });
     }
@@ -514,11 +518,7 @@
                          <dd class="col-sm-8">${v.reintentos}</dd>`;
         detalles += '</dl>';
 
-        let acciones = '';
-        if (v.estado === 'ERROR')
-            acciones = '<button class="btn btn-outline-primary btn-sm me-1" onclick="reintentar()"><i class="bi bi-arrow-clockwise me-1"></i>Reintentar</button>';
-
-        panel.innerHTML = detalles + (acciones ? `<hr><div class="text-center">${acciones}</div>` : '');
+        panel.innerHTML = detalles;
 
         if (v.estado === 'ENVIADO' || v.estado === 'ANULADO') {
             const btn = document.getElementById('btnVerifactu');
@@ -537,41 +537,30 @@
     // ─── Acciones globales ────────────────────────────────────────────────────
 
     window.firmarYEnviar = function() {
-        if (!confirm('¿Enviar esta factura a la AEAT a través de Verifactu?')) return;
-        App.showLoading();
-        App.api(API + '/verifactu.php', {
-            method: 'POST',
-            data: JSON.stringify({ id_documento: CODIGO }),
-            contentType: 'application/json'
-        })
-        .done(data => {
-            if (data.success) {
-                App.notify('Factura enviada correctamente', 'success');
-                setTimeout(() => cargarVerifactu(), 1500);
-            } else {
-                App.notify(data.message || 'Error al enviar', 'danger');
-            }
-        })
-        .fail(() => App.notify('Error de conexión', 'danger'))
-        .always(() => App.hideLoading());
-    };
-
-    window.reintentar = function() {
-        if (!confirm('¿Reintentar el envío de esta factura a Hacienda?')) return;
-        App.showLoading();
-        App.api(API + '/verifactu.php/reintentar/FACTURA/' + encodeURIComponent(CODIGO), {
-            method: 'POST'
-        })
-        .done(data => {
-            if (data.success) {
-                App.notify('Factura enviada correctamente', 'success');
-                setTimeout(() => cargarVerifactu(), 1500);
-            } else {
-                App.notify(data.message || 'Error al reintentar', 'danger');
-            }
-        })
-        .fail(() => App.notify('Error de conexión', 'danger'))
-        .always(() => App.hideLoading());
+        App.confirm({
+            icon:        'question',
+            title:       'Enviar a la AEAT',
+            text:        '¿Enviar esta factura a la AEAT a través de Verifactu?',
+            confirmText: 'Enviar'
+        }).then(ok => {
+            if (!ok) return;
+            App.showLoading();
+            App.api(API + '/verifactu.php', {
+                method: 'POST',
+                data: JSON.stringify({ id_documento: CODIGO }),
+                contentType: 'application/json'
+            })
+            .done(data => {
+                if (data.success) {
+                    App.notify('Factura enviada correctamente', 'success');
+                    setTimeout(() => cargarVerifactu(), 1500);
+                } else {
+                    App.notify(data.message || 'Error al enviar', 'danger');
+                }
+            })
+            .fail(() => App.notify('Error de conexión', 'danger'))
+            .always(() => App.hideLoading());
+        });
     };
 
     window.descargarXml = function(tipo) {
@@ -596,8 +585,57 @@
     };
 
     window.enviarEmail = function() {
-        const email = prompt('Dirección de email:');
-        if (!email) return;
+        if (!clienteActual || !clienteActual.codigo) {
+            App.notify('No se han podido cargar los datos del cliente', 'danger');
+            return;
+        }
+
+        const emailGuardado = (clienteActual.email || '').trim();
+        if (emailGuardado) {
+            enviarEmailFactura(emailGuardado);
+            return;
+        }
+
+        // El cliente no tiene email guardado: avisar y pedirlo con SweetAlert2
+        Swal.fire({
+            icon:              'warning',
+            title:             'Cliente sin email',
+            text:              'Este cliente no tiene ningún email guardado. Introdúcelo para enviar la factura; se guardará en su ficha.',
+            input:             'email',
+            inputPlaceholder:  'correo@ejemplo.com',
+            showCancelButton:  true,
+            confirmButtonText: 'Guardar y enviar',
+            cancelButtonText:  'Cancelar',
+            confirmButtonColor: '#198754',
+            inputValidator: value => {
+                if (!value || !value.trim()) return 'Debes introducir un email';
+            }
+        }).then(result => {
+            if (!result.isConfirmed) return;
+            const nuevoEmail = result.value.trim();
+
+            // Guardar el email en la ficha del cliente y luego enviar
+            App.showLoading();
+            App.api(API + '/clientes.php/' + encodeURIComponent(clienteActual.codigo), {
+                method: 'PUT',
+                data: JSON.stringify({ Email_Facturacion: nuevoEmail }),
+                contentType: 'application/json'
+            })
+            .done(data => {
+                if (data && data.success) {
+                    clienteActual.email = nuevoEmail;
+                    renderCliente(clienteActual);
+                    enviarEmailFactura(nuevoEmail);
+                } else {
+                    App.hideLoading();
+                    App.notify((data && data.message) || 'Error al guardar el email del cliente', 'danger');
+                }
+            })
+            .fail(() => { App.hideLoading(); App.notify('Error al guardar el email del cliente', 'danger'); });
+        });
+    };
+
+    function enviarEmailFactura(email) {
         App.showLoading();
         App.api(API + '/facturas.php/' + encodeURIComponent(CODIGO) + '/email', {
             method: 'POST',
@@ -605,11 +643,11 @@
             contentType: 'application/json'
         })
         .done(data => {
-            if (data.success) App.notify('Email enviado correctamente', 'success');
+            if (data.success) App.notify('Email enviado correctamente a ' + email, 'success');
             else App.notify(data.message || 'Error al enviar email', 'danger');
         })
         .fail(() => App.notify('Error de conexión', 'danger'))
         .always(() => App.hideLoading());
-    };
+    }
 
 })();

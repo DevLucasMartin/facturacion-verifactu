@@ -22,6 +22,47 @@ class Cliente {
     }
 
     /**
+     * Calcular el siguiente código de cliente autoincrementado (001, 002, 003...).
+     * Toma el mayor código puramente numérico, le suma 1 y lo rellena a 3 dígitos.
+     */
+    public function siguienteCodigo(): string
+    {
+        $max = $this->fact_conexionBBDD->fetchCell(
+            "SELECT MAX(CAST(`Codigo` AS UNSIGNED))
+             FROM `Clientes`
+             WHERE `Codigo` REGEXP '^[0-9]+$'"
+        );
+        $siguiente = ((int)$max) + 1;
+        return str_pad((string)$siguiente, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Crear un cliente asignando el código autoincrementado de forma segura.
+     * Si dos usuarios crean a la vez y chocan en la PRIMARY KEY (mismo código),
+     * recalcula el siguiente y reintenta. La PK garantiza que nunca se duplica.
+     * Devuelve el Codigo finalmente asignado.
+     */
+    public function crearAutoCodigo(array $data): string
+    {
+        for ($intento = 0; $intento < 6; $intento++) {
+            $codigo         = $this->siguienteCodigo();
+            $data['Codigo'] = $codigo;
+            try {
+                $this->create($data);
+                return $codigo;
+            } catch (\PDOException $e) {
+                // Solo reintentar si el choque es por el código (PRIMARY KEY).
+                // Otros duplicados (p. ej. NIF) deben propagarse tal cual.
+                if (stripos($e->getMessage(), 'PRIMARY') !== false) {
+                    continue;
+                }
+                throw $e;
+            }
+        }
+        throw new \RuntimeException('No se pudo generar un código de cliente único tras varios intentos');
+    }
+
+    /**
      * Crear un nuevo cliente. Devuelve el Codigo asignado.
      */
     public function create(array $data): string
@@ -100,6 +141,51 @@ class Cliente {
     }
 
     /**
+     * Guardar/actualizar la dirección principal (predeterminada) del cliente.
+     * Si ya existe una dirección la actualiza; si no, inserta una nueva.
+     */
+    public function setDireccionPrincipal(string $codigo, ?string $direccion, ?string $codigoPostal): void
+    {
+        $existente = $this->fact_conexionBBDD->fetch(
+            "SELECT `Id` FROM `Direcciones_Clientes`
+             WHERE `Id_Cliente` = ?
+             ORDER BY `Predeterminada` DESC, `Id` ASC
+             LIMIT 1",
+            [$codigo]
+        );
+
+        $datos = [
+            'Direccion'      => ($direccion     !== null && $direccion     !== '') ? $direccion     : null,
+            'Codigo_Postal'  => ($codigoPostal  !== null && $codigoPostal  !== '') ? $codigoPostal  : null,
+            'Predeterminada' => 'S',
+        ];
+
+        if ($existente) {
+            $this->fact_conexionBBDD->update('Direcciones_Clientes', $datos, '`Id` = ?', [$existente['Id']]);
+        } else {
+            $datos['Id_Cliente'] = $codigo;
+            $this->fact_conexionBBDD->insert('Direcciones_Clientes', $datos);
+        }
+    }
+
+    /**
+     * Reemplazar todos los teléfonos del cliente por la lista dada.
+     * @param string[] $telefonos
+     */
+    public function setTelefonos(string $codigo, array $telefonos): void
+    {
+        $this->fact_conexionBBDD->delete('Telefonos_Clientes', '`Id_Cliente` = ?', [$codigo]);
+        foreach ($telefonos as $tel) {
+            $tel = trim((string)$tel);
+            if ($tel === '') continue;
+            $this->fact_conexionBBDD->insert('Telefonos_Clientes', [
+                'Id_Cliente' => $codigo,
+                'Telefono'   => mb_substr($tel, 0, 20),
+            ]);
+        }
+    }
+
+    /**
      * Buscar clientes por texto (nombre, NIF, código)
      */
     public function search(string $fact_busq_cliente, int $fact_limit_busq = 20): array {
@@ -107,12 +193,12 @@ class Cliente {
         $fact_busq_param = "%{$fact_busq_cliente}%";
 
         return $this->fact_conexionBBDD->fetchAll(
-            "SELECT `Codigo`, `Archivar_Como`, `Apellidos`, `NIF`,
+            "SELECT `Codigo`, `Nombre`, `Apellidos`, `NIF`,
                     `Id_Tipo_IVA`, `RE_Porcentaje`, `Aplica_RE`, `Id_Forma_Pago`,
                     `Id_Zona`, `Tarifa`, `Email_Facturacion`
              FROM `Clientes`
              WHERE `Activo` = 'S'
-               AND (`Archivar_Como` LIKE ?
+               AND (`Nombre` LIKE ?
                  OR `NIF`          LIKE ?
                  OR `Codigo`       LIKE ?)
              ORDER BY `Codigo`
@@ -134,7 +220,7 @@ class Cliente {
         );
 
         $fact_items = $this->fact_conexionBBDD->fetchAll(
-            "SELECT `Codigo`, `NIF`, `Archivar_Como`,
+            "SELECT `Codigo`, `NIF`, `Nombre`,
                     `Id_Tipo_IVA`, `RE_Porcentaje`, `Aplica_RE`, `Id_Forma_Pago`
              FROM `Clientes`
              WHERE `Activo` = 'S'
@@ -161,7 +247,7 @@ class Cliente {
 
         if ($busqueda !== '') {
             $like   = "%{$busqueda}%";
-            $where  = "WHERE (`Archivar_Como` LIKE ? OR `NIF` LIKE ? OR `Codigo` LIKE ?)";
+            $where  = "WHERE (`Nombre` LIKE ? OR `NIF` LIKE ? OR `Codigo` LIKE ?)";
             $params = [$like, $like, $like];
         } else {
             $where  = '';
@@ -174,7 +260,7 @@ class Cliente {
         );
 
         $items = $this->fact_conexionBBDD->fetchAll(
-            "SELECT `Codigo`, `NIF`, `Archivar_Como`,
+            "SELECT `Codigo`, `NIF`, `Nombre`,
                     `Id_Tipo_IVA`, `RE_Porcentaje`, `Aplica_RE`, `Id_Forma_Pago`, `Activo`
              FROM `Clientes`
              {$where}

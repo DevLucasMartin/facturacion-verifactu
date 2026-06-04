@@ -614,7 +614,7 @@
                 <tr style="cursor:pointer" onclick="seleccionarClienteReal('${escapeHtml(c.Codigo)}')">
                     <td>${escapeHtml(c.Codigo || '')}</td>
                     <td>${escapeHtml(c.NIF || '-')}</td>
-                    <td>${escapeHtml(c.Archivar_Como || '-')}</td>
+                    <td>${escapeHtml(c.Nombre || '-')}</td>
                     <td>${escapeHtml(c.Id_Forma_Pago || '-')}</td>
                 </tr>`).join('');
             tbody.innerHTML = rows || `<tr><td colspan="4" class="text-muted text-center">Sin resultados</td></tr>`;
@@ -633,9 +633,11 @@
             document.getElementById('clienteEmpty').style.display  = 'none';
             document.getElementById('clienteData').style.display   = '';
             document.getElementById('inputIdCliente').value         = clienteActual.Codigo || '';
-            document.getElementById('clienteNombre').textContent    = clienteActual.Archivar_Como || '';
+            document.getElementById('clienteNombre').textContent    = clienteActual.Nombre || '';
             document.getElementById('clienteNIF').textContent       = clienteActual.NIF || '';
-            document.getElementById('clienteDireccion').textContent = clienteActual.Direccion || '-';
+            const _dirs = clienteActual.direcciones || [];
+            const _dir  = _dirs.find(d => d.Predeterminada === 'S') || _dirs[0] || {};
+            document.getElementById('clienteDireccion').textContent = [_dir.Direccion, _dir.Codigo_Postal, _dir.Ciudad].filter(Boolean).join(', ') || '-';
             document.getElementById('clienteFormaPago').textContent = (clienteActual.Id_Forma_Pago || '-').toUpperCase();
             document.getElementById('clienteTipoIVA').textContent   = clienteActual.Id_Tipo_IVA || '-';
             document.getElementById('clienteAplicaRE').textContent  = (clienteActual.Aplica_RE == 1) ? 'Sí' : 'No';
@@ -713,20 +715,17 @@
     };
 
     async function guardarNuevoCliente() {
-        const codigo   = document.getElementById('ncCodigo')?.value?.trim().toUpperCase();
         const archivar = document.getElementById('ncArchivar')?.value?.trim();
         const nif      = document.getElementById('ncNif')?.value?.trim();
         const msg      = document.getElementById('nuevoClienteMsg');
 
-        if (!codigo)   { notify('El código de cliente es obligatorio', 'warning'); return; }
-        if (!/^[A-Z0-9]{1,12}$/.test(codigo)) { notify('El código solo puede contener letras y números (máx. 12 caracteres)', 'warning'); return; }
-        if (!archivar) { notify('El campo "Archivar como" es obligatorio', 'warning'); return; }
+        if (!archivar) { notify('El campo "Nombre" es obligatorio', 'warning'); return; }
         if (!nif)      { notify('El NIF es obligatorio', 'warning'); return; }
 
+        // El código se asigna automáticamente en el servidor (001, 002, 003...)
         const payload = {
-            Codigo:       codigo,
             Apellidos:    document.getElementById('ncApellidos')?.value?.trim() || '',
-            Archivar_Como:archivar,
+            Nombre:archivar,
             NIF:          nif,
             Id_Forma_Pago:document.getElementById('selectFormaPagoNuevo')?.value || '',
             Tarifa:       parseInt(document.getElementById('selectTarifaNuevo')?.value) || 1,

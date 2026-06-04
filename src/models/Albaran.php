@@ -137,7 +137,7 @@ class Albaran
         }
 
         if (!empty($filtros['Nombre'])) {
-            $whereParts[] = "C.`Archivar_Como` = ?";
+            $whereParts[] = "C.`Nombre` = ?";
             $params[]     = $filtros['Nombre'];
         }
 
@@ -205,7 +205,7 @@ class Albaran
         }
 
         if (!empty($filtros['Nombre'])) {
-            $whereParts[] = 'C.`Archivar_Como` = ?';
+            $whereParts[] = 'C.`Nombre` = ?';
             $params[]     = $filtros['Nombre'];
         }
 
@@ -247,7 +247,7 @@ class Albaran
                     A.`Codigo`, A.`Numero`, A.`Fecha`,
                     A.`Id_Cliente`, A.`Id_Canal`,
                     A.`Total`, A.`Cerrado`, A.`Facturado`,
-                    C.`NIF`, C.`Archivar_Como` AS `Nombre`
+                    C.`NIF`, C.`Nombre` AS `Nombre`
                 FROM `Albaranes_Clientes` A
                 LEFT JOIN `Clientes` C ON C.`Codigo` = A.`Id_Cliente`
                 WHERE {$where}
@@ -272,7 +272,7 @@ class Albaran
 
         $sql = "SELECT
                     A.`Codigo`, A.`Fecha`, A.`Total`, A.`Cerrado`, A.`Facturado`,
-                    C.`NIF`, C.`Archivar_Como` AS `Nombre`
+                    C.`NIF`, C.`Nombre` AS `Nombre`
                 FROM `Albaranes_Clientes` A
                 LEFT JOIN `Clientes` C ON C.`Codigo` = A.`Id_Cliente`
                 WHERE A.`Codigo` LIKE ?
@@ -351,7 +351,7 @@ class Albaran
     {
         return $this->db->fetchAll(
             "SELECT A.`Codigo`, A.`Nombre_Plantilla`, A.`Id_Canal`, A.`Id_Cliente`,
-                    A.`Fecha`, A.`Id_Forma_Pago`, C.`Archivar_Como` AS NombreCliente
+                    A.`Fecha`, A.`Id_Forma_Pago`, C.`Nombre` AS NombreCliente
              FROM `Albaranes_Clientes` A
              LEFT JOIN `Clientes` C ON C.`Codigo` = A.`Id_Cliente`
              WHERE A.`Es_Plantilla` = 'S'
