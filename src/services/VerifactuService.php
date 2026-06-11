@@ -9,6 +9,7 @@ require_once __DIR__ . '/../models/Factura.php';
 require_once __DIR__ . '/../config/empresa.php';
 require_once __DIR__ . '/../core/Validator.php';
 require_once __DIR__ . '/../core/NifInvalidoException.php';
+require_once __DIR__ . '/../core/Logger.php';
 
 class VerifactuService
 {
@@ -150,6 +151,11 @@ class VerifactuService
         } catch (Exception $e) {
             $this->registroModel->incrementarReintentos($registro['Id']);
             $this->registroModel->marcarError($registro['Id'], $e->getMessage());
+            Logger::exception('verifactu', $e, [
+                'accion'    => 'enviarAHacienda',
+                'tipo'      => $tipoOrigen,
+                'documento' => $idDocumento,
+            ]);
             return ['ok' => false, 'error' => $e->getMessage(), 'estado' => 'ERROR'];
         }
     }

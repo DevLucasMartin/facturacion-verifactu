@@ -4,6 +4,8 @@
  * Módulo de Facturación
  */
 
+require_once __DIR__ . '/Logger.php';
+
 class Response {
 
     /**
@@ -83,7 +85,7 @@ class Response {
             'message' => $message,
         ];
         if ($e !== null) {
-            error_log('[serverError] ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            Logger::exception('http', $e, ['mensaje' => $message]);
             $body['error_detail'] = [
                 'message' => $e->getMessage(),
                 'file'    => $e->getFile(),

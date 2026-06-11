@@ -7,6 +7,7 @@
  */
 
 require_once __DIR__ . '/../config/verifactu.php';
+require_once __DIR__ . '/../core/Logger.php';
 
 class FirmaDigitalService {
     private array  $config;
@@ -39,6 +40,9 @@ class FirmaDigitalService {
     public function firmarXml(string $xmlContent): array {
         try {
             if (!$this->cargarCertificado()) {
+                Logger::error('firma_digital', 'No se pudo cargar el certificado', [
+                    'ruta' => $this->config['certificado']['ruta'] ?? '',
+                ]);
                 return ['ok' => false, 'error' => 'No se pudo cargar el certificado'];
             }
 
@@ -47,6 +51,7 @@ class FirmaDigitalService {
             $dom->formatOutput       = false;
 
             if (!$dom->loadXML($xmlContent)) {
+                Logger::error('firma_digital', 'XML inválido al firmar');
                 return ['ok' => false, 'error' => 'XML inválido'];
             }
 
@@ -141,6 +146,7 @@ class FirmaDigitalService {
                 'huella' => $digestValue,
             ];
         } catch (\Exception $e) {
+            Logger::exception('firma_digital', $e, ['accion' => 'firmarXml']);
             return ['ok' => false, 'error' => $e->getMessage()];
         }
     }

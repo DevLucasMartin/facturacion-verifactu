@@ -7,6 +7,7 @@
 require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/../core/Validator.php';
 require_once __DIR__ . '/../core/NifInvalidoException.php';
+require_once __DIR__ . '/../core/Logger.php';
 require_once __DIR__ . '/../models/Albaran.php';
 require_once __DIR__ . '/../models/Articulo.php';
 require_once __DIR__ . '/../models/Cliente.php';
@@ -305,6 +306,7 @@ class ConversionService
             $this->db->commit();
         } catch (\Throwable $e) {
             $this->db->rollBack();
+            Logger::exception('conversion', $e, ['accion' => 'convertirAlbaranes']);
             throw $e;
         }
 

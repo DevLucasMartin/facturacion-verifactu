@@ -8,6 +8,7 @@
  */
 
 require_once __DIR__ . '/../config/empresa.php';
+require_once __DIR__ . '/../core/Logger.php';
 
 class PdfService
 {
@@ -58,6 +59,10 @@ class PdfService
             return ['ok' => true, 'ruta' => $pdfPath, 'formato' => 'pdf'];
 
         } catch (\Exception $e) {
+            Logger::exception('pdf', $e, [
+                'accion'    => 'generarPdf',
+                'documento' => $documento['Codigo'] ?? null,
+            ]);
             return ['ok' => false, 'error' => $e->getMessage()];
         }
     }
@@ -210,7 +215,7 @@ class PdfService
             $template->saveAs($outputFile);
             return $outputFile;
         } catch (\Exception $e) {
-            error_log('Error generating DOCX: ' . $e->getMessage());
+            Logger::exception('pdf', $e, ['accion' => 'generarDocx', 'archivo' => $filename]);
             return null;
         }
     }
@@ -238,7 +243,7 @@ class PdfService
             }
             return null;
         } catch (\Exception $e) {
-            error_log('Gotenberg error: ' . $e->getMessage());
+            Logger::exception('pdf', $e, ['accion' => 'convertirPdf', 'gotenberg' => $gotenbergUrl]);
             return null;
         }
     }

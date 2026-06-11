@@ -7,6 +7,7 @@
  */
 
 require_once __DIR__ . '/../config/empresa.php';
+require_once __DIR__ . '/../core/Logger.php';
 
 class EmailService
 {
@@ -54,6 +55,10 @@ class EmailService
 
             return $this->enviar($emailDestino, $asunto, $cuerpo, $rutaAdjunto);
         } catch (\Exception $e) {
+            Logger::exception('email', $e, [
+                'accion'    => 'enviarFactura',
+                'documento' => ($factura['Serie'] ?? '') . ($factura['Numero'] ?? ''),
+            ]);
             return ['ok' => false, 'error' => $e->getMessage()];
         }
     }
@@ -160,6 +165,7 @@ HTML;
             return ['ok' => true, 'mensaje' => 'Email enviado correctamente'];
 
         } catch (\Exception $e) {
+            Logger::exception('email', $e, ['accion' => 'enviar', 'destino' => $to, 'asunto' => $subject]);
             return ['ok' => false, 'error' => $e->getMessage()];
         }
     }

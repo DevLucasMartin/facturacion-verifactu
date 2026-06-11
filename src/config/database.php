@@ -3,6 +3,8 @@
  * Clase Database - Conexión PDO MySQL (Singleton)
  */
 
+require_once __DIR__ . '/../core/Logger.php';
+
 class Database {
 
     private static ?Database $instance = null;
@@ -10,11 +12,16 @@ class Database {
 
     protected function __construct() {
         $dsn = 'mysql:host=localhost;port=3307;dbname=verifactu;charset=utf8mb4';
-        $this->pdo = new PDO($dsn, 'root', '', [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ]);
+        try {
+            $this->pdo = new PDO($dsn, 'root', '', [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+            ]);
+        } catch (\PDOException $e) {
+            Logger::exception('database', $e, ['accion' => 'conexion']);
+            throw $e;
+        }
     }
 
     public static function getInstance(): self {
@@ -26,9 +33,14 @@ class Database {
 
     /** Ejecuta una consulta y devuelve el PDOStatement. */
     public function query(string $sql, array $params = []): \PDOStatement {
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt;
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            return $stmt;
+        } catch (\PDOException $e) {
+            Logger::exception('database', $e, ['sql' => $sql]);
+            throw $e;
+        }
     }
 
     /** Devuelve una única fila o null si no existe. */

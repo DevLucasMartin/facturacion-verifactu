@@ -7,6 +7,8 @@
  *   AAAA = ejercicio | CC = canal/serie | N×13 = secuencial con ceros
  */
 
+require_once __DIR__ . '/../core/Logger.php';
+
 class NumeracionService
 {
     private Database $db;
@@ -72,6 +74,11 @@ class NumeracionService
             ];
         } catch (Exception $e) {
             $this->db->rollBack();
+            Logger::exception('numeracion', $e, [
+                'accion'         => 'asignarNumero',
+                'canal'          => $idCanal ?? null,
+                'tipo_documento' => $tipoDocumento ?? null,
+            ]);
             throw new Exception('Error al asignar número: ' . $e->getMessage());
         }
     }

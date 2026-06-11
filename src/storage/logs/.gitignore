@@ -1,0 +1,5 @@
+# Ignorar todos los logs generados por el Logger (uno por servicio)
+*.log
+
+# Mantener la carpeta en el repositorio
+!.gitignore

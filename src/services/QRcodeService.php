@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../core/Database.php';
+require_once __DIR__ . '/../core/Logger.php';
 require_once __DIR__ . '/../models/VerifactuRegistro.php';
 
 use Endroid\QrCode\Writer\PngWriter;
@@ -128,7 +129,7 @@ function buildQrToTempFile(string $Id_Factura, int $size = 200, int $margin = 10
         if (is_file($qrPath) && filesize($qrPath) === 0) {
             @unlink($qrPath);
         }
-        error_log('Error al generar QR: ' . $e->getMessage());
+        Logger::exception('qrcode', $e, ['accion' => 'generarQr', 'archivo' => $qrPath]);
         return null;
     }
 
