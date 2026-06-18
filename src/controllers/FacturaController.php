@@ -603,6 +603,10 @@ class FacturaController
                 $data['Tipo_Documento']
             );
 
+            if (!empty($resultadoCalculo['errores'])) {
+                Response::error($resultadoCalculo['errores'][0]);
+            }
+
             $facturaData = [
                 'Fecha'                       => $data['Fecha'],
                 'Id_Cliente'                  => $data['Id_Cliente'],

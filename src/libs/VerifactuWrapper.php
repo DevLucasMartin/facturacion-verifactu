@@ -237,8 +237,30 @@ class VerifactuWrapper
                 if ($nifExt !== '' && !str_starts_with($nifExt, $pais)) {
                     $nifExt = $pais . $nifExt;
                 }
+                if ($nifExt === '') {
+                    throw new NifInvalidoException(
+                        'Operación E5 (entrega intracomunitaria): el destinatario debe tener un NIF-IVA. Indícalo en la factura o en la ficha del cliente.',
+                        $idClienteWr,
+                        $nifRaw
+                    );
+                }
+                if (!Validator::esPaisVatUE($pais)) {
+                    throw new NifInvalidoException(
+                        "Operación E5 (entrega intracomunitaria): el país destino '{$pais}' no es un estado miembro de la UE.",
+                        $idClienteWr,
+                        $nifExt
+                    );
+                }
+                $errVat = Validator::validarFormatoVatUE($nifExt, $pais);
+                if ($errVat !== null) {
+                    throw new NifInvalidoException(
+                        "Operación E5 (entrega intracomunitaria): {$errVat} Revisa el NIF-IVA del destinatario ('{$nifExt}').",
+                        $idClienteWr,
+                        $nifExt
+                    );
+                }
                 return [new ForeignFiscalIdentifier(
-                    $nombre, $pais, ForeignIdType::VAT, $nifExt !== '' ? $nifExt : '0'
+                    $nombre, $pais, ForeignIdType::VAT, $nifExt
                 )];
             }
 

@@ -153,11 +153,13 @@ ob_start();
                                 <i class="bi bi-eye me-2"></i>Ver en pantalla</a></li>
                             <li><a class="dropdown-item" href="#" onclick="descargarPdf(); return false;">
                                 <i class="bi bi-download me-2"></i>Descargar</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" onclick="enviarEmail(); return false;">
-                                <i class="bi bi-envelope me-2"></i>Enviar por email</a></li>
                         </ul>
                     </div>
+
+                    <button type="button" class="btn btn-sm btn-outline-success fact-btn"
+                            onclick="enviarEmail(); return false;">
+                        <i class="bi bi-envelope me-1"></i>Enviar por email
+                    </button>
 
                     <a href="/SistemaGestionFacturas/src/views/facturas/listado.php"
                        class="btn btn-sm btn-outline-secondary">

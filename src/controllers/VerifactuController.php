@@ -285,7 +285,8 @@ class VerifactuController
                     $codigoTipoIva = (string)($linea['Id_Tipo_IVA'] ?? '');
                     $datosTipo     = $this->obtenerDatosTipoIva($codigoTipoIva);
 
-                    $aplicaRELinea = !empty($linea['Aplica_RE']);
+                    // Aplica_RE viene de BD como 'S'/'N' — 'N' es truthy, no usar !empty()
+                    $aplicaRELinea = in_array($linea['Aplica_RE'] ?? null, ['S', 's', '1', 1, true], true);
                     $tipoRePct     = (float)($linea['tipo_re_pct'] ?? 0);
                     $cuotaRE       = (float)($linea['RE']          ?? 0);
 

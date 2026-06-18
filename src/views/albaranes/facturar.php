@@ -154,6 +154,9 @@ ob_start();
                             <input type="text" class="form-control fact-form-control" id="inputNifExportacion"
                                 oninput="cambiarNifExportacion(this.value)"
                                 placeholder="NIF / VAT Number">
+                            <div id="vatFormatoError" class="d-none mt-1">
+                                <small class="text-danger" id="vatFormatoErrorTexto"></small>
+                            </div>
                         </div>
                         <div class="col-md-6 d-flex align-items-end">
                             <div class="form-check">

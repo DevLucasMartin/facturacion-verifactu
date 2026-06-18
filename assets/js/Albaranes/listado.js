@@ -519,7 +519,10 @@ window.abrirModalPlantillas = function() {
                         if (nuevoNombre && nuevoNombre !== textEl.textContent.trim()) {
                             fetch(FACT_API_BASE + '/albaranes.php/' + encodeURIComponent(codigo) + '/plantilla', {
                                 method:  'PUT',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                                },
                                 body:    JSON.stringify({ nombre: nuevoNombre })
                             })
                             .then(r => r.json())
@@ -587,7 +590,10 @@ document.getElementById('btnConfirmarEliminar')?.addEventListener('click', funct
 
     bootstrap.Modal.getInstance(document.getElementById('confirmarEliminarModal'))?.hide();
 
-    fetch(FACT_API_BASE + '/albaranes.php/' + encodeURIComponent(codigo) + '/plantilla', { method: 'DELETE' })
+    fetch(FACT_API_BASE + '/albaranes.php/' + encodeURIComponent(codigo) + '/plantilla', {
+        method:  'DELETE',
+        headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' }
+    })
         .then(r => r.json())
         .then(json => {
             if (json.success) {

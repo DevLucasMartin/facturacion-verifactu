@@ -81,11 +81,14 @@ class CalculoService {
         $dtoPP            = $netTrasComercial * ($descuentos['Descuento_PP'] / 100);
         $baseGlobal       = $netTrasComercial - $dtoPP;
 
-        $factor = $netSubtotal > 0 ? $baseGlobal / $netSubtotal : 0;
+        // abs(): en rectificativas/abonos el neto es negativo y el factor sigue siendo válido
+        $factor = abs($netSubtotal) > 1e-9 ? $baseGlobal / $netSubtotal : 0;
 
         // Paso 3: agrupar por (tipo IVA + aplica RE + calificación)
         $basesAgrupadas = [];
         $tipoIVAs       = [];
+        $tiposNoValidos = [];
+        $territorios    = [];
 
         foreach ($lineasCalculadas as $linea) {
             $idTipoIVA    = $linea['Id_Tipo_IVA'];
@@ -105,6 +108,12 @@ class CalculoService {
 
             if (!isset($basesAgrupadas[$key])) {
                 $tipoIVA = $this->obtenerTipoIVA($idTipoIVA);
+                if ($tipoIVA === null) {
+                    $tiposNoValidos[$idTipoIVA] = "El tipo de IVA '{$idTipoIVA}' no existe. Revisa las líneas del documento.";
+                } else {
+                    $terr = trim((string)($tipoIVA['Tipo_Territorio'] ?? ''));
+                    if ($terr !== '') $territorios[$terr] = true;
+                }
                 $rePct   = ($aplicaRE && $tipoIVA) ? (float)$tipoIVA['RE'] : 0;
                 $tipoIVAs[$key] = [
                     'Id_Tipo_IVA'   => $idTipoIVA,
@@ -144,7 +153,12 @@ class CalculoService {
 
         // Paso 5: totales finales
         $total   = $baseGlobal + $totalIVA + $totalRE;
-        $errores = [];
+        $errores = array_values($tiposNoValidos);
+
+        if (count($territorios) > 1) {
+            $errores[] = 'No se pueden mezclar impuestos de distintos territorios en el mismo documento ('
+                       . implode(', ', array_keys($territorios)) . ')';
+        }
 
         if ($tipoDocumento === self::TIPO_RECAPITULATIVA && $total > self::LIMITE_RECAPITULATIVA) {
             $errores[] = 'El total de una factura recapitulativa no puede superar ' . self::LIMITE_RECAPITULATIVA . '€';
@@ -180,7 +194,7 @@ class CalculoService {
 
     private function obtenerTipoIVA(string $codigo): ?array {
         return $this->db->fetch(
-            'SELECT Codigo, IVA, RE FROM Tipos_IVA WHERE Codigo = ?',
+            'SELECT Codigo, IVA, RE, Tipo_Territorio FROM Tipos_IVA WHERE Codigo = ?',
             [$codigo]
         );
     }

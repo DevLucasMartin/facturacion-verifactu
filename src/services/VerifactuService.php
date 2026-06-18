@@ -301,7 +301,8 @@ class VerifactuService
                 $territorio      = (string)($linea['tipo_territorio'] ?? '');
                 $codigoVerifactu = (string)($linea['codigo_verifactu'] ?? '');
 
-                $aplicaRELinea = !empty($linea['Aplica_RE']);
+                // Aplica_RE viene de BD como 'S'/'N' — 'N' es truthy, no usar !empty()
+                $aplicaRELinea = in_array($linea['Aplica_RE'] ?? null, ['S', 's', '1', 1, true], true);
                 $reCuotaLinea  = (float)($linea['RE'] ?? 0);
 
                 if ($aplicaRELinea) {
@@ -358,7 +359,7 @@ class VerifactuService
             // Prorratear bases al total de cabecera
             $netSubtotal = 0.0;
             foreach ($grupos as $g) $netSubtotal += $g['base'];
-            if ($netSubtotal > 0) {
+            if (abs($netSubtotal) > 1e-9) {
                 $baseGlobal = (float)($doc['Base_Imponible'] ?? $netSubtotal);
                 $factor     = $baseGlobal / $netSubtotal;
                 if (abs($factor - 1.0) > 1e-9) {

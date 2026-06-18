@@ -65,7 +65,8 @@ function abrirModificarCliente(codigo) {
     $('#nuevoClienteModalTitle').text('Modificar Cliente');
     $('#nuevoClienteMsg').addClass('d-none').removeClass('alert-success alert-danger alert-warning').addClass('alert-info').text('');
     $('#nuevoClienteForm')[0].reset();
-    $('#ncCodigoCol').show();
+    // El código de cliente no se puede editar: se oculta también en modificación
+    $('#ncCodigoCol').hide();
     $('#ncCodigo').prop('readonly', true).removeClass('is-invalid is-valid').val(codigo);
     $('#ncNif').removeClass('is-invalid is-valid');
     $('#ncNifError').text('');

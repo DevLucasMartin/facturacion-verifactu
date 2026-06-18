@@ -488,6 +488,10 @@ class AlbaranController
                 'ALBARAN'
             );
 
+            if (!empty($resultadoCalculo['errores'])) {
+                Response::error($resultadoCalculo['errores'][0]);
+            }
+
             $albaranData = [
                 'Fecha'                 => $data['Fecha'],
                 'Id_Cliente'            => $data['Id_Cliente'],

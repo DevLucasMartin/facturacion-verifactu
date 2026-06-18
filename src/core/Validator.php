@@ -260,6 +260,79 @@ class Validator {
         return 'Formato de NIF/NIE/CIF no reconocido. Se esperan 9 caracteres: DNI (8 dígitos + letra), NIE (X/Y/Z + 7 dígitos + letra), o CIF (letra entidad + 7 dígitos + control)';
     }
 
+    // ─── Validación de formato NIF-IVA (VIES) por país UE ────────────────────
+
+    /**
+     * Patrones VIES por país sobre el número SIN prefijo (Grecia usa prefijo EL).
+     * Debe mantenerse en sincronía con VAT_UE_FORMATS de assets/js/form-utils.js.
+     */
+    private const VAT_UE_FORMATS = [
+        'AT' => ['/^U\d{8}$/',                                'ATU + 8 dígitos'],
+        'BE' => ['/^[01]\d{9}$/',                             'BE + 10 dígitos (empieza por 0 o 1)'],
+        'BG' => ['/^\d{9,10}$/',                              'BG + 9 o 10 dígitos'],
+        'CY' => ['/^\d{8}[A-Z]$/',                            'CY + 8 dígitos + 1 letra'],
+        'CZ' => ['/^\d{8,10}$/',                              'CZ + 8, 9 o 10 dígitos'],
+        'DE' => ['/^\d{9}$/',                                 'DE + 9 dígitos'],
+        'DK' => ['/^\d{8}$/',                                 'DK + 8 dígitos'],
+        'EE' => ['/^\d{9}$/',                                 'EE + 9 dígitos'],
+        'ES' => ['/^[A-Z0-9]\d{7}[A-Z0-9]$/',                 'ES + 9 caracteres'],
+        'FI' => ['/^\d{8}$/',                                 'FI + 8 dígitos'],
+        'FR' => ['/^[A-Z0-9]{2}\d{9}$/',                      'FR + 2 caracteres + 9 dígitos'],
+        'GR' => ['/^\d{9}$/',                                 'EL + 9 dígitos'],
+        'HR' => ['/^\d{11}$/',                                'HR + 11 dígitos'],
+        'HU' => ['/^\d{8}$/',                                 'HU + 8 dígitos'],
+        'IE' => ['/^(\d{7}[A-Z]{1,2}|\d[A-Z+*]\d{5}[A-Z])$/', 'IE + 7 dígitos + 1-2 letras'],
+        'IT' => ['/^\d{11}$/',                                'IT + 11 dígitos'],
+        'LT' => ['/^(\d{9}|\d{12})$/',                        'LT + 9 o 12 dígitos'],
+        'LU' => ['/^\d{8}$/',                                 'LU + 8 dígitos'],
+        'LV' => ['/^\d{11}$/',                                'LV + 11 dígitos'],
+        'MT' => ['/^\d{8}$/',                                 'MT + 8 dígitos'],
+        'NL' => ['/^\d{9}B\d{2}$/',                           'NL + 9 dígitos + B + 2 dígitos'],
+        'PL' => ['/^\d{10}$/',                                'PL + 10 dígitos'],
+        'PT' => ['/^\d{9}$/',                                 'PT + 9 dígitos'],
+        'RO' => ['/^\d{2,10}$/',                              'RO + 2 a 10 dígitos'],
+        'SE' => ['/^\d{12}$/',                                'SE + 12 dígitos'],
+        'SI' => ['/^\d{8}$/',                                 'SI + 8 dígitos'],
+        'SK' => ['/^\d{10}$/',                                'SK + 10 dígitos'],
+        'XI' => ['/^(\d{9}(\d{3})?|GD\d{3}|HA\d{3})$/',       'XI + 9 o 12 dígitos'],
+    ];
+
+    /** Países con formato VIES conocido (estados miembros UE + XI). */
+    public static function esPaisVatUE(string $pais): bool
+    {
+        return isset(self::VAT_UE_FORMATS[strtoupper(trim($pais))]);
+    }
+
+    /**
+     * Valida el formato VIES de un NIF-IVA para un país de la UE.
+     * Acepta el número con o sin prefijo de país.
+     * Devuelve null si es válido (o si el país no está en la lista), o un mensaje de error.
+     */
+    public static function validarFormatoVatUE(string $vat, string $pais): ?string
+    {
+        $pais = strtoupper(trim($pais));
+        if (!isset(self::VAT_UE_FORMATS[$pais])) {
+            return null;
+        }
+        [$regex, $formato] = self::VAT_UE_FORMATS[$pais];
+
+        $v = strtoupper((string)preg_replace('/[\s.\-]/', '', $vat));
+        $prefijos = $pais === 'GR' ? ['EL', 'GR'] : [$pais];
+        foreach ($prefijos as $p) {
+            if (str_starts_with($v, $p)) {
+                $v = substr($v, strlen($p));
+                break;
+            }
+        }
+        if ($v === '') {
+            return 'Falta el número de IVA después del prefijo de país.';
+        }
+        if (!preg_match($regex, $v)) {
+            return "El NIF-IVA no tiene el formato válido para {$pais} ({$formato}).";
+        }
+        return null;
+    }
+
     // ─── Métodos estáticos de validación de documentos ───────────────────────
 
     /**

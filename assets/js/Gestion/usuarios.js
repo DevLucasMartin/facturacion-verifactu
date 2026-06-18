@@ -42,18 +42,6 @@ $(document).ready(function () {
         usr_togglePass('uContrasena2', 'iconTogglePass2');
     });
 
-    // Mostrar/ocultar campo de contraseña actual según se rellene la nueva
-    $('#uContrasena').on('input', function () {
-        if (usr_modoEdicion) {
-            const tieneNueva = $(this).val().trim() !== '';
-            $('#wrapPassActual').toggleClass('d-none', !tieneNueva);
-            if (!tieneNueva) {
-                $('#uContrasenaActual').val('').removeClass('is-invalid');
-                $('#uPassActualError').hide().text('');
-            }
-        }
-    });
-
     $('#btnConfirmarEliminar').on('click', function () {
         if (!usr_pendEliminar) return;
         eliminarUsuario(usr_pendEliminar);
@@ -98,8 +86,8 @@ function abrirModificarUsuario(usuario) {
     $('#uUsuario').prop('readonly', false).removeClass('is-invalid is-valid').val(usuario).attr('placeholder', 'Nombre de usuario');
     $('#uUsuarioError').text('');
 
-    // Contraseña actual oculta hasta que se escriba nueva contraseña
-    $('#wrapPassActual').addClass('d-none');
+    // Contraseña actual: se pide siempre antes de la nueva en modo edición
+    $('#wrapPassActual').removeClass('d-none');
     $('#uContrasenaActual').val('').removeClass('is-invalid');
     $('#uPassActualError').hide().text('');
 
