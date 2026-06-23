@@ -12,23 +12,25 @@ ob_start();
 ?>
 
 <!-- Acciones -->
-<div class="fact-list-actions">
-    <input type="text"
-           id="clientesBuscar"
-           class="form-control form-control-sm fact-form-control"
-           placeholder="Buscar por nombre, NIF o código..."
-           style="max-width:280px;">
+<div class="fact-list-actions justify-content-end mb-3">
     <button type="button" class="btn btn-primary btn-sm fact-btn" id="btnNuevoCliente">
         <i class="bi bi-plus-lg me-1"></i>Nuevo cliente
     </button>
 </div>
 
+<!-- Buscador destacado a todo el ancho -->
+<div class="input-group fact-search mb-3">
+    <span class="input-group-text bg-white text-muted"><i class="bi bi-search"></i></span>
+    <input type="text" id="clientesBuscar" class="form-control fact-form-control"
+           placeholder="Buscar por nombre, NIF o código...">
+</div>
+
 <!-- Tabla de clientes -->
 <div class="card fact-card">
 
-    <div class="card-header fact-card-header">
-        <span><i class="bi bi-people me-2"></i>Clientes</span>
-        <span class="ms-auto text-muted" style="font-weight:400;font-size:.8rem;" id="clientesTotalLabel"></span>
+    <div class="card-header fact-card-header d-flex flex-wrap align-items-center gap-2">
+        <span><i class="bi bi-people me-2 text-muted"></i>Clientes</span>
+        <span class="text-muted" style="font-weight:400;font-size:.8rem;" id="clientesTotalLabel"></span>
     </div>
 
     <div class="card-body p-0 fact-card-body" style="padding:0!important;">
@@ -150,6 +152,11 @@ $content = ob_get_clean();
 
 ob_start();
 ?>
+<style>
+    .fact-search { box-shadow: var(--shadow-sm); border-radius: 9px; }
+    .fact-search .input-group-text { border-color: var(--border); border-top-left-radius: 9px; border-bottom-left-radius: 9px; }
+    .fact-search .form-control { border-left: 0; padding: .55rem .75rem; }
+</style>
 <script src="/SistemaGestionFacturas/assets/js/Gestion/clientes.js" defer></script>
 <?php
 $extra_js = ob_get_clean();

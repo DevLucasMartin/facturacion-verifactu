@@ -17,7 +17,7 @@
     const CODIGO = document.getElementById('app-data')?.dataset?.codigo || '';
 
     // Datos del cliente de la factura (para envío por email)
-    let clienteActual = null;
+    let clienteActual = null;z  
 
     // Estado paginación líneas
     let lineasAll  = [];

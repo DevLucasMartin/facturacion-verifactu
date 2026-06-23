@@ -10,77 +10,8 @@ $fact_active_menu   = 'albaranes';
 ob_start();
 ?>
 
-<!-- Filtros -->
-<div class="card mb-4 fact-card">
-    <div class="card-header d-flex justify-content-between align-items-center fact-card-header">
-        <span><i class="bi bi-funnel me-2"></i>Filtros</span>
-        <button class="btn btn-sm btn-outline-secondary fact-btn-collapse"
-            type="button" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse">
-            <i class="bi bi-chevron-down"></i>
-        </button>
-    </div>
-    <div class="collapse show" id="filtrosCollapse">
-        <div class="card-body fact-card-body">
-            <form id="filtrosForm">
-                <!-- FILA 1 -->
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label fact-form-label">Código</label>
-                        <select name="codigo" class="form-select form-select-sm fact-form-select" id="filtroCodigo">
-                            <option value="">Todos</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fact-form-label">Canal</label>
-                        <select name="id_canal" class="form-select form-select-sm fact-form-select" id="filtroCanal">
-                            <option value="">Todos</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fact-form-label">Cliente</label>
-                        <select name="id_cliente" class="form-select form-select-sm fact-form-select" id="filtroCliente">
-                            <option value="">Todos</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fact-form-label">Estado</label>
-                        <select name="facturado" class="form-select form-select-sm fact-form-select" id="filtroEstado">
-                            <option value="">Todos</option>
-                            <option value="N">No facturado</option>
-                            <option value="S">Facturado</option>
-                        </select>
-                    </div>
-                </div>
-                <!-- FILA 2 -->
-                <div class="row g-3 mt-0">
-                    <div class="col-md-3">
-                        <label class="form-label fact-form-label">Cobrado</label>
-                        <select name="cobrado" id="filtroCobrado" class="form-select form-select-sm fact-form-select">
-                            <option value="">Todos</option>
-                            <option value="S">Cobrado</option>
-                            <option value="N">Pendiente</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fact-form-label">Desde</label>
-                        <input type="date" name="fecha_desde" class="form-control form-control-sm fact-form-control">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label fact-form-label">Hasta</label>
-                        <input type="date" name="fecha_hasta" class="form-control form-control-sm fact-form-control">
-                    </div>
-                    <div class="col-md-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary btn-sm fact-btn w-100">
-                            <i class="bi bi-search me-1"></i>Buscar
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div class="fact-list-actions d-flex flex-wrap gap-2 mb-3">
+<!-- Barra de acciones -->
+<div class="fact-list-actions justify-content-end mb-3">
     <a href="/SistemaGestionFacturas/src/views/albaranes/nuevo.php"
        class="btn btn-primary btn-sm fact-btn">
         <i class="bi bi-plus-lg me-1"></i>Nuevo documento
@@ -89,7 +20,7 @@ ob_start();
         onclick="abrirModalPlantillas()">
         <i class="bi bi-layout-text-window me-1"></i>Plantillas
     </button>
-    <button type="button" class="btn btn-success btn-sm fact-btn"
+    <button type="button" class="btn btn-outline-secondary btn-sm fact-btn"
         id="btnExportarExcel" title="Exportar a Excel">
         <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
     </button>
@@ -104,9 +35,59 @@ ob_start();
 
 <!-- LISTADO -->
 <div class="card fact-card">
-    <div class="card-header d-flex justify-content-between align-items-center fact-card-header">
-        <span><i class="bi bi-list me-2"></i>Resultados</span>
+    <!-- ===== Toolbar de filtros (barra horizontal) ===== -->
+    <div class="fact-filter-bar">
+        <form id="filtrosForm" class="d-flex flex-wrap align-items-end gap-2">
+            <div class="fb-field">
+                <label class="form-label fact-form-label">Código</label>
+                <select name="codigo" class="form-select form-select-sm fact-form-select" id="filtroCodigo">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="fb-field">
+                <label class="form-label fact-form-label">Canal</label>
+                <select name="id_canal" class="form-select form-select-sm fact-form-select" id="filtroCanal">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="fb-field fb-field-wide">
+                <label class="form-label fact-form-label">Cliente</label>
+                <select name="id_cliente" class="form-select form-select-sm fact-form-select" id="filtroCliente">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div class="fb-field">
+                <label class="form-label fact-form-label">Estado</label>
+                <select name="facturado" class="form-select form-select-sm fact-form-select" id="filtroEstado">
+                    <option value="">Todos</option>
+                    <option value="N">No facturado</option>
+                    <option value="S">Facturado</option>
+                </select>
+            </div>
+            <div class="fb-field">
+                <label class="form-label fact-form-label">Cobrado</label>
+                <select name="cobrado" id="filtroCobrado" class="form-select form-select-sm fact-form-select">
+                    <option value="">Todos</option>
+                    <option value="S">Cobrado</option>
+                    <option value="N">Pendiente</option>
+                </select>
+            </div>
+            <div class="fb-field fb-field-date">
+                <label class="form-label fact-form-label">Desde</label>
+                <input type="date" name="fecha_desde" class="form-control form-control-sm fact-form-control">
+            </div>
+            <div class="fb-field fb-field-date">
+                <label class="form-label fact-form-label">Hasta</label>
+                <input type="date" name="fecha_hasta" class="form-control form-control-sm fact-form-control">
+            </div>
+            <div class="fb-field fb-field-btn">
+                <button type="submit" class="btn btn-primary btn-sm fact-btn">
+                    <i class="bi bi-search me-1"></i>Buscar
+                </button>
+            </div>
+        </form>
     </div>
+
     <div class="card-body p-0 fact-card-body" style="padding:0!important;">
         <div class="table-responsive">
             <table class="table table-hover mb-0 fact-table" id="albaranesTable">
@@ -205,6 +186,23 @@ ob_start();
         </div>
     </div>
 </div>
+
+<style>
+    /* Toolbar horizontal de filtros sobre la tabla */
+    .fact-filter-bar {
+        padding: .9rem 1.15rem;
+        border-bottom: 1px solid var(--border-soft);
+        background: var(--bg);
+        border-top-left-radius: var(--radius);
+        border-top-right-radius: var(--radius);
+    }
+    .fact-filter-bar .fb-field { flex: 1 1 150px; min-width: 130px; }
+    .fact-filter-bar .fb-field-wide { flex: 2 1 200px; }
+    .fact-filter-bar .fb-field-date { flex: 0 0 150px; min-width: 130px; }
+    .fact-filter-bar .fb-field-btn { flex: 0 0 auto; }
+    /* Que Select2 ocupe el ancho del campo dentro de la toolbar */
+    .fact-filter-bar .select2-container { width: 100% !important; }
+</style>
 
 <?php
 $content = ob_get_clean();

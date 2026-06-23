@@ -12,7 +12,7 @@ ob_start();
 ?>
 
 <!-- Acciones -->
-<div class="fact-list-actions">
+<div class="fact-list-actions justify-content-end mb-3">
     <button type="button" class="btn btn-primary btn-sm fact-btn" id="btnNuevoCanal">
         <i class="bi bi-plus-lg me-1"></i>Nuevo canal
     </button>
@@ -22,7 +22,7 @@ ob_start();
 <div class="card fact-card">
 
     <div class="card-header fact-card-header">
-        <span><i class="bi bi-diagram-3 me-2"></i>Canales</span>
+        <span><i class="bi bi-diagram-3 me-2 text-muted"></i>Canales</span>
     </div>
 
     <div class="card-body p-0 fact-card-body" style="padding:0!important;">
@@ -63,7 +63,7 @@ ob_start();
                 <h5 class="modal-title" id="canalModalLabel">
                     <i class="bi bi-diagram-3 me-2"></i><span id="modalTitulo">Nuevo canal</span>
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
 
             <form id="canalForm" novalidate>

@@ -17,22 +17,24 @@ ob_start();
 ?>
 
 <!-- Acciones -->
-<div class="fact-list-actions">
-    <input type="text"
-           id="usuariosBuscar"
-           class="form-control form-control-sm fact-form-control"
-           placeholder="Buscar usuario..."
-           style="max-width:260px;">
+<div class="fact-list-actions justify-content-end mb-3">
     <button type="button" class="btn btn-primary btn-sm fact-btn" id="btnNuevoUsuario">
         <i class="bi bi-plus-lg me-1"></i>Nuevo usuario
     </button>
 </div>
 
+<!-- Buscador destacado a todo el ancho -->
+<div class="input-group fact-search mb-3">
+    <span class="input-group-text bg-white text-muted"><i class="bi bi-search"></i></span>
+    <input type="text" id="usuariosBuscar" class="form-control fact-form-control"
+           placeholder="Buscar usuario...">
+</div>
+
 <!-- Tabla -->
 <div class="card fact-card">
-    <div class="card-header fact-card-header d-flex align-items-center">
-        <span><i class="bi bi-person-gear me-2"></i>Usuarios</span>
-        <span class="ms-auto text-muted" style="font-weight:400;font-size:.8rem;" id="usuariosTotalLabel"></span>
+    <div class="card-header fact-card-header d-flex flex-wrap align-items-center gap-2">
+        <span><i class="bi bi-person-gear me-2 text-muted"></i>Usuarios</span>
+        <span class="text-muted" style="font-weight:400;font-size:.8rem;" id="usuariosTotalLabel"></span>
     </div>
     <div class="card-body p-0 fact-card-body" style="padding:0!important;">
         <div class="table-responsive">
@@ -158,6 +160,11 @@ $content = ob_get_clean();
 
 ob_start();
 ?>
+<style>
+    .fact-search { box-shadow: var(--shadow-sm); border-radius: 9px; }
+    .fact-search .input-group-text { border-color: var(--border); border-top-left-radius: 9px; border-bottom-left-radius: 9px; }
+    .fact-search .form-control { border-left: 0; padding: .55rem .75rem; }
+</style>
 <script src="/SistemaGestionFacturas/assets/js/Gestion/usuarios.js" defer></script>
 <?php
 $extra_js = ob_get_clean();

@@ -17,12 +17,35 @@ $codigoGET   = $_SERVER['QUERY_STRING'] ?? '';
 ob_start();
 ?>
 
+<style>
+    /* Layout vertical de factura */
+    .doc-flow { max-width: 1200px; margin: 0 auto; padding-bottom: 90px; }
+    .doc-stat {
+        background: var(--bs-light, #f8f9fa);
+        border-radius: .5rem;
+        padding: .6rem .85rem;
+        text-align: center;
+    }
+    .doc-stat .stat-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; color: #6c757d; }
+    .doc-stat .stat-value { font-size: 1.05rem; font-weight: 600; }
+    /* Barra de acciones fija inferior */
+    .doc-action-bar {
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        background: #fff;
+        border-top: 1px solid #dee2e6;
+        box-shadow: 0 -2px 10px rgba(0,0,0,.06);
+        padding: .65rem 1rem;
+        z-index: 1030;
+    }
+    .doc-action-bar .bar-total { font-size: 1.35rem; font-weight: 700; }
+</style>
+
 <form id="facturaForm" method="POST">
     <input type="hidden" name="codigo" value="<?= htmlspecialchars($fact_codigo, ENT_QUOTES, 'UTF-8') ?>">
 
-    <div class="row">
-        <!-- Columna Principal -->
-        <div class="col-lg-8">
+    <div class="doc-flow">
+
             <!-- Datos del documento -->
             <div class="card fact-card mb-4">
                 <div class="card-header fact-card-header">
@@ -51,16 +74,21 @@ ob_start();
                             <select name="Id_Canal" id="selectCanal" class="form-select fact-form-select" required></select>
                         </div>
                         <!-- Número (solo lectura) -->
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label fact-form-label" for="numeroDocumento">Número</label>
                             <input type="text" class="form-control fact-form-control" id="numeroDocumento"
-                                   readonly placeholder="Se asignará al guardar">
+                                   readonly placeholder="Al guardar">
                         </div>
                         <!-- Fecha -->
                         <div class="col-md-2">
                             <label class="form-label fact-form-label" for="inputFecha">Fecha</label>
                             <input type="date" name="Fecha" id="inputFecha" class="form-control fact-form-control"
                                    value="<?= date('Y-m-d') ?>" required>
+                        </div>
+                        <!-- Forma de pago -->
+                        <div class="col-md-2">
+                            <label class="form-label fact-form-label" for="selectFormaPago">Forma de Pago</label>
+                            <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select fact-form-select select-forma-pago" required></select>
                         </div>
                     </div>
 
@@ -259,74 +287,79 @@ ob_start();
                               rows="3" placeholder="Observaciones adicionales..."></textarea>
                 </div>
             </div>
-        </div>
 
-        <!-- Columna Lateral -->
-        <div class="col-lg-4">
-            <div class="card fact-card mb-4 sticky-top" style="top:80px;z-index:100;">
+            <!-- Totales y descuentos -->
+            <div class="card fact-card mb-4">
                 <div class="card-header fact-card-header">
                     <span><i class="bi bi-calculator me-2"></i>Totales</span>
                 </div>
                 <div class="card-body fact-card-body">
-                    <!-- Forma de Pago -->
-                    <div class="mb-3">
-                        <label class="form-label small text-muted">Forma de Pago</label>
-                        <select name="Id_Forma_Pago" id="selectFormaPago" class="form-select form-select-sm fact-form-select select-forma-pago" required></select>
-                    </div>
-                    <!-- Descuentos -->
-                    <div class="mb-3">
-                        <label class="form-label small text-muted">Descuentos</label>
-                        <div class="row g-2">
-                            <div class="col-4">
-                                <input type="number" name="Descuento_Especial" id="inputDtoEspecial"
-                                       class="form-control form-control-sm fact-form-control"
-                                       placeholder="Esp.%" min="0" max="100" step="0.25" value="0">
-                                <small class="text-muted">Esp.%</small>
+                    <div class="row g-3">
+                        <!-- Descuentos -->
+                        <div class="col-lg-5">
+                            <label class="form-label fact-form-label mb-1">Descuentos</label>
+                            <div class="row g-2 align-items-end">
+                                <div class="col-4">
+                                    <input type="number" name="Descuento_Especial" id="inputDtoEspecial"
+                                           class="form-control form-control-sm fact-form-control"
+                                           placeholder="Esp.%" min="0" max="100" step="0.25" value="0">
+                                    <small class="text-muted">Especial %</small>
+                                </div>
+                                <div class="col-4">
+                                    <input type="number" name="Descuento_Comercial" id="inputDtoComercial"
+                                           class="form-control form-control-sm fact-form-control"
+                                           placeholder="Com.%" min="0" max="100" step="0.25" value="0">
+                                    <small class="text-muted">Comercial %</small>
+                                </div>
+                                <div class="col-4">
+                                    <input type="number" name="Descuento_PP" id="inputDtoPP"
+                                           class="form-control form-control-sm fact-form-control"
+                                           placeholder="PP%" min="0" max="100" step="0.25" value="0">
+                                    <small class="text-muted">Pronto Pago %</small>
+                                </div>
                             </div>
-                            <div class="col-4">
-                                <input type="number" name="Descuento_Comercial" id="inputDtoComercial"
-                                       class="form-control form-control-sm fact-form-control"
-                                       placeholder="Com.%" min="0" max="100" step="0.25" value="0">
-                                <small class="text-muted">Com.%</small>
-                            </div>
-                            <div class="col-4">
-                                <input type="number" name="Descuento_PP" id="inputDtoPP"
-                                       class="form-control form-control-sm fact-form-control"
-                                       placeholder="PP%" min="0" max="100" step="0.25" value="0">
-                                <small class="text-muted">PP%</small>
+                        </div>
+                        <!-- Resumen de importes -->
+                        <div class="col-lg-7">
+                            <div class="row g-2">
+                                <div class="col-6 col-md-3">
+                                    <div class="doc-stat">
+                                        <div class="stat-label">Subtotal</div>
+                                        <div class="stat-value" id="subtotalDisplay">0,00 €</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="doc-stat" id="descuentosDisplay" style="display:none;">
+                                        <div class="stat-label">Descuentos</div>
+                                        <div class="stat-value text-danger" id="descuentosValue">0,00 €</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="doc-stat">
+                                        <div class="stat-label">Base Imp.</div>
+                                        <div class="stat-value" id="baseImponibleDisplay">0,00 €</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="doc-stat">
+                                        <div class="stat-label">IVA</div>
+                                        <div class="stat-value" id="ivaDisplay">0,00 €</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="doc-stat" id="reDisplay" style="display:none;">
+                                        <div class="stat-label">Rec. Equiv.</div>
+                                        <div class="stat-value" id="reValue">0,00 €</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <hr>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Subtotal:</span>
-                        <span id="subtotalDisplay">0,00 €</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2 text-danger" id="descuentosDisplay" style="display:none!important;">
-                        <span>Descuentos:</span>
-                        <span id="descuentosValue">0,00 €</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Base Imponible:</span>
-                        <span id="baseImponibleDisplay">0,00 €</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">IVA:</span>
-                        <span id="ivaDisplay">0,00 €</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2" id="reDisplay" style="display:none;">
-                        <span class="text-muted">Rec. Equivalencia:</span>
-                        <span id="reValue">0,00 €</span>
-                    </div>
-                    <hr>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <strong>Total:</strong>
-                        <strong class="fs-4" id="totalDisplay">0,00 €</strong>
-                    </div>
+
                     <!-- Destinatario simplificada -->
-                    <div id="destinatarioSimplificada" style="display:none;" class="mb-3 mt-3">
+                    <div id="destinatarioSimplificada" class="mt-3" style="display:none; max-width:480px;">
                         <label class="form-label small text-muted">Tipo de destinatario</label>
-                        <div class="btn-group w-100" role="group">
+                        <div class="btn-group" role="group">
                             <input type="radio" class="btn-check" name="destinatario_tipo" id="destParticular" value="particular" checked>
                             <label class="btn btn-outline-secondary btn-sm" for="destParticular">
                                 <i class="bi bi-person me-1"></i>Particular
@@ -342,21 +375,31 @@ ob_start();
                         <strong>Límite factura simplificada superado.</strong><br>
                         <span id="avisoSimplificadaTexto"></span>
                     </div>
-                </div>
-                <div class="card-footer d-grid gap-2">
-                    <button type="button" class="btn btn-success btn-lg fact-btn" id="btnGuardarEnviar"
-                            onclick="abrirModalGuardarEnviar()">
-                        <i class="bi bi-send me-1"></i>Guardar y enviar a VeriFACTU
-                    </button>
-                    <a href="/SistemaGestionFacturas/src/views/facturas/listado.php"
-                       class="btn btn-outline-secondary">
-                        <i class="bi bi-x-lg me-1"></i>Cancelar
-                    </a>
-                    <div id="erroresPanel" class="alert alert-danger mb-0" style="display:none;">
+                    <div id="erroresPanel" class="alert alert-danger mt-3 mb-0" style="display:none;">
                         <ul class="mb-0 small" id="erroresList"></ul>
                     </div>
                     <div id="accionesMsg" style="display:none;"></div>
                 </div>
+            </div>
+
+    </div>
+
+    <!-- Barra de acciones fija inferior -->
+    <div class="doc-action-bar">
+        <div class="doc-flow d-flex justify-content-between align-items-center flex-wrap gap-2" style="padding-bottom:0 !important;">
+            <div class="d-flex align-items-baseline gap-2">
+                <span class="text-muted">Total:</span>
+                <span class="bar-total text-primary" id="totalDisplay">0,00 €</span>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="/SistemaGestionFacturas/src/views/facturas/listado.php"
+                   class="btn btn-outline-secondary fact-btn">
+                    <i class="bi bi-x-lg me-1"></i>Cancelar
+                </a>
+                <button type="button" class="btn btn-success fact-btn" id="btnGuardarEnviar"
+                        onclick="abrirModalGuardarEnviar()">
+                    <i class="bi bi-send me-1"></i>Guardar y enviar a VeriFACTU
+                </button>
             </div>
         </div>
     </div>
