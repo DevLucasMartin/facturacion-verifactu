@@ -579,8 +579,16 @@ class VerifactuService
         }
 
         if (!empty($cliente)) {
-            $nif    = trim((string)($cliente['NIF']          ?? ''));
-            $nombre = trim((string)($cliente['Nombre']       ?? $cliente['Nombre'] ?? ''));
+            $nif       = trim((string)($cliente['NIF']       ?? ''));
+            $nombre    = trim((string)($cliente['Nombre']    ?? ''));
+            $apellidos = trim((string)($cliente['Apellidos'] ?? ''));
+            // Para personas físicas (DNI/NIE) la AEAT valida NIF + nombre completo
+            // contra el censo, por lo que hay que incluir los apellidos. Las empresas
+            // (CIF: el NIF empieza por letra) llevan toda la razón social en `Nombre`.
+            $esPersonaFisica = $nif !== '' && preg_match('/^[0-9XYZ]/i', $nif);
+            if ($esPersonaFisica && $apellidos !== '') {
+                $nombre = trim($nombre . ' ' . $apellidos);
+            }
             $datos['cliente'] = [
                 'nif'                   => $nif,
                 'razon_social'          => ($nombre !== '' ? $nombre : 'Cliente'),
