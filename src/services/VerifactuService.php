@@ -123,6 +123,23 @@ class VerifactuService
 
         $this->validarNifCliente($doc);
 
+        // Sin Internet: no intentar (evita el timeout) y dejar la factura en
+        // cola PENDIENTE para que se reenvíe cuando vuelva la conexión.
+        if (!$this->hayConexion()) {
+            $this->registroModel->marcarPendiente($registro['Id']);
+            Logger::warning('verifactu', 'Sin conexión con la AEAT: factura encolada para envío diferido', [
+                'accion'    => 'enviarAHacienda',
+                'tipo'      => $tipoOrigen,
+                'documento' => $idDocumento,
+            ]);
+            return [
+                'ok'      => false,
+                'en_cola' => true,
+                'estado'  => VerifactuRegistro::ESTADO_PENDIENTE,
+                'error'   => 'Sin conexión con la AEAT. Factura guardada en cola para envío diferido.',
+            ];
+        }
+
         try {
             $xml = $this->generarXmlConWrapper($tipoOrigen, $idDocumento, $doc, $registro, $nifExportacion, $nifExportacionVacio, $paisExportacion);
             $this->guardarXmlEnvio($tipoOrigen, $idDocumento, $xml);
@@ -149,6 +166,25 @@ class VerifactuService
                 'estado'           => 'ENVIADO',
             ];
         } catch (Exception $e) {
+            // Si la conexión se cayó a mitad del envío, es un problema de red,
+            // no un rechazo de la AEAT: dejar PENDIENTE (sin gastar reintentos)
+            // para que la cola lo reenvíe.
+            if ($this->esErrorConexion($e)) {
+                $this->registroModel->marcarPendiente($registro['Id']);
+                Logger::warning('verifactu', 'Envío interrumpido por conexión: factura encolada', [
+                    'accion'    => 'enviarAHacienda',
+                    'tipo'      => $tipoOrigen,
+                    'documento' => $idDocumento,
+                    'error'     => $e->getMessage(),
+                ]);
+                return [
+                    'ok'      => false,
+                    'en_cola' => true,
+                    'estado'  => VerifactuRegistro::ESTADO_PENDIENTE,
+                    'error'   => 'Conexión perdida con la AEAT. Factura en cola para envío diferido.',
+                ];
+            }
+
             $this->registroModel->incrementarReintentos($registro['Id']);
             $this->registroModel->marcarError($registro['Id'], $e->getMessage());
             Logger::exception('verifactu', $e, [
@@ -160,9 +196,196 @@ class VerifactuService
         }
     }
 
+    /**
+     * Distingue un fallo de conexión/red (encolar y reintentar) de un rechazo
+     * de la AEAT (marcar ERROR). Solo los primeros dejan la factura PENDIENTE.
+     */
+    private function esErrorConexion(Exception $e): bool
+    {
+        $msg = $e->getMessage();
+        foreach ([
+            'cURL',
+            'conectar con Hacienda',
+            'Could not resolve host',
+            'Failed to connect',
+            'Connection refused',
+            'Connection timed out',
+            'timed out',
+            'SSL connection',
+            'Operation timed out',
+        ] as $aguja) {
+            if (stripos($msg, $aguja) !== false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public function regenerarFirma(string $tipoOrigen, string $idDocumento): array
     {
         return $this->firmar($tipoOrigen, $idDocumento, false);
+    }
+
+    /**
+     * Envía a la AEAT la cola de registros pendientes (facturas generadas sin
+     * conexión) en ORDEN DE GENERACIÓN, que es el orden del encadenamiento de
+     * huellas. Diseñado para dispararse cuando se recupera Internet.
+     *
+     * Garantías exigidas:
+     *   1. Encadenamiento: la 1ª factura de la cola encadena con la última YA
+     *      enviada a Hacienda; cada siguiente encadena con su anterior. Se
+     *      valida antes de enviar y NO se recalcula ninguna huella.
+     *   2. Orden: se procesa por Fecha_Generacion ASC (misma que la cadena).
+     *   3. Parada + aviso: al primer fallo se DETIENE el proceso y se devuelve
+     *      un aviso; las facturas siguientes quedan intactas en la cola para no
+     *      romper la cadena ni incurrir en problemas legales.
+     *
+     * @param int|null $limite Máximo de facturas a enviar en esta pasada (null = todas).
+     * @return array Resumen del proceso.
+     */
+    public function enviarCola(?int $limite = null): array
+    {
+        // No malgastar reintentos si seguimos sin línea.
+        if (!$this->hayConexion()) {
+            return [
+                'ok'             => false,
+                'sin_conexion'   => true,
+                'total_cola'     => count($this->registroModel->getColaPendiente()),
+                'enviados'       => 0,
+                'detenido'       => true,
+                'motivo_parada'  => 'Sin conexión con la AEAT. No se ha intentado ningún envío.',
+                'resultados'     => [],
+            ];
+        }
+
+        $cola = $this->registroModel->getColaPendiente();
+        if ($limite !== null && $limite > 0) {
+            $cola = array_slice($cola, 0, $limite);
+        }
+
+        $totalCola = count($cola);
+        $enviados  = 0;
+        $resultados = [];
+        $detenido      = false;
+        $motivoParada  = null;
+        $registroFallido = null;
+
+        // Huella esperada como "anterior" para el siguiente registro de cada
+        // tipo. Se inicializa con la última factura ENVIADA (el ancla de la
+        // cadena) y se va avanzando conforme confirmamos envíos.
+        $huellaEsperada = [];
+
+        foreach ($cola as $indice => $registro) {
+            $tipo   = $registro['Tipo_Origen'];
+            $idDoc  = $registro['Id_Documento'];
+
+            // Ancla de la cadena para este tipo (una sola vez por tipo).
+            if (!array_key_exists($tipo, $huellaEsperada)) {
+                $ultimoEnviado = $this->registroModel->getUltimoEnviado($tipo);
+                $huellaEsperada[$tipo] = $ultimoEnviado['Huella_Actual']
+                    ?? ($this->config['semilla']['huella'] ?? null);
+            }
+
+            // ── Validación de encadenamiento ────────────────────────────────
+            // La huella anterior almacenada al generar la factura debe coincidir
+            // con la huella de la última enviada / anterior de la cola. Si no,
+            // la cadena está rota: parar ANTES de enviar para no propagar el
+            // error a la AEAT.
+            $huellaAnteriorReg = $registro['Huella_Anterior'] ?? null;
+            $huellaAnteriorReg = ($huellaAnteriorReg === '') ? null : $huellaAnteriorReg;
+
+            if ($huellaAnteriorReg !== $huellaEsperada[$tipo]) {
+                $detenido     = true;
+                $motivoParada = sprintf(
+                    'Cadena de huellas rota en %s %s: encadena con "%s" pero la última enviada es "%s". Envío detenido para no romper la integridad.',
+                    $tipo,
+                    $idDoc,
+                    $huellaAnteriorReg ?? '(vacío)',
+                    $huellaEsperada[$tipo] ?? '(vacío)'
+                );
+                $registroFallido = ['tipo' => $tipo, 'id_documento' => $idDoc, 'motivo' => 'ENCADENAMIENTO'];
+                Logger::error('verifactu', $motivoParada, [
+                    'accion'    => 'enviarCola',
+                    'documento' => $idDoc,
+                ]);
+                $resultados[] = ['tipo' => $tipo, 'id_documento' => $idDoc, 'ok' => false, 'motivo' => $motivoParada];
+                break;
+            }
+
+            // ── Envío ───────────────────────────────────────────────────────
+            try {
+                $envio = $this->enviarAHacienda($tipo, $idDoc);
+            } catch (Exception $e) {
+                $envio = ['ok' => false, 'error' => $e->getMessage()];
+            }
+
+            if (!empty($envio['ok'])) {
+                $enviados++;
+                $resultados[] = ['tipo' => $tipo, 'id_documento' => $idDoc, 'ok' => true, 'csv' => $envio['csv'] ?? null];
+                // Avanzar la cadena: la huella recién confirmada es el ancla del siguiente.
+                $registroActualizado    = $this->registroModel->findByDocumento($tipo, $idDoc);
+                $huellaEsperada[$tipo]  = $registroActualizado['Huella_Actual'] ?? $registro['Huella_Actual'];
+            } else {
+                // Fallo de envío: PARAR. No seguir con las siguientes, porque
+                // encadenan con esta.
+                $detenido = true;
+                if (!empty($envio['en_cola'])) {
+                    // Se cayó la conexión: la factura sigue PENDIENTE, el resto
+                    // de la cola queda intacto para el siguiente intento.
+                    $motivoParada    = sprintf('Conexión perdida al enviar %s %s. El resto de la cola queda pendiente para reintentar.', $tipo, $idDoc);
+                    $registroFallido = ['tipo' => $tipo, 'id_documento' => $idDoc, 'motivo' => 'CONEXION'];
+                } else {
+                    $motivoParada    = sprintf('Fallo al enviar %s %s: %s', $tipo, $idDoc, $envio['error'] ?? 'error desconocido');
+                    $registroFallido = ['tipo' => $tipo, 'id_documento' => $idDoc, 'motivo' => 'ENVIO'];
+                }
+                Logger::error('verifactu', $motivoParada, [
+                    'accion'    => 'enviarCola',
+                    'documento' => $idDoc,
+                ]);
+                $resultados[] = ['tipo' => $tipo, 'id_documento' => $idDoc, 'ok' => false, 'motivo' => $envio['error'] ?? 'error desconocido'];
+                break;
+            }
+        }
+
+        return [
+            'ok'                   => !$detenido,
+            'sin_conexion'         => false,
+            'total_cola'           => $totalCola,
+            'enviados'             => $enviados,
+            'detenido'             => $detenido,
+            'motivo_parada'        => $motivoParada,
+            'registro_fallido'     => $registroFallido,
+            'pendientes_restantes' => $totalCola - $enviados,
+            'resultados'           => $resultados,
+        ];
+    }
+
+    /**
+     * Comprobación ligera de conectividad con el endpoint de la AEAT.
+     * Evita gastar reintentos cuando sigue sin haber Internet.
+     */
+    public function hayConexion(): bool
+    {
+        // En pruebas sin certificado el envío se simula localmente: siempre "hay conexión".
+        $entorno  = $this->config['entorno'] ?? 'pruebas';
+        $certRuta = $this->config['certificado']['ruta'] ?? '';
+        if ($entorno === 'pruebas' && !file_exists($certRuta)) {
+            return true;
+        }
+
+        $url  = $this->config['urls'][$entorno]['factura'] ?? '';
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!$host) return false;
+
+        $puerto  = (int)(parse_url($url, PHP_URL_PORT) ?: 443);
+        $timeout = min(5, (int)($this->config['timeout'] ?? 30));
+
+        $conexion = @fsockopen($host, $puerto, $errno, $errstr, $timeout);
+        if ($conexion === false) {
+            return false;
+        }
+        fclose($conexion);
+        return true;
     }
 
     public function getEstado(string $tipoOrigen, string $idDocumento): ?array

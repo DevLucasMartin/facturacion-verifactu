@@ -194,6 +194,11 @@ class Factura
         $this->db->beginTransaction();
 
         try {
+            // Las líneas van en su propia tabla: extraerlas para que no se traten
+            // como columnas de Facturas_Clientes (rompía el UPDATE).
+            $lineas = $data['lineas'] ?? [];
+            unset($data['lineas']);
+
             $data['Ultima_Modificacion']         = date('Y-m-d H:i:s');
             $data['Usuario_Ultima_Modificacion'] = $_SESSION['usuario'] ?? 'sistema';
 
@@ -210,8 +215,8 @@ class Factura
                 [$codigo]
             );
 
-            if (!empty($data['lineas'])) {
-                foreach ($data['lineas'] as $linea) {
+            if (!empty($lineas)) {
+                foreach ($lineas as $linea) {
                     $linea['Id_Factura'] = $codigo;
                     $this->db->insert('Lineas_Facturas_Clientes', $linea);
                 }

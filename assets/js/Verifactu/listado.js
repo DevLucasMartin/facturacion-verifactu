@@ -28,6 +28,22 @@ $(document).ready(function () {
         verDetalles($(this).data('tipo') + '/' + $(this).data('id'));
     });
 
+    // Reenviar (subsanación) — solo aparece en filas en ERROR
+    $(document).on('click', '#registrosBody .vf-btn-reenviar', function () {
+        reenviarError($(this).data('tipo'), $(this).data('id'), $(this).data('doc'));
+    });
+
+    // Procesar cola (envío diferido de facturas pendientes)
+    $('#btnProcesarCola').on('click', function () {
+        procesarCola(false);
+    });
+
+    // Auto-envío al recuperar Internet: cuando el navegador detecta que vuelve
+    // la conexión, intenta vaciar la cola sin que el usuario haga nada.
+    window.addEventListener('online', function () {
+        procesarCola(true);
+    });
+
     cargarCertificado();
     cargarEstadisticas();
     cargarRegistros();
@@ -54,7 +70,57 @@ function cargarEstadisticas() {
         $('#statEnviados').text(stats.enviados || 0);
         $('#statPendientes').text(stats.pendientes || 0);
         $('#statErrores').text(stats.errores || 0);
+
+        // Cola de envío diferido = solo PENDIENTE (facturas hechas sin conexión).
+        // ERROR (rechazo AEAT) y GENERADO (retenida) se excluyen a propósito.
+        const enCola = (stats.pendientes || 0);
+        actualizarBotonCola(enCola);
     });
+}
+
+// Ajusta el contador y habilita/deshabilita el botón "Procesar cola".
+function actualizarBotonCola(enCola) {
+    const btn = $('#btnProcesarCola');
+    if (btn.data('procesando')) return;   // no tocar mientras envía
+    $('#colaCount').text(enCola);
+    btn.prop('disabled', enCola === 0);
+}
+
+// Envía la cola pendiente a Hacienda. auto=true cuando lo dispara el evento
+// 'online' (silencia avisos de "no hay nada" / "sin conexión").
+function procesarCola(auto = false) {
+    const btn = $('#btnProcesarCola');
+    if (btn.data('procesando')) return;             // evitar dobles clics / dobles disparos
+    if (auto && Number($('#colaCount').text()) === 0) return; // nada que enviar
+
+    const original = btn.html();
+    btn.data('procesando', true).prop('disabled', true)
+       .html('<span class="spinner-border spinner-border-sm me-1" role="status"></span>Enviando…');
+
+    App.api(FACT_API_BASE + '/verifactu.php/enviar-cola', { method: 'POST' })
+        .done(function (response) {
+            const r = response.data || {};
+
+            if (r.sin_conexion) {
+                if (!auto) App.notify('Sin conexión con la AEAT. Las facturas siguen en cola.', 'warning');
+            } else if (r.detenido) {
+                App.notify(
+                    'Cola detenida tras ' + (r.enviados || 0) + ' envío(s): ' + (r.motivo_parada || 'revise el registro'),
+                    'danger', 9000
+                );
+            } else if ((r.total_cola || 0) === 0) {
+                if (!auto) App.notify('No hay facturas pendientes en la cola', 'info');
+            } else {
+                App.notify((r.enviados || 0) + ' factura(s) enviada(s) a Hacienda correctamente', 'success');
+            }
+        })
+        .fail(function () {
+            if (!auto) App.notify('Error al procesar la cola', 'danger');
+        })
+        .always(function () {
+            btn.data('procesando', false).html(original);
+            recargarEstadisticas();   // refresca KPIs, tabla y el propio botón
+        });
 }
 
 function cargarRegistros(page = 1) {
@@ -145,6 +211,11 @@ function renderRegistros(registros) {
                             data-tipo="${vf_escapeHtml(registro.Tipo_Origen)}" data-id="${vf_escapeHtml(registro.Id_Documento)}">
                             <i class="bi bi-eye"></i>
                         </button>
+                        ${registro.Estado_Envio === 'ERROR' ? `
+                        <button class="btn btn-outline-warning vf-btn-reenviar" title="Reenviar a Hacienda (subsanación, sin re-firmar)"
+                            data-tipo="${vf_escapeHtml(registro.Tipo_Origen)}" data-id="${vf_escapeHtml(registro.Id_Documento)}" data-doc="${vf_escapeHtml(registro.Id_Documento)}">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </button>` : ''}
                     </div>
                 </td>
             </tr>`;
@@ -242,6 +313,33 @@ function verDetalles(tipoCodigo) {
         .fail(function () {
             App.notify('Error al cargar detalles', 'danger');
         });
+}
+
+// Reenvía a Hacienda una factura rechazada (subsanación). NO re-firma: reutiliza
+// el registro existente y su huella, así la cadena de las posteriores no se rompe.
+function reenviarError(tipo, id, doc) {
+    App.confirm({
+        icon:        'question',
+        title:       'Reenviar a Hacienda',
+        text:        'Se reenviará ' + (doc || id) + ' con sus datos actuales, sin re-firmar (misma huella). ' +
+                     'Asegúrate de haber corregido antes el motivo del rechazo (p. ej. el NIF del cliente).',
+        confirmText: 'Reenviar',
+    }).then(function (ok) {
+        if (!ok) return;
+
+        App.showLoading();
+        App.api(FACT_API_BASE + '/verifactu.php/reenviar/' + tipo + '/' + encodeURIComponent(id), { method: 'POST' })
+            .done(function (response) {
+                App.notify((response && response.message) || 'Factura reenviada a Hacienda correctamente', 'success');
+            })
+            .fail(function (xhr, status, err, parsed) {
+                App.notify((parsed && parsed.message) || 'Error al reenviar. Revisa el motivo del rechazo.', 'danger', 8000);
+            })
+            .always(function () {
+                App.hideLoading();
+                recargarEstadisticas();   // refresca tabla/KPIs: si fue OK, la fila pasa a Enviado
+            });
+    });
 }
 
 // ====== Helpers ======

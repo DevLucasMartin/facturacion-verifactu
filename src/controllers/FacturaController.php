@@ -607,31 +607,25 @@ class FacturaController
                 Response::error($resultadoCalculo['errores'][0]);
             }
 
+            // Solo columnas que EXISTEN en Facturas_Clientes (calcado del store).
+            // No se tocan Codigo/Numero/Tipo_Documento/Abono/Cobrada.
             $facturaData = [
-                'Fecha'                       => $data['Fecha'],
-                'Id_Cliente'                  => $data['Id_Cliente'],
-                'Id_Forma_Pago'               => $data['Id_Forma_Pago'],
-                'Observaciones'               => $data['Observaciones'] ?? '',
-                'Direccion'                   => $data['Direccion']     ?? '',
-                'Descuento_Especial'          => $descuentos['Descuento_Especial'],
-                'Descuento_PP'                => $descuentos['Descuento_PP'],
-                'Descuento_Comercial'         => $descuentos['Descuento_Comercial'],
-                'Importe_Dto_Especial'        => $resultadoCalculo['descuentos']['Importe_Dto_Especial'],
-                'Importe_Dto_PP'              => $resultadoCalculo['descuentos']['Importe_Dto_PP'],
-                'Importe_Dto_Comercial'       => $resultadoCalculo['descuentos']['Importe_Dto_Comercial'],
-                'Importe_Bruto'               => $resultadoCalculo['subtotal'],
-                'Base_Imponible'              => $resultadoCalculo['base_imponible'],
-                'Importe_IVA'                 => $resultadoCalculo['importe_iva'],
-                'Importe_RE'                  => $resultadoCalculo['importe_re'],
-                'Total'                       => $resultadoCalculo['total'],
-                'Numero_Lineas'               => count($data['lineas']),
-                'Id_Factura_Origen'           => $data['Id_Factura_Origen']            ?? null,
-                'Motivo_Rectificacion'        => $data['Motivo_Rectificacion']         ?? null,
-                'Tipo_Rectificativa_Verifactu' => $data['Tipo_Rectificativa_Verifactu'] ?? null,
-                'Subtipo_Rectificativa'       => $data['Subtipo_Rectificativa']        ?? null,
-                'Base_Rectificada'            => isset($data['Base_Rectificada'])       ? (float)$data['Base_Rectificada']      : null,
-                'Cuota_Rectificada'           => isset($data['Cuota_Rectificada'])      ? (float)$data['Cuota_Rectificada']     : null,
-                'Cuota_Recargo_Rectificado'   => isset($data['Cuota_Recargo_Rectificado']) ? (float)$data['Cuota_Recargo_Rectificado'] : null,
+                'Fecha'                => $data['Fecha'],
+                'Id_Cliente'           => ($data['Id_Cliente'] ?? '') ?: null,
+                'Id_Forma_Pago'        => $data['Id_Forma_Pago'] ?? null,
+                'Observaciones'        => $data['Observaciones'] ?? '',
+                'Direccion'            => $data['Direccion']     ?? '',
+                'Descuento_Especial'   => $descuentos['Descuento_Especial'],
+                'Descuento_PP'         => $descuentos['Descuento_PP'],
+                'Descuento_Comercial'  => $descuentos['Descuento_Comercial'],
+                'Importe_Dto_Especial' => $resultadoCalculo['descuentos']['Importe_Dto_Especial'],
+                'Importe_Dto_PP'       => $resultadoCalculo['descuentos']['Importe_Dto_PP'],
+                'Importe_Bruto'        => $resultadoCalculo['subtotal'],
+                'Base_Imponible'       => $resultadoCalculo['base_imponible'],
+                'Cuota_IVA'            => $resultadoCalculo['importe_iva'],
+                'Total'                => $resultadoCalculo['total'],
+                'Factura_Rectificada_Id' => $data['Id_Factura_Origen']    ?? null,
+                'Motivo_Rectificacion'   => $data['Motivo_Rectificacion'] ?? null,
             ];
 
             if (isset($data['Cerrada']) && $data['Cerrada'] === 'S') {
@@ -639,7 +633,8 @@ class FacturaController
                 $facturaData['Fecha_Cierre'] = date('Y-m-d');
             }
 
-            $facturaData['lineas'] = $this->calculoService->generarLineasParaGuardar($data['lineas'], $descuentos, $rePorcentaje);
+            $lineasUpd             = $this->calculoService->generarLineasParaGuardar($data['lineas'], $descuentos, $rePorcentaje);
+            $facturaData['lineas'] = $this->normalizarLineasParaInsert($lineasUpd);
 
             $this->facturaModel->update($codigo, $facturaData);
 

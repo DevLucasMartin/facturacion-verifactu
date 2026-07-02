@@ -540,7 +540,8 @@ $content = ob_get_clean();
 
 ob_start();
 ?>
-<script src="/SistemaGestionFacturas/assets/js/facturas/nuevo.js" defer></script>
+<?php $nvJs = __DIR__ . '/../../../assets/js/facturas/nuevo.js'; $nvVer = is_file($nvJs) ? filemtime($nvJs) : time(); ?>
+<script src="/SistemaGestionFacturas/assets/js/facturas/nuevo.js?v=<?= $nvVer ?>" defer></script>
 <?php
 $extra_js = ob_get_clean();
 

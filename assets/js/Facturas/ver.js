@@ -139,15 +139,8 @@
         facturaTotal = f.total || 0;
         renderPago(f.total || 0, f.importe_cobrado || 0, f.cobrada, f.pagos || []);
 
-        const btnEdit = document.getElementById('btnEditar');
-        if (btnEdit) {
-            if (f.estado === 'BORRADOR') {
-                btnEdit.href = BASE + '/src/views/facturas/editar.php?codigo=' + encodeURIComponent(f.codigo);
-                btnEdit.style.display = '';
-            } else {
-                btnEdit.style.display = 'none';
-            }
-        }
+        // El botón "Editar" lo controla renderVerifactu(): solo se muestra cuando
+        // la AEAT ha rechazado la factura (estado ERROR), para poder subsanarla.
     }
 
     // ─── Líneas (con paginación) ──────────────────────────────────────────────
@@ -520,6 +513,18 @@
 
         panel.innerHTML = detalles;
 
+        // Botón "Editar factura": SOLO visible si la AEAT rechazó (ERROR), para
+        // corregir el cliente/datos antes de reenviar. Edita vía nuevo.php?codigo=.
+        const btnEdit = document.getElementById('btnEditar');
+        if (btnEdit) {
+            if (v.estado === 'ERROR') {
+                btnEdit.href = BASE + '/src/views/facturas/nuevo.php?codigo=' + encodeURIComponent(CODIGO);
+                btnEdit.style.display = '';
+            } else {
+                btnEdit.style.display = 'none';
+            }
+        }
+
         if (v.estado === 'ENVIADO' || v.estado === 'ANULADO') {
             const btn = document.getElementById('btnVerifactu');
             if (btn) btn.style.display = 'none';
@@ -532,6 +537,9 @@
         if (badge) { badge.className = 'badge bg-secondary'; badge.textContent = 'Sin enviar'; }
         if (panel) panel.innerHTML = `
             <p class="text-muted mb-2">Esta factura aún no ha sido enviada a Hacienda.</p>`;
+        // Sin registro Verifactu => no ha dado error => ocultar "Editar".
+        const btnEdit = document.getElementById('btnEditar');
+        if (btnEdit) btnEdit.style.display = 'none';
     }
 
     // ─── Acciones globales ────────────────────────────────────────────────────

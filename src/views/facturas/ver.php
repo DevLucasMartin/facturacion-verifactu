@@ -161,6 +161,11 @@ ob_start();
                         <i class="bi bi-envelope me-1"></i>Enviar por email
                     </button>
 
+                    <!-- Solo visible en Borrador (lo gestiona ver.js: fija href y display) -->
+                    <a href="#" id="btnEditar" class="btn btn-sm btn-outline-primary fact-btn" style="display:none;">
+                        <i class="bi bi-pencil me-1"></i>Editar
+                    </a>
+
                     <a href="/SistemaGestionFacturas/src/views/facturas/listado.php"
                        class="btn btn-sm btn-outline-secondary">
                         <i class="bi bi-arrow-left me-1"></i>Volver
@@ -178,7 +183,8 @@ $content = ob_get_clean();
 ob_start();
 ?>
 <div id="app-data" data-codigo="<?= htmlspecialchars($codigo, ENT_QUOTES, 'UTF-8') ?>" hidden></div>
-<script src="/SistemaGestionFacturas/assets/js/facturas/ver.js" defer></script>
+<?php $verJs = __DIR__ . '/../../../assets/js/facturas/ver.js'; $verVer = is_file($verJs) ? filemtime($verJs) : time(); ?>
+<script src="/SistemaGestionFacturas/assets/js/facturas/ver.js?v=<?= $verVer ?>" defer></script>
 <?php
 $extra_js = ob_get_clean();
 

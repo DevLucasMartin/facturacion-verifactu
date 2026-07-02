@@ -19,6 +19,9 @@
     // Detectar parámetro ?rectifica= en la URL
     const urlParams       = new URLSearchParams(window.location.search);
     const RECTIFICA_CODE  = urlParams.get('rectifica') || '';
+    // Modo edición: ?codigo= (distinto de crear/rectificar). Actualiza la MISMA
+    // factura (PUT), no crea una nueva. Pensado para subsanar un rechazo AEAT.
+    const EDIT_CODE       = (!RECTIFICA_CODE && urlParams.get('codigo')) ? urlParams.get('codigo') : '';
 
     // Estado
     let lineas             = [];
@@ -56,6 +59,16 @@
 
             if (RECTIFICA_CODE) {
                 await cargarDatosRectificativa(RECTIFICA_CODE);
+            } else if (EDIT_CODE) {
+                await cargarDatosParaEditar(EDIT_CODE);
+                // En edición, "guardar y enviar" reenvía (subsanación): relabelar.
+                const setTxt = (id, txt) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>' + txt;
+                };
+                setTxt('btnGuardarEnviar',        'Guardar y reenviar a Hacienda');
+                setTxt('guardarEnviarModalTitle', 'Guardar y reenviar a Hacienda');
+                setTxt('btnConfirmarGuardarEnviar', 'Guardar y reenviar');
             }
 
             renderLineas();
@@ -529,6 +542,49 @@
                 descuento:    l.descuento         || 0,
                 tipoIVA:      l.tipo_iva          || '',
                 calificacion: l.Calificacion      || 'S1',
+            }));
+        }
+    }
+
+    // Carga una factura existente en el formulario para EDITARLA (subsanación de
+    // un rechazo). Mismas claves que action=get (minúsculas), igual que rectificativa.
+    async function cargarDatosParaEditar(codigo) {
+        const [fResp, lResp] = await Promise.all([
+            apiGet(`/facturas.php?action=get&codigo=${encodeURIComponent(codigo)}`),
+            apiGet(`/facturas.php?action=lineas&codigo=${encodeURIComponent(codigo)}`),
+        ]);
+
+        const f = fResp.data;
+        if (f) {
+            const selCanal = document.getElementById('selectCanal');
+            if (selCanal && f.canal) selCanal.value = f.canal;
+
+            const selFP = document.getElementById('selectFormaPago');
+            if (selFP && f.id_forma_pago) selFP.value = f.id_forma_pago;
+
+            const inFecha = document.getElementById('inputFecha');
+            if (inFecha && f.fecha) inFecha.value = String(f.fecha).substring(0, 10);
+
+            const obs = document.getElementById('textareaObservaciones');
+            if (obs) obs.value = f.observaciones || '';
+
+            const setNum = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = v; };
+            setNum('inputDtoEspecial',  f.dto_especial);
+            setNum('inputDtoPP',        f.dto_pp);
+            setNum('inputDtoComercial', f.dto_comercial);
+
+            if (f.id_cliente) await window.seleccionarClienteReal(f.id_cliente);
+        }
+
+        if (lResp.success && Array.isArray(lResp.data)) {
+            lineas = lResp.data.map(l => ({
+                idArticulo:   l.referencia       || '',
+                descripcion:  l.descripcion      || '',
+                cantidad:     l.cantidad         || 0,
+                precio:       l.precio_unitario  || 0,
+                descuento:    l.descuento        || 0,
+                tipoIVA:      l.tipo_iva         || '',
+                calificacion: l.Calificacion     || 'S1',
             }));
         }
     }
@@ -1142,6 +1198,39 @@
 
         App.showLoading();
         try {
+            // ── Modo edición: ACTUALIZA la misma factura (PUT), no crea una nueva.
+            // El registro Verifactu se conserva (no se re-firma). Si además se pidió
+            // enviar, se REENVÍA por la vía de subsanación (sin re-firmar, misma huella).
+            if (EDIT_CODE) {
+                const upd = await apiSend('/facturas.php/' + encodeURIComponent(EDIT_CODE), payload, 'PUT');
+                if (!upd.success && upd.success !== undefined) {
+                    notify(upd.message || 'Error al actualizar', 'danger');
+                    return;
+                }
+
+                if (enviarVerifactu) {
+                    // Guardar y reenviar en un solo paso (subsanación de un rechazo).
+                    try {
+                        const re = await apiSend('/verifactu.php/reenviar/FACTURA/' + encodeURIComponent(EDIT_CODE), {}, 'POST');
+                        if (re && re.success === false) {
+                            App.notify('Factura actualizada, pero el reenvío falló: ' + (re.message || 'revisa el motivo del rechazo'), 'warning', 9000);
+                        } else {
+                            App.notify('Factura ' + EDIT_CODE + ' actualizada y reenviada a Hacienda.', 'success');
+                        }
+                    } catch (reErr) {
+                        App.notify('Factura actualizada, pero el reenvío falló: ' + (reErr.message || 'revisa el motivo del rechazo'), 'warning', 9000);
+                    }
+                } else {
+                    App.notify('Factura ' + EDIT_CODE + ' actualizada.', 'success');
+                }
+
+                setTimeout(() => {
+                    window.location.href = BASE + '/src/views/facturas/ver.php?codigo='
+                        + encodeURIComponent(EDIT_CODE);
+                }, 900);
+                return;
+            }
+
             const data = await apiSend('/facturas.php', payload, 'POST');
             if (!data.success && data.success !== undefined) {
                 notify(data.message || 'Error al guardar', 'danger');
