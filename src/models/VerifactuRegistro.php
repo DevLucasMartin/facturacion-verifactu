@@ -208,6 +208,18 @@ class VerifactuRegistro {
         ]);
     }
 
+    /**
+     * Deja el registro en cola (PENDIENTE) tras un fallo de CONEXIÓN, no de la
+     * AEAT. Limpia el último error y NO incrementa reintentos: no es culpa de
+     * la factura, solo faltaba Internet. La cola la reenviará en orden.
+     */
+    public function marcarPendiente(int $id): bool {
+        return $this->update($id, [
+            'Estado_Envio' => self::ESTADO_PENDIENTE,
+            'Ultimo_Error' => null,
+        ]);
+    }
+
     public function delete(int $id): bool {
         return $this->db->delete(
             'Verifactu_Registros',
@@ -243,6 +255,48 @@ class VerifactuRegistro {
              ORDER BY `Fecha_Generacion` DESC
              LIMIT 1",
             [$tipoOrigen]
+        );
+    }
+
+    /**
+     * Cola de registros pendientes de envío a la AEAT: todo lo que aún no está
+     * ENVIADO ni ANULADO, devuelto en ORDEN DE GENERACIÓN ascendente — que es
+     * exactamente el orden del encadenamiento de huellas. Vaciar la cola en
+     * este orden garantiza que cada factura encadena con la anterior.
+     *
+     * Solo incluye PENDIENTE (facturas generadas sin conexión, en espera de
+     * envío diferido). Se excluye:
+     *   - ERROR: rechazo de la AEAT (problema de datos) que se corrige a mano,
+     *     no se reintenta en bucle; además bloquearía la cola al parar al fallo.
+     *   - GENERADO: firmada pero retenida a propósito (no marcada para enviar).
+     *
+     * @param array $estados Estados a incluir en la cola.
+     */
+    public function getColaPendiente(
+        array $estados = [self::ESTADO_PENDIENTE]
+    ): array {
+        if (empty($estados)) return [];
+        $placeholders = implode(',', array_fill(0, count($estados), '?'));
+        return $this->db->fetchAll(
+            "SELECT * FROM `Verifactu_Registros`
+             WHERE `Estado_Envio` IN ($placeholders)
+             ORDER BY `Fecha_Generacion` ASC, `Id` ASC",
+            $estados
+        );
+    }
+
+    /**
+     * Último registro efectivamente ENVIADO a la AEAT para un tipo de origen.
+     * Es el ancla de la cadena: la primera factura de la cola debe encadenar
+     * con la huella de este registro.
+     */
+    public function getUltimoEnviado(string $tipoOrigen): ?array {
+        return $this->db->fetch(
+            "SELECT * FROM `Verifactu_Registros`
+             WHERE `Tipo_Origen` = ? AND `Estado_Envio` = ?
+             ORDER BY `Fecha_Generacion` DESC, `Id` DESC
+             LIMIT 1",
+            [$tipoOrigen, self::ESTADO_ENVIADO]
         );
     }
 

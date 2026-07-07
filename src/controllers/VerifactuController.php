@@ -195,6 +195,43 @@ class VerifactuController
     }
 
     /**
+     * Enviar la cola de facturas pendientes a Hacienda.
+     *
+     * Procesa en orden de generación, valida el encadenamiento con la última
+     * factura enviada y se detiene al primer fallo. Pensado para dispararse al
+     * recuperar Internet (manualmente o vía cron).
+     */
+    public function enviarCola(): void
+    {
+        try {
+            $limite = isset($_GET['limite']) ? max(1, (int)$_GET['limite']) : null;
+
+            $resultado = $this->verifactuService->enviarCola($limite);
+
+            if (!empty($resultado['sin_conexion'])) {
+                Response::success($resultado, 'Sin conexión con la AEAT: no se ha enviado nada');
+                return;
+            }
+
+            if ($resultado['detenido']) {
+                // Envío parcial o detenido por fallo: avisar sin romper la respuesta.
+                Response::success(
+                    $resultado,
+                    "Cola detenida tras {$resultado['enviados']} envío(s): {$resultado['motivo_parada']}"
+                );
+                return;
+            }
+
+            $mensaje = $resultado['total_cola'] === 0
+                ? 'No hay facturas pendientes en la cola'
+                : "Cola enviada correctamente ({$resultado['enviados']} factura(s))";
+            Response::success($resultado, $mensaje);
+        } catch (Exception $e) {
+            Response::serverError('Error al enviar la cola', $e);
+        }
+    }
+
+    /**
      * Estado del certificado
      */
     public function certificado(): void

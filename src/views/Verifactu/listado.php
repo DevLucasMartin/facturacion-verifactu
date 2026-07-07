@@ -46,6 +46,11 @@ ob_start();
             <span class="badge fact-badge-factura ms-2" id="registrosCount">0 registros</span>
         </div>
         <div class="vf-list-filters">
+            <button type="button" class="btn btn-warning btn-sm fact-btn" id="btnProcesarCola"
+                    title="Enviar a Hacienda las facturas pendientes en cola" disabled>
+                <i class="bi bi-cloud-arrow-up me-1"></i>Procesar cola
+                <span class="badge bg-light text-dark ms-1" id="colaCount">0</span>
+            </button>
             <select class="fact-form-select form-select form-select-sm" id="filtroEstado" onchange="aplicarFiltro()">
                 <option value="">Todos los estados</option>
                 <option value="PENDIENTE">Pendientes</option>
@@ -152,8 +157,17 @@ ob_start();
         align-items: center; justify-content: space-between;
     }
     .vf-list-title { font-weight: 600; display: flex; align-items: center; }
-    .vf-list-filters { display: flex; flex-wrap: wrap; gap: .5rem; }
-    .vf-list-filters .form-select { min-width: 170px; }
+    /* Botón + filtros SIEMPRE en una fila horizontal. Los form-select de
+       Bootstrap son width:100% por defecto (por eso se apilaban): los fijamos. */
+    .vf-list-filters {
+        display: flex; flex-wrap: nowrap; align-items: center; gap: .5rem;
+    }
+    .vf-list-filters > * { flex: 0 0 auto; }
+    .vf-list-filters .form-select { width: auto; min-width: 160px; }
+    .vf-list-filters .btn { white-space: nowrap; }
+    @media (max-width: 640px) {
+        .vf-list-filters { flex-wrap: wrap; }
+    }
 </style>
 
 <?php
@@ -161,7 +175,8 @@ $content = ob_get_clean();
 
 ob_start();
 ?>
-<script src="/SistemaGestionFacturas/assets/js/Verifactu/listado.js" defer></script>
+<?php $vfJs = __DIR__ . '/../../../assets/js/Verifactu/listado.js'; $vfVer = is_file($vfJs) ? filemtime($vfJs) : time(); ?>
+<script src="/SistemaGestionFacturas/assets/js/Verifactu/listado.js?v=<?= $vfVer ?>" defer></script>
 <?php
 $extra_js = ob_get_clean();
 

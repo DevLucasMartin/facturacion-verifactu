@@ -51,8 +51,9 @@ class NumeracionService
         $this->db->beginTransaction();
         try {
             $tabla = $this->getTablaDocumento($tipoDocumento);
+            $grupo = $this->grupoNumeracion($tipoDocumento);
 
-            // FOR UPDATE bloquea el rango para reducir problemas de concurrencia
+            // MAX real de la tabla (FOR UPDATE bloquea el rango por concurrencia).
             $fila = $this->db->fetch(
                 "SELECT IFNULL(MAX(Numero), 0) AS Ultimo
                  FROM `{$tabla}`
@@ -61,8 +62,28 @@ class NumeracionService
                  FOR UPDATE",
                 [$idCanal, (string)$ejercicio]
             );
+            $maxTabla = (int)($fila['Ultimo'] ?? 0);
 
-            $siguiente = (int)($fila['Ultimo'] ?? 0) + 1;
+            // Contador persistente (high-water mark): NUNCA retrocede aunque se
+            // borren facturas, para que los números no se reutilicen (requisito
+            // legal de correlatividad). Se usa el mayor de ambos por seguridad.
+            $cont = $this->db->fetch(
+                "SELECT Ultimo_Numero
+                 FROM `Numeracion_Canales`
+                 WHERE Id_Canal = ? AND Ejercicio = ? AND Tipo_Documento = ?
+                 FOR UPDATE",
+                [$idCanal, $ejercicio, $grupo]
+            );
+            $siguiente = max($maxTabla, (int)($cont['Ultimo_Numero'] ?? 0)) + 1;
+
+            // Persistir el nuevo high-water mark (upsert).
+            $this->db->query(
+                "INSERT INTO `Numeracion_Canales` (Id_Canal, Ejercicio, Tipo_Documento, Ultimo_Numero)
+                 VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE Ultimo_Numero = VALUES(Ultimo_Numero)",
+                [$idCanal, $ejercicio, $grupo, $siguiente]
+            );
+
             $this->db->commit();
 
             return [
@@ -90,6 +111,18 @@ class NumeracionService
             : 'Facturas_Clientes';
     }
 
+    /**
+     * Grupo de secuencia para el contador Numeracion_Canales. Todas las facturas
+     * (factura/simplificada/rectificativa/recapitulativa) comparten la misma
+     * secuencia dentro de Facturas_Clientes; los albaranes van aparte.
+     */
+    private function grupoNumeracion(string $tipoDocumento): string
+    {
+        return $tipoDocumento === self::TIPO_ALBARAN
+            ? self::TIPO_ALBARAN
+            : self::TIPO_FACTURA;
+    }
+
     /** Generar código de documento (4+2+13 = 19 chars). */
     public function generarCodigo(int $ejercicio, string $canal, int $numero): string
     {
@@ -109,13 +142,20 @@ class NumeracionService
             throw new Exception("Tipo de documento no válido: {$tipoDocumento}");
         }
         $tabla = $this->getTablaDocumento($tipoDocumento);
+        $grupo = $this->grupoNumeracion($tipoDocumento);
         $fila  = $this->db->fetch(
             "SELECT IFNULL(MAX(Numero), 0) AS Ultimo
              FROM `{$tabla}`
              WHERE Id_Canal = ? AND LEFT(Codigo, 4) = ?",
             [$idCanal, (string)$ejercicio]
         );
-        return (int)($fila['Ultimo'] ?? 0);
+        $cont = $this->db->fetch(
+            "SELECT Ultimo_Numero
+             FROM `Numeracion_Canales`
+             WHERE Id_Canal = ? AND Ejercicio = ? AND Tipo_Documento = ?",
+            [$idCanal, $ejercicio, $grupo]
+        );
+        return max((int)($fila['Ultimo'] ?? 0), (int)($cont['Ultimo_Numero'] ?? 0));
     }
 
     public function getSiguienteNumero(string $idCanal, int $ejercicio, string $tipoDocumento): int

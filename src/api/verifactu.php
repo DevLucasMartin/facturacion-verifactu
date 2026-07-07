@@ -10,8 +10,10 @@
  * GET  /api/verifactu/xml/:codigo     - Generar/descargar XML sin firma
  * GET  /api/verifactu/xml/firmado/:codigo - Generar/descargar XML firmado
  * GET  /api/verifactu/xml/aeat/:codigo    - Descargar XML de AEAT (si existe)
- * POST /api/verifactu/firmar    - Firmar documento
- * POST /api/verifactu/enviar    - Enviar a Hacienda
+ * POST /api/verifactu/firmar      - Firmar documento
+ * POST /api/verifactu/enviar      - Enviar a Hacienda
+ * POST /api/verifactu/enviar-cola - Vaciar cola pendiente (envío diferido en orden)
+ * POST /api/verifactu/reenviar/:tipo/:codigo - Reenviar tras rechazo (subsanación, sin re-firmar)
  */
 
 require_once __DIR__ . '/../core/Auth.php';
@@ -149,8 +151,15 @@ try {
                     if (isset($segmentosRuta[1])) {
                         if ($segmentosRuta[1] === 'firmar') {
                             $controller->firmar();
+                        } elseif ($segmentosRuta[1] === 'enviar-cola' || $segmentosRuta[1] === 'cola') {
+                            $controller->enviarCola();
                         } elseif ($segmentosRuta[1] === 'enviar') {
                             $controller->firmarYEnviar();
+                        } elseif ($segmentosRuta[1] === 'reenviar' && isset($segmentosRuta[2])) {
+                            // Subsanación de un rechazo: reenvía el registro existente
+                            // SIN re-firmar (mantiene la huella y la cadena).
+                            $codigoCompleto = $segmentosRuta[2] . '/' . ($segmentosRuta[3] ?? '');
+                            $controller->enviar($codigoCompleto);
                         } elseif ($segmentosRuta[1] === 'anular' && isset($segmentosRuta[2])) {
                             $codigoCompleto = $segmentosRuta[2] . '/' . ($segmentosRuta[3] ?? '');
                             $controller->anular($codigoCompleto);
