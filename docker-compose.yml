@@ -1,0 +1,60 @@
+# ============================================================================
+#  Sistema de Gestión de Facturas — orquestación de servicios
+#  Arranque:   docker compose up -d
+#  Los 3 servicios se reinician solos al encender el PC (restart: unless-stopped),
+#  siempre que Docker Desktop esté configurado para arrancar con Windows.
+# ============================================================================
+services:
+
+  # --- Aplicación web (PHP + Apache) ---
+  web:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      # La app vive en /SistemaGestionFacturas/ (rutas fijas en index.php/.htaccess)
+      - ./:/var/www/html/SistemaGestionFacturas
+    depends_on:
+      db:
+        condition: service_healthy
+      gotenberg:
+        condition: service_started
+
+  # --- Base de datos (MariaDB) ---
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    # El código mezcla nombres de tabla en mayúsculas y minúsculas. En Windows
+    # (XAMPP) MySQL es case-insensitive; en Linux es case-sensitive por defecto.
+    # Esto replica el comportamiento de Windows para no tener que tocar el código.
+    command: --lower-case-table-names=1
+    environment:
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+      # Se ejecuta SOLO la primera vez (cuando el volumen db_data está vacío)
+      - ./database-clean.sql:/docker-entrypoint-initdb.d/01-database-clean.sql:ro
+    # La BD NO se expone al host por defecto (solo la ve la app por la red interna).
+    # Descomenta para abrirla a un gestor externo (HeidiSQL, DBeaver...).
+    # OJO: no uses 3307, lo ocupa tu XAMPP. El .env trae DB_HOST_PORT=3308.
+    # ports:
+    #   - "${DB_HOST_PORT:-3308}:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # --- Conversión DOCX -> PDF (Gotenberg / LibreOffice) ---
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: unless-stopped
+
+volumes:
+  db_data:

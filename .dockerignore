@@ -1,0 +1,19 @@
+# El contexto de build solo necesita el Dockerfile y la carpeta docker/.
+# La app se monta por volumen (no se copia a la imagen), así que excluimos
+# todo lo pesado/sensible del contexto de build.
+.git
+.gitignore
+.env
+.env.example
+node_modules
+src/storage/logs/*.log
+src/storage/pdf/*
+src/storage/xml/*
+src/storage/certs/*.p12
+src/storage/certs/*.pfx
+*.docx
+tests
+docs
+README.md
+REQUISITOS.md
+REQUISITOS.docx

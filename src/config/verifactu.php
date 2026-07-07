@@ -1,11 +1,19 @@
 <?php
 /**
  * Configuración del sistema Verifactu (AEAT).
- * Ajustar con los datos reales antes de usar en producción.
+ *
+ * Los valores que cambian por cliente (entorno, certificado y contraseña) se
+ * leen del archivo `.env` de la raíz. El `.p12` del cliente se copia en
+ * src/storage/certs/ y su nombre se indica en VERIFACTU_CERT_ARCHIVO.
+ *
+ * IMPORTANTE: el NIF/razón social de empresa.php deben coincidir con el
+ * titular del certificado o la AEAT rechazará las facturas.
  */
+require_once __DIR__ . '/env.php';
+
 return [
     // 'pruebas' | 'produccion'
-    'entorno' => 'pruebas',
+    'entorno' => env('VERIFACTU_ENTORNO', 'pruebas'),
 
     'urls' => [
         'pruebas' => [
@@ -19,10 +27,10 @@ return [
     ],
 
     // Certificado digital (PKCS#12 / .p12 / .pfx)
-    // Solo pon el nombre del archivo en src/storage/certs/ y la contraseña
+    // Solo pon el nombre del archivo (en src/storage/certs/) y la contraseña en el .env
     'certificado' => (function () {
-        $archivo  = 'SDC_1_2_21_A_ALELU_MUNOZ_HUGO___51224383W.p12';
-        $password = 'Judojudo2006.';           // Contraseña del certificado
+        $archivo  = env('VERIFACTU_CERT_ARCHIVO', '');
+        $password = env('VERIFACTU_CERT_PASSWORD', '');
         return [
             'archivo'  => $archivo,
             'password' => $password,
@@ -31,7 +39,7 @@ return [
     })(),
 
     // Comportamiento
-    'auto_envio'        => false,
+    'auto_envio'        => (bool) env('VERIFACTU_AUTO_ENVIO', false),
     'max_reintentos'    => 5,
     'tiempo_espera_base'=> 60,   // segundos (backoff exponencial: 2^n * base)
     'timeout'           => 30,   // segundos conexión HTTP
