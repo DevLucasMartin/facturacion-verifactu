@@ -1,144 +1,100 @@
-# Sistema de Gestión de Facturas
+# Sistema de Gestión de Facturas — integración VeriFactu / AEAT
 
-Sistema de facturación con integración Verifactu / AEAT.
+Aplicación web de facturación para España con envío directo de los registros de facturación a la AEAT mediante **VeriFactu** (RD 1007/2023). Proyecto final del ciclo de Desarrollo de Aplicaciones Web, con una versión posterior ampliada y dockerizada.
 
-## Instalación con Docker (recomendado)
-
-Todo el sistema corre en 3 contenedores (web + base de datos + conversor de PDF).
-No hace falta instalar XAMPP, PHP ni MySQL a mano.
-
-### Requisitos
-- **Docker Desktop** instalado y arrancado.
-  Actívalo para que arranque con Windows: *Settings → General → "Start Docker
-  Desktop when you sign in"*. Junto con `restart: unless-stopped`, los servicios
-  se levantan solos al encender el PC (hay ~10-30 s hasta que todo responde).
-
-### Puesta en marcha
-```bash
-# 1. Configurar el cliente (ver "Alta de cliente nuevo")
-copy .env.example .env      # y editar el .env
-
-# 2. Levantar todo
-docker compose up -d --build
-```
-Abrir en el navegador: **http://localhost:8080/SistemaGestionFacturas/**
-(usuario `admin`, contraseña `Admin1` — cámbiala tras la entrega).
-
-La base de datos se inicializa **automáticamente la primera vez** con
-`database-clean.sql` (catálogos esenciales, sin datos de prueba).
-
-### Comandos útiles
-```bash
-docker compose ps           # estado de los servicios
-docker compose logs -f web  # ver logs de Apache/PHP en vivo
-docker compose down         # parar (los datos de la BD se conservan)
-docker compose down -v      # parar Y BORRAR la BD (vuelve a inicializarse limpia)
-```
-> La BD vive en el volumen `db_data`. `database-clean.sql` solo se ejecuta cuando
-> ese volumen está vacío; para reinicializarla, `docker compose down -v`.
+Se levanta con una sola orden y toda la configuración vive en un `.env`, pensada para poder entregarse a un cliente final.
 
 ---
 
-## Alta de cliente nuevo
+## Qué hace
 
-Para preparar la entrega a un cliente **solo se edita el `.env` y se copia su
-certificado**. No se toca código. Pasos:
+**Facturación**
+- Facturas completas, simplificadas, rectificativas y recapitulativas.
+- Numeración correlativa por canal y ejercicio, con bloqueo para evitar huecos en la serie.
+- Bases, IVA, recargo de equivalencia y tres tipos de descuento.
+- Cobros, pagos, abonos y cierre de facturas.
 
-1. **Certificado digital**
-   - Borrar el `.p12` de pruebas de `src/storage/certs/`.
-   - Copiar el `.p12` del cliente en `src/storage/certs/`.
+**Albaranes**
+- CRUD completo, plantillas reutilizables y conversión de uno o varios albaranes a factura.
 
-2. **Editar el `.env`** (copiado de `.env.example`):
-   - `VERIFACTU_CERT_ARCHIVO` = nombre exacto del `.p12` del cliente.
-   - `VERIFACTU_CERT_PASSWORD` = contraseña del certificado.
-   - `VERIFACTU_ENTORNO=produccion` (para facturar de verdad ante la AEAT).
-   - `EMPRESA_NIF` y `EMPRESA_RAZON_SOCIAL` → **deben coincidir con el titular
-     del certificado**, o la AEAT rechazará TODAS las facturas.
-   - Resto de datos de empresa que salen en la factura: `EMPRESA_TELEFONO`,
-     `EMPRESA_EMAIL`, `EMPRESA_WEB`, `EMPRESA_DATOS_BANCARIOS`, dirección...
-   - SMTP del cliente: `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`,
-     `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`.
-     *(En Gmail, `SMTP_PASSWORD` es una "contraseña de aplicación", no la normal.)*
-   - Contraseñas de BD: `DB_PASSWORD` y `DB_ROOT_PASSWORD` (poner unas propias).
+**VeriFactu / AEAT**
+- Genera el registro de facturación, calcula la huella SHA-256 encadenada con la factura anterior, firma el XML con certificado y lo envía por SOAP a la AEAT.
+- **Modo sin conexión:** si no hay internet, la factura queda en cola como pendiente y un script la envía después (pensado para cron o el Programador de tareas).
+- La cola valida el encadenamiento antes de cada envío y se detiene al primer fallo, para no corromper la cadena de huellas.
+- Gestión de rechazos: reintentos, anulaciones, descarga del XML enviado y de la respuesta de Hacienda.
 
-3. **Arrancar**: `docker compose up -d --build`.
-   La BD se crea vacía de datos de prueba; `Verifactu_Registros` queda vacía para
-   que la cadena de huellas de Verifactu empiece limpia en este cliente.
+**Documentos**
+- PDF generados desde plantillas `.docx` con PHPWord y convertidos con Gotenberg. Si Gotenberg no responde, entrega el `.docx` en su lugar.
+- QR de verificación VeriFactu embebido en la factura.
+- Envío por email y exportación a Excel.
 
-4. **Tras el primer arranque**: cambiar la contraseña del usuario `admin`.
+**Maestros**
+Clientes (con varias direcciones y teléfonos, y validación de NIF), artículos, familias, tarifas, tipos de IVA, formas de pago, canales, países y usuarios.
 
-> ⚠️ Verifactu encadena cada factura con la huella de la anterior. NUNCA mezcles
-> registros de prueba con los del cliente: arrancarías la cadena corrupta.
+---
 
-## Cómo ver qué error ha dado (logs)
+## Stack
 
-El sistema registra los errores de forma centralizada mediante la clase
-[`Logger`](src/core/Logger.php). Se genera **un archivo de log por servicio**
-dentro de `src/storage/logs/`. Cuando algo falla, ahí queda registrado con la
-fecha y hora exacta, el nivel y el detalle del error.
+| Capa | Tecnología |
+|---|---|
+| Backend | PHP 8.2+ sin framework, con MVC propio (`api/` → `controllers/` → `services/` → `models/`) |
+| Base de datos | MariaDB 11, acceso con PDO |
+| Frontend | HTML, CSS y JavaScript sin build, consumiendo la API con `fetch` (+ SweetAlert) |
+| Infraestructura | Docker Compose: Apache + PHP, MariaDB y Gotenberg |
+| Librerías | josemmo/verifactu-php, PHPWord, endroid/qr-code, PHPMailer, fast-excel-writer |
 
-### Dónde mirar según lo que falle
+---
 
-| Si falla...                                   | Mira el archivo                    |
-| --------------------------------------------- | ---------------------------------- |
-| Conexión o consultas a la base de datos       | `src/storage/logs/database.log`    |
-| Envío a Hacienda / Verifactu                  | `src/storage/logs/verifactu.log`   |
-| Firma digital del certificado                 | `src/storage/logs/firma_digital.log`|
-| Envío de emails                               | `src/storage/logs/email.log`       |
-| Generación de PDF / DOCX                       | `src/storage/logs/pdf.log`         |
-| Generación del código QR                       | `src/storage/logs/qrcode.log`      |
-| Numeración de documentos                       | `src/storage/logs/numeracion.log`  |
-| Conversión de albaranes a factura              | `src/storage/logs/conversion.log`  |
-| Cualquier error 500 de un endpoint de la API   | `src/storage/logs/http.log`        |
+## Seguridad
 
-> El nombre del archivo es el del servicio (p. ej. `verifactu.log`,
-> `email.log`...). Si no existe es que ese servicio todavía no ha registrado
-> ningún error.
+- Protección CSRF y gestión de sesiones.
+- Validación centralizada de entrada.
+- Consultas preparadas (PDO) en todo el acceso a datos.
+- Firma XML con certificado y cadena de huellas SHA-256 entre facturas consecutivas.
+- `.htaccess` que bloquea el acceso a `vendor/`, `src/config/` y `src/core/`, y añade cabeceras de seguridad.
+- Logging separado por servicio.
+- Certificados, `.env` y logs quedan fuera del repositorio.
 
-### Formato de cada línea
+---
 
-```
-[2026-06-05 17:29:06] ERROR: Table 'verifactu.tabla_x' doesn't exist | {"sql":"SELECT ...","origen":"database.php:37"}
-```
+## Puesta en marcha
 
-1. **Fecha y hora** exacta del fallo.
-2. **Nivel**: `ERROR`, `WARNING` o `INFO`.
-3. **Mensaje** del error.
-4. **Contexto** en JSON: datos útiles (documento, SQL, destino...) y, en las
-   excepciones, el `origen` con el archivo y la línea donde se produjo.
+Requisitos: **Docker Desktop** instalado y arrancado.
 
-### Ver los logs
-
-**Windows (PowerShell) — en tiempo real mientras usas la app:**
-
-```powershell
-Get-Content src\storage\logs\verifactu.log -Wait -Tail 20
+```bash
+git clone https://github.com/DevLucasMartin/<nombre-del-repo>.git
+cd <nombre-del-repo>
+copy .env.example .env        # y edita los valores
+docker compose up -d --build
 ```
 
-**Ver las últimas líneas de un log concreto:**
+Abrir **http://localhost:8080/SistemaGestionFacturas/**
 
-```powershell
-Get-Content src\storage\logs\verifactu.log -Tail 50
-```
+La base de datos se inicializa automáticamente la primera vez con `database-clean.sql`: catálogos esenciales y ningún dato de prueba, porque mezclar registros de prueba con los de un cliente real rompería la cadena de huellas de VeriFactu. Para probar con datos de ejemplo, usa `database.sql`.
 
-**Vaciar un log para empezar de cero:**
+Las credenciales iniciales y el resto de comandos están en la guía de instalación. **Cámbialas antes de cualquier uso real.**
 
-```powershell
-Clear-Content src\storage\logs\verifactu.log
-```
+📄 **[Guía completa de instalación y operación](docs/INSTALACION-DOCKER.md)** — alta de clientes, comandos útiles, copias de seguridad y resolución de problemas.
 
-### Probar que el registro funciona
+También hay instalación alternativa sobre XAMPP en `REQUISITOS.md`, y la guía de entrega a cliente en `INSTALACION-CLIENTE.md`.
 
-Para forzar un error y comprobar que se registra (consulta a una tabla
-inexistente):
+---
 
-```powershell
-php -r "require 'src/config/database.php'; try { Database::getInstance()->query('SELECT * FROM no_existe'); } catch (\Throwable $e) {} echo file_get_contents('src/storage/logs/database.log');"
-```
+## Autoría
 
-### Notas
+Proyecto académico desarrollado por **Lucas Martín García**, **Ilias Tighadouini** y **Hugo Alelú** (IES Ciudad Escolar, curso 2025/26).
 
-- Los archivos `.log` **no se versionan** en git (están en
-  `src/storage/logs/.gitignore`): son datos locales de cada instalación.
-- `verifactu_debug.log` es aparte: contiene el volcado completo del XML SOAP de
-  petición y la respuesta de la AEAT (para depurar la comunicación), no errores.
+Mi parte en el proyecto:
+
+- **Integración VeriFactu / AEAT completa**: construcción del registro de facturación, huella SHA-256 encadenada, firma con certificado, envío SOAP, cola sin conexión y gestión de rechazos.
+- **Seguridad transversal**: CSRF, sesiones, validación centralizada, consultas preparadas y cabeceras.
+- **Núcleo de facturación**: tipos de factura, numeración correlativa, validación de NIF y códigos de territorio.
+- **Dockerización con Docker Compose**, posterior a la entrega del proyecto.
+
+El historial de commits refleja el reparto real del trabajo.
+
+---
+
+## Aviso
+
+Los datos de `database.sql` son ficticios y sirven solo para pruebas. La aplicación se ha probado contra el entorno de pruebas de la AEAT, no contra producción.

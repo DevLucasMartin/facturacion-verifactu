@@ -1,16 +1,36 @@
 # Configuración por cliente (contiene secretos: NUNCA se versiona)
 .env
+.env.*
+!.env.example
 
 # Certificados digitales de clientes
 src/storage/certs/*.p12
 src/storage/certs/*.pfx
+*.pem
+*.key
+*.crt
+*.jks
+*.keystore
 
 # Datos generados en tiempo de ejecución
 src/storage/logs/*.log
+*.log
 src/storage/pdf/*
 src/storage/xml/*
+src/storage/tmp/*
+src/storage/uploads/*
+src/storage/excel/*
 !src/storage/**/.gitignore
 
-# Sistema
+# Volcados de base de datos con datos reales
+*.dump
+*.sql.gz
+backup*.sql
+
+# Sistema y editores
 Thumbs.db
+desktop.ini
 .DS_Store
+.vscode/
+.idea/
+*.swp
