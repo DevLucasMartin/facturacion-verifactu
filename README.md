@@ -62,8 +62,8 @@ Clientes (con varias direcciones y teléfonos, y validación de NIF), artículos
 Requisitos: **Docker Desktop** instalado y arrancado.
 
 ```bash
-git clone https://github.com/DevLucasMartin/<nombre-del-repo>.git
-cd <nombre-del-repo>
+git clone https://github.com/DevLucasMartin/facturacion-verifactu.git
+cd facturacion-verifactu
 copy .env.example .env        # y edita los valores
 docker compose up -d --build
 ```
@@ -91,7 +91,7 @@ Mi parte en el proyecto:
 - **Núcleo de facturación**: tipos de factura, numeración correlativa, validación de NIF y códigos de territorio.
 - **Dockerización con Docker Compose**, posterior a la entrega del proyecto.
 
-El historial de commits refleja el reparto real del trabajo.
+El historial de commits refleja el reparto real del trabajo.h
 
 ---
 
